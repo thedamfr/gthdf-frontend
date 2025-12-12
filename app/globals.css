@@ -1,4 +1,9 @@
-@import "tailwindcss";
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
   /* GTHDF Color Tokens */
@@ -14,23 +19,23 @@
   --foreground: var(--color-charbon);
 }
 
-@theme inline {
-  --color-charbon: #272624;
-  --color-creme: #FAEED4;
-  --color-beige: #DACEBB;
-  --color-rouge: #F3492F;
-  --color-vert: #4D9678;
-  --color-jaune: #FEAF2C;
-  --color-bleu: #216173;
-  
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }

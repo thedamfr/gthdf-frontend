@@ -1,131 +1,165 @@
-import { getAbout } from '@/lib/strapi';
+import styles from './page.module.css';
 
-interface Block {
-  __component: string;
-  id: number;
-  [key: string]: any;
+// Temporary placeholder component until images are added
+function ImagePlaceholder({ text, height }: { text: string; height: number }) {
+  return (
+    <div style={{
+      width: '100%',
+      height: `${height}px`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '0.875rem',
+      color: 'var(--color-charbon)',
+      opacity: 0.5,
+      background: 'var(--color-beige)',
+      border: '2px dashed var(--color-charbon)',
+    }}>
+      {text}
+    </div>
+  );
 }
 
-export default async function Home() {
-  try {
-    const about: any = await getAbout();
-    
-    if (!about || !about.title) {
-      return (
-        <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-          <h1>Page non disponible</h1>
-          <p>Le contenu de la page n&apos;est pas encore configuré dans Strapi.</p>
-        </main>
-      );
-    }
-
-    const { title, blocks } = about;
-
-    return (
-      <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-        {title && (
-          <h1 style={{ 
-            marginBottom: '3rem', 
-            fontSize: '3rem',
-            color: 'var(--color-charbon)',
-            borderBottom: '3px solid var(--color-rouge)',
-            paddingBottom: '1rem'
-          }}>
-            {title}
-          </h1>
-        )}
-        
-        {blocks && blocks.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {blocks.map((block: Block) => (
-              <BlockRenderer key={block.id} block={block} />
-            ))}
-          </div>
-        ) : (
-          <p>Aucun contenu disponible.</p>
-        )}
-      </main>
-    );
-  } catch (error) {
-    console.error('Error loading page:', error);
-    return (
-      <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <h1>Erreur</h1>
-        <p>Impossible de charger le contenu. Assurez-vous que Strapi est démarré.</p>
-      </main>
-    );
-  }
+function LogoPlaceholder() {
+  return (
+    <div style={{
+      width: '140px',
+      height: '280px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '0.75rem',
+      color: 'var(--color-charbon)',
+      background: 'var(--color-beige)',
+      border: '3px solid var(--color-charbon)',
+      borderRadius: '70px',
+      textAlign: 'center',
+      padding: '1rem',
+      fontWeight: 'bold',
+    }}>
+      GTHDF<br/>Logo
+    </div>
+  );
 }
 
-function BlockRenderer({ block }: { block: Block }) {
-  switch (block.__component) {
-    case 'shared.rich-text':
-      return (
-        <div 
-          dangerouslySetInnerHTML={{ __html: block.body }}
-          style={{ lineHeight: '1.6' }}
-        />
-      );
-
-    case 'shared.media':
-      if (!block.file?.url) return null;
-      const mediaUrl = block.file.url.startsWith('http') 
-        ? block.file.url 
-        : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${block.file.url}`;
-      return (
-        <div>
-          <img 
-            src={mediaUrl} 
-            alt={block.file.alternativeText || ''}
-            style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px' }}
-          />
+export default function Home() {
+  return (
+    <div className={styles.container}>
+      {/* Header with Logo */}
+      <header className={styles.header}>
+        <div className={styles.logoContainer}>
+          <LogoPlaceholder />
         </div>
-      );
+        <div className={styles.headerText}>
+          <h1 className={styles.title}>Grand Tour des Hauts-de-France</h1>
+          <p className={styles.subtitle}>Carnet de voyage numérique. Notes from the road.</p>
+        </div>
+      </header>
 
-    case 'shared.quote':
-      return (
-        <blockquote 
-          style={{ 
-            borderLeft: '4px solid var(--color-rouge)',
-            paddingLeft: '1.5rem',
-            fontStyle: 'italic',
-            margin: '2rem 0'
-          }}
-        >
-          <p>{block.body}</p>
-          {block.title && (
-            <footer style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
-              — {block.title}
-            </footer>
-          )}
-        </blockquote>
-      );
+      {/* Horizons Changeants */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Changing Horizons</h2>
+        <div className={styles.horizonsGrid}>
+          <article className={styles.horizonCard} style={{ borderColor: 'var(--color-bleu)' }}>
+            <div className={styles.imageFrame}>
+              <ImagePlaceholder text="Opal Coast" height={200} />
+            </div>
+            <h3>The Opal Coast</h3>
+            <p>Salt air and wide skies. The path follows the cliff edge.</p>
+          </article>
 
-    case 'shared.slider':
-      return (
-        <div>
-          <h3 style={{ marginBottom: '1rem', color: 'var(--color-charbon)' }}>
-            {block.title || 'Galerie'}
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            {block.files?.map((file: any, index: number) => {
-              const imageUrl = file.url.startsWith('http') 
-                ? file.url 
-                : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${file.url}`;
-              return (
-                <img 
-                  key={index}
-                  src={imageUrl} 
-                  alt={file.alternativeText || ''}
-                  style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
-                />
-              );
-            })}
+          <article className={styles.horizonCard} style={{ borderColor: 'var(--color-vert)' }}>
+            <div className={styles.imageFrame}>
+              <ImagePlaceholder text="Mining Basin" height={200} />
+            </div>
+            <h3>The Mining Basin</h3>
+            <p>History reclaimed by nature. A surprising quiet.</p>
+          </article>
+
+          <article className={styles.horizonCard} style={{ borderColor: 'var(--color-vert)' }}>
+            <div className={styles.imageFrame}>
+              <ImagePlaceholder text="Ardennes Foothills" height={200} />
+            </div>
+            <h3>The Ardennes foothills</h3>
+            <p>Deep woods and sloped tunnels. The route goes gently.</p>
+          </article>
+        </div>
+      </section>
+
+      {/* Encounters */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Encounters</h2>
+        <div className={styles.encountersGrid}>
+          <article className={styles.encounterCard}>
+            <div className={styles.encounterImage}>
+              <ImagePlaceholder text="René & Marie" height={150} />
+            </div>
+            <div className={styles.encounterText}>
+              <h3>René & Marie</h3>
+              <p>Retired, cycling slowly towards Lille.</p>
+            </div>
+          </article>
+
+          <article className={styles.encounterCard}>
+            <div className={styles.encounterImage}>
+              <ImagePlaceholder text="Claire" height={150} />
+            </div>
+            <div className={styles.encounterText}>
+              <h3>Claire</h3>
+              <p>Baker in Arras. Suggested the canal route.</p>
+            </div>
+          </article>
+
+          <article className={styles.encounterCard}>
+            <div className={styles.encounterImage}>
+              <ImagePlaceholder text="Marc & Léo" height={150} />
+            </div>
+            <div className={styles.encounterText}>
+              <h3>Marc & Léo</h3>
+              <p>First multi-day trip together.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      {/* Map Overview */}
+      <section className={styles.mapSection}>
+        <h2 className={styles.sectionTitle}>Map Overview</h2>
+        <div className={styles.mapContainer}>
+          <div className={styles.mapFrame}>
+            <div className={styles.mapTitle}>The Reference Path</div>
+            <div className={styles.mapPlaceholder}>
+              <p style={{ textAlign: 'center', color: 'var(--color-charbon)', opacity: 0.5 }}>
+                Interactive map placeholder
+              </p>
+            </div>
+          </div>
+          <p className={styles.mapCaption}>
+            A general direction. The itinerary is open to interpretation. No rush.
+          </p>
+        </div>
+      </section>
+
+      {/* The Principle */}
+      <section className={styles.principleSection}>
+        <h2 className={styles.sectionTitle}>The Principle</h2>
+        <div className={styles.principleGrid}>
+          <div className={styles.principleCard} style={{ backgroundColor: 'var(--color-charbon)', color: 'var(--color-creme)' }}>
+            <h3>Accessible</h3>
+            <p>Mostly flat, sometimes rolling. Designed for heavy bikes and easy gears.</p>
+          </div>
+
+          <div className={styles.principleCard} style={{ backgroundColor: 'var(--color-jaune)', color: 'var(--color-charbon)' }}>
+            <h3>Timeless</h3>
+            <p>Five days or five weeks. The arrival date is not important.</p>
+          </div>
+
+          <div className={styles.principleCard} style={{ backgroundColor: 'var(--color-beige)', color: 'var(--color-charbon)' }}>
+            <h3>Grounded</h3>
+            <p>A break from efficiency. Watch the landscape change slowly.</p>
           </div>
         </div>
-      );
-
-    default:
-      return null;
-  }
+      </section>
+    </div>
+  );
 }
