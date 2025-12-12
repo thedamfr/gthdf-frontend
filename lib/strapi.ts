@@ -42,6 +42,8 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
   });
 
   const requestUrl = `${STRAPI_URL}/api${endpoint}${queryString.toString() ? `?${queryString.toString()}` : ''}`;
+  
+  console.log('Fetching:', requestUrl); // Debug
 
   try {
     const response = await fetch(requestUrl, mergedOptions);
@@ -143,7 +145,9 @@ export async function getHomepage() {
   return fetchAPI({
     endpoint: '/homepage',
     query: {
-      populate: ['logo', 'horizons', 'horizons.image'],
+      'populate[0]': 'logo',
+      'populate[1]': 'horizons.image',
+      'populate[2]': 'rencontres.image',
     },
     wrappedByKey: 'data',
   });

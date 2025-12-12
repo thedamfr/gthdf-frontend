@@ -52,12 +52,23 @@ interface HorizonCard {
   image: { url: string; alternativeText?: string };
 }
 
+interface EncounterCard {
+  id: number;
+  title: string;
+  description: string;
+  borderColor: 'bleu' | 'vert' | 'rouge' | 'jaune' | 'beige';
+  image: { url: string; alternativeText?: string };
+}
+
 export default async function Home() {
   const homepage = await getHomepage() as { 
     title?: string; 
     subtitle?: string;
     logo?: { url: string; alternativeText?: string; width?: number; height?: number };
+    HorizonsTitres?: string;
     horizons?: HorizonCard[];
+    rencontresTitre?: string;
+    rencontres?: EncounterCard[];
   };
 
   const logoUrl = homepage?.logo?.url 
@@ -91,7 +102,7 @@ export default async function Home() {
 
       {/* Horizons Changeants */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Changing Horizons</h2>
+        <h2 className={styles.sectionTitle}>{homepage?.HorizonsTitres || 'Changing Horizons'}</h2>
         <div className={styles.horizonsContainer}>
           <div className={styles.horizonsGrid}>
             {homepage?.horizons?.map((horizon, index) => {
@@ -157,37 +168,40 @@ export default async function Home() {
 
       {/* Encounters */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Encounters</h2>
+        <h2 className={styles.sectionTitle}>{homepage?.rencontresTitre || 'Encounters'}</h2>
         <div className={styles.encountersGrid}>
-          <article className={styles.encounterCard}>
-            <div className={styles.encounterImage}>
-              <ImagePlaceholder text="René & Marie" height={150} />
-            </div>
-            <div className={styles.encounterText}>
-              <h3>René & Marie</h3>
-              <p>Retired, cycling slowly towards Lille.</p>
-            </div>
-          </article>
+          {homepage?.rencontres?.map((encounter) => {
+            const imageUrl = encounter.image?.url 
+              ? (encounter.image.url.startsWith('http') 
+                  ? encounter.image.url 
+                  : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${encounter.image.url}`)
+              : null;
 
-          <article className={styles.encounterCard}>
-            <div className={styles.encounterImage}>
-              <ImagePlaceholder text="Claire" height={150} />
-            </div>
-            <div className={styles.encounterText}>
-              <h3>Claire</h3>
-              <p>Baker in Arras. Suggested the canal route.</p>
-            </div>
-          </article>
-
-          <article className={styles.encounterCard}>
-            <div className={styles.encounterImage}>
-              <ImagePlaceholder text="Marc & Léo" height={150} />
-            </div>
-            <div className={styles.encounterText}>
-              <h3>Marc & Léo</h3>
-              <p>First multi-day trip together.</p>
-            </div>
-          </article>
+            return (
+              <article key={encounter.id} className={styles.encounterCard}>
+                <div 
+                  className={styles.encounterImage}
+                  style={{ borderColor: `var(--color-${encounter.borderColor})` }}
+                >
+                  {imageUrl ? (
+                    <Image 
+                      src={imageUrl}
+                      alt={encounter.image.alternativeText || encounter.title}
+                      width={200}
+                      height={150}
+                      style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '4px' }}
+                    />
+                  ) : (
+                    <ImagePlaceholder text={encounter.title} height={150} />
+                  )}
+                </div>
+                <div className={styles.encounterText}>
+                  <h3>{encounter.title}</h3>
+                  <p>{encounter.description}</p>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
