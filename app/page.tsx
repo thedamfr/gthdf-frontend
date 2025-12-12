@@ -1,4 +1,6 @@
 import styles from './page.module.css';
+import { getHomepage } from '@/lib/strapi';
+import Image from 'next/image';
 
 // Temporary placeholder component until images are added
 function ImagePlaceholder({ text, height }: { text: string; height: number }) {
@@ -42,47 +44,114 @@ function LogoPlaceholder() {
   );
 }
 
-export default function Home() {
+interface HorizonCard {
+  id: number;
+  title: string;
+  description: string;
+  borderColor: 'bleu' | 'vert' | 'rouge' | 'jaune' | 'beige';
+  image: { url: string; alternativeText?: string };
+}
+
+export default async function Home() {
+  const homepage = await getHomepage() as { 
+    title?: string; 
+    subtitle?: string;
+    logo?: { url: string; alternativeText?: string; width?: number; height?: number };
+    horizons?: HorizonCard[];
+  };
+
+  const logoUrl = homepage?.logo?.url 
+    ? (homepage.logo.url.startsWith('http') 
+        ? homepage.logo.url 
+        : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${homepage.logo.url}`)
+    : null;
+
   return (
     <div className={styles.container}>
       {/* Header with Logo */}
       <header className={styles.header}>
         <div className={styles.logoContainer}>
-          <LogoPlaceholder />
+          {logoUrl ? (
+            <Image 
+              src={logoUrl}
+              alt={homepage?.logo?.alternativeText || 'GTHDF Logo'}
+              width={140}
+              height={280}
+              priority
+            />
+          ) : (
+            <LogoPlaceholder />
+          )}
         </div>
         <div className={styles.headerText}>
-          <h1 className={styles.title}>Grand Tour des Hauts-de-France</h1>
-          <p className={styles.subtitle}>Carnet de voyage numérique. Notes from the road.</p>
+          <h1 className={styles.title}>{homepage?.title || 'Grand Tour des Hauts-de-France'}</h1>
+          <p className={styles.subtitle}>{homepage?.subtitle || 'Carnet de voyage numérique. Notes from the road.'}</p>
         </div>
       </header>
 
       {/* Horizons Changeants */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Changing Horizons</h2>
-        <div className={styles.horizonsGrid}>
-          <article className={styles.horizonCard} style={{ borderColor: 'var(--color-bleu)' }}>
-            <div className={styles.imageFrame}>
-              <ImagePlaceholder text="Opal Coast" height={200} />
-            </div>
-            <h3>The Opal Coast</h3>
-            <p>Salt air and wide skies. The path follows the cliff edge.</p>
-          </article>
+        <div className={styles.horizonsContainer}>
+          <div className={styles.horizonsGrid}>
+            {homepage?.horizons?.map((horizon, index) => {
+              const imageUrl = horizon.image?.url 
+                ? (horizon.image.url.startsWith('http') 
+                    ? horizon.image.url 
+                    : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${horizon.image.url}`)
+                : null;
 
-          <article className={styles.horizonCard} style={{ borderColor: 'var(--color-vert)' }}>
-            <div className={styles.imageFrame}>
-              <ImagePlaceholder text="Mining Basin" height={200} />
-            </div>
-            <h3>The Mining Basin</h3>
-            <p>History reclaimed by nature. A surprising quiet.</p>
-          </article>
-
-          <article className={styles.horizonCard} style={{ borderColor: 'var(--color-vert)' }}>
-            <div className={styles.imageFrame}>
-              <ImagePlaceholder text="Ardennes Foothills" height={200} />
-            </div>
-            <h3>The Ardennes foothills</h3>
-            <p>Deep woods and sloped tunnels. The route goes gently.</p>
-          </article>
+              return (
+                <article 
+                  key={horizon.id} 
+                  className={styles.horizonCard} 
+                  style={{ borderColor: `var(--color-${horizon.borderColor})` }}
+                >
+                  <div className={styles.imageFrame}>
+                    {imageUrl ? (
+                      <Image 
+                        src={imageUrl}
+                        alt={horizon.image.alternativeText || horizon.title}
+                        width={300}
+                        height={200}
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    ) : (
+                      <ImagePlaceholder text={horizon.title} height={200} />
+                    )}
+                  </div>
+                  <h3>{horizon.title}</h3>
+                  <p>{horizon.description}</p>
+                  
+                  {/* Path arrow between cards */}
+                  {index < (homepage.horizons?.length || 0) - 1 && (
+                    <svg 
+                      className={styles.pathArrow}
+                      width="60" 
+                      height="40" 
+                      viewBox="0 0 60 40"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path 
+                        d="M0 20 Q 30 10, 60 20" 
+                        stroke="var(--color-rouge)" 
+                        strokeWidth="2" 
+                        strokeDasharray="4 4"
+                        fill="none"
+                      />
+                      <path 
+                        d="M 55 15 L 60 20 L 55 25" 
+                        stroke="var(--color-rouge)" 
+                        strokeWidth="2" 
+                        fill="none"
+                      />
+                    </svg>
+                  )}
+                </article>
+              );
+            })}
+          </div>
         </div>
       </section>
 

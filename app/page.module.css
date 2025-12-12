@@ -58,18 +58,31 @@
 }
 
 /* Horizons Grid */
+.horizonsContainer {
+  position: relative;
+}
+
 .horizonsGrid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 0.9fr;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
   align-items: start;
 }
 
 .horizonCard {
+  position: relative;
   border: 3px solid;
   padding: 1.25rem;
   background: var(--color-creme);
   transition: transform 0.2s ease;
+}
+
+.pathArrow {
+  position: absolute;
+  right: -70px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
 }
 
 .horizonCard:hover {
@@ -226,6 +239,10 @@
 
   .horizonsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .pathArrow {
+    display: none;
   }
 
   .encountersGrid {

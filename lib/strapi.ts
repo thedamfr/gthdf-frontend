@@ -135,3 +135,16 @@ export async function getAbout() {
     wrappedByKey: 'data',
   });
 }
+
+/**
+ * Get Homepage content
+ */
+export async function getHomepage() {
+  return fetchAPI({
+    endpoint: '/homepage',
+    query: {
+      populate: ['logo', 'horizons', 'horizons.image'],
+    },
+    wrappedByKey: 'data',
+  });
+}
