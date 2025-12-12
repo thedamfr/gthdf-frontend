@@ -130,11 +130,7 @@ export async function getAbout() {
   return fetchAPI({
     endpoint: '/about',
     query: {
-      populate: {
-        blocks: {
-          populate: '*',
-        },
-      },
+      populate: ['blocks', 'blocks.file', 'blocks.files'],
     },
     wrappedByKey: 'data',
   });
