@@ -1,110 +1,131 @@
-import Image from "next/image";
-import Link from "next/link";
-import { getArticles } from "@/lib/strapi";
+import { getAbout } from '@/lib/strapi';
+
+interface Block {
+  __component: string;
+  id: number;
+  [key: string]: any;
+}
 
 export default async function Home() {
-  let articles = [];
-  let error = null;
-
   try {
-    articles = await getArticles();
-  } catch (e) {
-    error = e instanceof Error ? e.message : 'Failed to load articles';
-    console.error('Error loading articles:', e);
-  }
+    const about: any = await getAbout();
+    
+    if (!about || !about.title) {
+      return (
+        <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+          <h1>Page non disponible</h1>
+          <p>Le contenu de la page n&apos;est pas encore configuré dans Strapi.</p>
+        </main>
+      );
+    }
 
-  return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black">
-      <main className="container mx-auto px-4 py-16 max-w-6xl">
-        <header className="mb-16 text-center">
-          <h1 className="text-5xl font-bold text-black dark:text-white mb-4">
-            GTHDF Blog
+    const { title, blocks } = about;
+
+    return (
+      <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+        {title && (
+          <h1 style={{ 
+            marginBottom: '3rem', 
+            fontSize: '3rem',
+            color: 'var(--color-charbon)',
+            borderBottom: '3px solid var(--color-rouge)',
+            paddingBottom: '1rem'
+          }}>
+            {title}
           </h1>
-          <p className="text-xl text-zinc-600 dark:text-zinc-400">
-            Articles powered by Strapi CMS
-          </p>
-        </header>
-
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 mb-8">
-            <h2 className="text-red-800 dark:text-red-200 font-semibold mb-2">
-              Unable to load articles
-            </h2>
-            <p className="text-red-600 dark:text-red-300 text-sm">
-              {error}
-            </p>
-            <p className="text-red-600 dark:text-red-300 text-sm mt-2">
-              Make sure Strapi is running on http://localhost:1337
-            </p>
-          </div>
         )}
-
-        {articles.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {articles.map((article: any) => (
-              <article
-                key={article.id}
-                className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
-              >
-                {article.cover?.url && (
-                  <div className="relative h-48 w-full">
-                    <Image
-                      src={`${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${article.cover.url}`}
-                      alt={article.cover.alternativeText || article.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="p-6">
-                  {article.category && (
-                    <span className="inline-block px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-3">
-                      {article.category.name}
-                    </span>
-                  )}
-                  <h2 className="text-2xl font-bold text-black dark:text-white mb-2">
-                    <Link
-                      href={`/article/${article.slug}`}
-                      className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    >
-                      {article.title}
-                    </Link>
-                  </h2>
-                  <p className="text-zinc-600 dark:text-zinc-400 mb-4 line-clamp-3">
-                    {article.description}
-                  </p>
-                  {article.author && (
-                    <div className="flex items-center gap-3">
-                      {article.author.avatar?.url && (
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                          <Image
-                            src={`${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${article.author.avatar.url}`}
-                            alt={article.author.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {article.author.name}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </article>
+        
+        {blocks && blocks.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {blocks.map((block: Block) => (
+              <BlockRenderer key={block.id} block={block} />
             ))}
           </div>
-        ) : !error ? (
-          <div className="text-center py-16">
-            <p className="text-xl text-zinc-600 dark:text-zinc-400">
-              No articles found. Seed your Strapi database with:
-            </p>
-            <code className="block mt-4 bg-zinc-100 dark:bg-zinc-900 p-4 rounded text-sm">
-              cd ../gthdf-cms && npm run seed:example
-            </code>
-          </div>
-        ) : null}
+        ) : (
+          <p>Aucun contenu disponible.</p>
+        )}
       </main>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error('Error loading page:', error);
+    return (
+      <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+        <h1>Erreur</h1>
+        <p>Impossible de charger le contenu. Assurez-vous que Strapi est démarré.</p>
+      </main>
+    );
+  }
+}
+
+function BlockRenderer({ block }: { block: Block }) {
+  switch (block.__component) {
+    case 'shared.rich-text':
+      return (
+        <div 
+          dangerouslySetInnerHTML={{ __html: block.body }}
+          style={{ lineHeight: '1.6' }}
+        />
+      );
+
+    case 'shared.media':
+      if (!block.file?.url) return null;
+      const mediaUrl = block.file.url.startsWith('http') 
+        ? block.file.url 
+        : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${block.file.url}`;
+      return (
+        <div>
+          <img 
+            src={mediaUrl} 
+            alt={block.file.alternativeText || ''}
+            style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px' }}
+          />
+        </div>
+      );
+
+    case 'shared.quote':
+      return (
+        <blockquote 
+          style={{ 
+            borderLeft: '4px solid var(--color-rouge)',
+            paddingLeft: '1.5rem',
+            fontStyle: 'italic',
+            margin: '2rem 0'
+          }}
+        >
+          <p>{block.body}</p>
+          {block.title && (
+            <footer style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>
+              — {block.title}
+            </footer>
+          )}
+        </blockquote>
+      );
+
+    case 'shared.slider':
+      return (
+        <div>
+          <h3 style={{ marginBottom: '1rem', color: 'var(--color-charbon)' }}>
+            {block.title || 'Galerie'}
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            {block.files?.map((file: any, index: number) => {
+              const imageUrl = file.url.startsWith('http') 
+                ? file.url 
+                : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${file.url}`;
+              return (
+                <img 
+                  key={index}
+                  src={imageUrl} 
+                  alt={file.alternativeText || ''}
+                  style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      );
+
+    default:
+      return null;
+  }
 }

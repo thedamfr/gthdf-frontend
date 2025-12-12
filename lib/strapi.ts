@@ -122,3 +122,20 @@ export async function getGlobal() {
     wrappedByKey: 'data',
   });
 }
+
+/**
+ * Get About page with blocks
+ */
+export async function getAbout() {
+  return fetchAPI({
+    endpoint: '/about',
+    query: {
+      populate: {
+        blocks: {
+          populate: '*',
+        },
+      },
+    },
+    wrappedByKey: 'data',
+  });
+}
