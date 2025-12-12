@@ -1,3 +1,12 @@
+/* Font Face - Fat Frank Heavy */
+@font-face {
+  font-family: 'Fat Frank';
+  src: url('/fonts/fat-frank-heavy.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Reset and Base Styles */
 * {
   box-sizing: border-box;
@@ -15,6 +24,10 @@
   --color-jaune: #FEAF2C;
   --color-bleu: #216173;
   
+  /* Typography */
+  --font-brand: 'Fat Frank', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
   --background: var(--color-creme);
   --foreground: var(--color-charbon);
 }
@@ -22,14 +35,20 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1, h2, h3 {
+  font-family: var(--font-brand);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+h4, h5, h6 {
   font-weight: 700;
   line-height: 1.2;
 }
