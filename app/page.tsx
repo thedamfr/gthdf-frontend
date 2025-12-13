@@ -79,6 +79,13 @@ interface PrincipleCard {
   textColor: 'charbon' | 'creme';
 }
 
+interface SocialLink {
+  id: number;
+  platform: string;
+  url: string;
+  label: string;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const homepage = await getHomepage() as { 
     seo?: SeoComponent[];
@@ -116,6 +123,8 @@ export default async function Home() {
     mapCaption?: string;
     principlesTitle?: string;
     principles?: PrincipleCard[];
+    footerText?: string;
+    socialLinks?: SocialLink[];
   };
 
   const logoUrl = homepage?.logo?.url 
@@ -200,6 +209,30 @@ export default async function Home() {
         <h2 className={styles.sectionTitle}>{homepage?.principlesTitle || 'The Principle'}</h2>
         <PrinciplesSection principles={homepage?.principles || []} />
       </section>
+
+      {/* Footer */}
+      <footer className={styles.footer}>
+        <div className={styles.footerContent}>
+          {homepage?.footerText && (
+            <p className={styles.footerText}>{homepage.footerText}</p>
+          )}
+          {homepage?.socialLinks && homepage.socialLinks.length > 0 && (
+            <div className={styles.socialLinks}>
+              {homepage.socialLinks.map((link) => (
+                <a 
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.socialLink}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }

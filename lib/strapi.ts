@@ -150,6 +150,7 @@ export async function getHomepage() {
       'populate[2]': 'rencontres.image',
       'populate[3]': 'seo.shareImage',
       'populate[4]': 'principles',
+      'populate[5]': 'socialLinks',
     },
     wrappedByKey: 'data',
   });
