@@ -156,8 +156,8 @@ export default async function Home() {
 
       {/* Map Overview */}
       <section className={styles.mapSection}>
-        <h2 className={styles.sectionTitle}>{homepage?.mapTitle || 'Map Overview'}</h2>
         <div className={styles.mapContainer}>
+          <h2 className={styles.sectionTitle}>{homepage?.mapTitle || 'Map Overview'}</h2>
           <div className={styles.mapFrame}>
             {homepage?.mapEmbedUrl ? (
               <iframe
