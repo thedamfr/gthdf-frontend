@@ -102,6 +102,9 @@ export default async function Home() {
     horizons?: HorizonCard[];
     rencontresTitre?: string;
     rencontres?: EncounterCard[];
+    mapTitle?: string;
+    mapEmbedUrl?: string;
+    mapCaption?: string;
   };
 
   const logoUrl = homepage?.logo?.url 
@@ -153,18 +156,30 @@ export default async function Home() {
 
       {/* Map Overview */}
       <section className={styles.mapSection}>
-        <h2 className={styles.sectionTitle}>Map Overview</h2>
+        <h2 className={styles.sectionTitle}>{homepage?.mapTitle || 'Map Overview'}</h2>
         <div className={styles.mapContainer}>
           <div className={styles.mapFrame}>
-            <div className={styles.mapTitle}>The Reference Path</div>
-            <div className={styles.mapPlaceholder}>
-              <p style={{ textAlign: 'center', color: 'var(--color-charbon)', opacity: 0.5 }}>
-                Interactive map placeholder
-              </p>
-            </div>
+            {homepage?.mapEmbedUrl ? (
+              <iframe
+                src={homepage.mapEmbedUrl}
+                width="100%"
+                height="480"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={homepage.mapTitle || 'Map Overview'}
+              />
+            ) : (
+              <div className={styles.mapPlaceholder}>
+                <p style={{ textAlign: 'center', color: 'var(--color-charbon)', opacity: 0.5 }}>
+                  Interactive map placeholder
+                </p>
+              </div>
+            )}
           </div>
           <p className={styles.mapCaption}>
-            A general direction. The itinerary is open to interpretation. No rush.
+            {homepage?.mapCaption || 'A general direction. The itinerary is open to interpretation. No rush.'}
           </p>
         </div>
       </section>
