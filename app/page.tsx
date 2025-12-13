@@ -3,6 +3,7 @@ import { getHomepage } from '@/lib/strapi';
 import Image from 'next/image';
 import HorizonsSection from '@/components/HorizonsSection';
 import EncountersSection from '@/components/EncountersSection';
+import PrinciplesSection from '@/components/PrinciplesSection';
 import type { Metadata } from 'next';
 
 // Temporary placeholder component until images are added
@@ -70,6 +71,14 @@ interface SeoComponent {
   shareImage?: { url: string; alternativeText?: string };
 }
 
+interface PrincipleCard {
+  id: number;
+  title: string;
+  description: string;
+  backgroundColor: 'charbon' | 'jaune' | 'beige' | 'bleu' | 'vert' | 'rouge';
+  textColor: 'charbon' | 'creme';
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const homepage = await getHomepage() as { 
     seo?: SeoComponent[];
@@ -105,6 +114,8 @@ export default async function Home() {
     mapTitle?: string;
     mapEmbedUrl?: string;
     mapCaption?: string;
+    principlesTitle?: string;
+    principles?: PrincipleCard[];
   };
 
   const logoUrl = homepage?.logo?.url 
@@ -186,23 +197,8 @@ export default async function Home() {
 
       {/* The Principle */}
       <section className={styles.principleSection}>
-        <h2 className={styles.sectionTitle}>The Principle</h2>
-        <div className={styles.principleGrid}>
-          <div className={styles.principleCard} style={{ backgroundColor: 'var(--color-charbon)', color: 'var(--color-creme)' }}>
-            <h3>Accessible</h3>
-            <p>Mostly flat, sometimes rolling. Designed for heavy bikes and easy gears.</p>
-          </div>
-
-          <div className={styles.principleCard} style={{ backgroundColor: 'var(--color-jaune)', color: 'var(--color-charbon)' }}>
-            <h3>Timeless</h3>
-            <p>Five days or five weeks. The arrival date is not important.</p>
-          </div>
-
-          <div className={styles.principleCard} style={{ backgroundColor: 'var(--color-beige)', color: 'var(--color-charbon)' }}>
-            <h3>Grounded</h3>
-            <p>A break from efficiency. Watch the landscape change slowly.</p>
-          </div>
-        </div>
+        <h2 className={styles.sectionTitle}>{homepage?.principlesTitle || 'The Principle'}</h2>
+        <PrinciplesSection principles={homepage?.principles || []} />
       </section>
     </div>
   );
