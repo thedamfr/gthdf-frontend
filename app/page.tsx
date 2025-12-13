@@ -1,6 +1,9 @@
 import styles from './page.module.css';
 import { getHomepage } from '@/lib/strapi';
 import Image from 'next/image';
+import HorizonsSection from '@/components/HorizonsSection';
+import EncountersSection from '@/components/EncountersSection';
+import type { Metadata } from 'next';
 
 // Temporary placeholder component until images are added
 function ImagePlaceholder({ text, height }: { text: string; height: number }) {
@@ -60,6 +63,36 @@ interface EncounterCard {
   image: { url: string; alternativeText?: string };
 }
 
+interface SeoComponent {
+  id: number;
+  metaTitle: string;
+  metaDescription: string;
+  shareImage?: { url: string; alternativeText?: string };
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const homepage = await getHomepage() as { 
+    seo?: SeoComponent[];
+  };
+
+  const seo = homepage?.seo?.[0];
+  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  
+  const shareImageUrl = seo?.shareImage?.url
+    ? (seo.shareImage.url.startsWith('http')
+        ? seo.shareImage.url
+        : `${strapiUrl}${seo.shareImage.url}`)
+    : null;
+
+  return {
+    title: seo?.metaTitle || 'Grand Tour des Hauts-de-France',
+    description: seo?.metaDescription || 'Carnet de voyage numérique. Notes from the road.',
+    openGraph: shareImageUrl ? {
+      images: [shareImageUrl],
+    } : undefined,
+  };
+}
+
 export default async function Home() {
   const homepage = await getHomepage() as { 
     title?: string; 
@@ -103,106 +136,19 @@ export default async function Home() {
       {/* Horizons Changeants */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>{homepage?.HorizonsTitres || 'Changing Horizons'}</h2>
-        <div className={styles.horizonsContainer}>
-          <div className={styles.horizonsGrid}>
-            {homepage?.horizons?.map((horizon, index) => {
-              const imageUrl = horizon.image?.url 
-                ? (horizon.image.url.startsWith('http') 
-                    ? horizon.image.url 
-                    : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${horizon.image.url}`)
-                : null;
-
-              return (
-                <article 
-                  key={horizon.id} 
-                  className={styles.horizonCard} 
-                  style={{ borderColor: `var(--color-${horizon.borderColor})` }}
-                >
-                  <div className={styles.imageFrame}>
-                    {imageUrl ? (
-                      <Image 
-                        src={imageUrl}
-                        alt={horizon.image.alternativeText || horizon.title}
-                        width={300}
-                        height={200}
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
-                    ) : (
-                      <ImagePlaceholder text={horizon.title} height={200} />
-                    )}
-                  </div>
-                  <h3>{horizon.title}</h3>
-                  <p>{horizon.description}</p>
-                  
-                  {/* Path arrow between cards */}
-                  {index < (homepage.horizons?.length || 0) - 1 && (
-                    <svg 
-                      className={styles.pathArrow}
-                      width="60" 
-                      height="40" 
-                      viewBox="0 0 60 40"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path 
-                        d="M0 20 Q 30 10, 60 20" 
-                        stroke="var(--color-rouge)" 
-                        strokeWidth="2" 
-                        strokeDasharray="4 4"
-                        fill="none"
-                      />
-                      <path 
-                        d="M 55 15 L 60 20 L 55 25" 
-                        stroke="var(--color-rouge)" 
-                        strokeWidth="2" 
-                        fill="none"
-                      />
-                    </svg>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        </div>
+        <HorizonsSection 
+          horizons={homepage?.horizons || []} 
+          strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
+        />
       </section>
 
       {/* Encounters */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>{homepage?.rencontresTitre || 'Encounters'}</h2>
-        <div className={styles.encountersGrid}>
-          {homepage?.rencontres?.map((encounter) => {
-            const imageUrl = encounter.image?.url 
-              ? (encounter.image.url.startsWith('http') 
-                  ? encounter.image.url 
-                  : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${encounter.image.url}`)
-              : null;
-
-            return (
-              <article key={encounter.id} className={styles.encounterCard}>
-                <div 
-                  className={styles.encounterImage}
-                  style={{ borderColor: `var(--color-${encounter.borderColor})` }}
-                >
-                  {imageUrl ? (
-                    <Image 
-                      src={imageUrl}
-                      alt={encounter.image.alternativeText || encounter.title}
-                      width={200}
-                      height={150}
-                      style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '4px' }}
-                    />
-                  ) : (
-                    <ImagePlaceholder text={encounter.title} height={150} />
-                  )}
-                </div>
-                <div className={styles.encounterText}>
-                  <h3>{encounter.title}</h3>
-                  <p>{encounter.description}</p>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        <EncountersSection 
+          rencontres={homepage?.rencontres || []} 
+          strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
+        />
       </section>
 
       {/* Map Overview */}

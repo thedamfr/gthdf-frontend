@@ -148,6 +148,7 @@ export async function getHomepage() {
       'populate[0]': 'logo',
       'populate[1]': 'horizons.image',
       'populate[2]': 'rencontres.image',
+      'populate[3]': 'seo.shareImage',
     },
     wrappedByKey: 'data',
   });
