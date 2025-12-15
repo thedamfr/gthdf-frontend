@@ -189,7 +189,16 @@
   margin: 0;
 }
 
-.chaptersLink {
+.mapActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.chaptersLink,
+.gpxBuilderLink {
   display: inline-block;
   color: var(--color-charbon);
   text-decoration: none;
@@ -197,12 +206,12 @@
   font-weight: 600;
   padding: 1rem 2rem;
   border: 3px solid var(--color-charbon);
-  margin-top: 2rem;
   transition: all 0.2s ease;
   background: var(--color-creme);
 }
 
-.chaptersLink:hover {
+.chaptersLink:hover,
+.gpxBuilderLink:hover {
   background: var(--color-charbon);
   color: var(--color-creme);
 }

@@ -203,9 +203,14 @@ export default async function Home() {
             {homepage?.mapCaption || 'A general direction. The itinerary is open to interpretation. No rush.'}
           </p>
           
-          <Link href="/chapitres" className={styles.chaptersLink}>
-            Parcourir les chapitres
-          </Link>
+          <div className={styles.mapActions}>
+            <Link href="/chapitres" className={styles.chaptersLink}>
+              Parcourir les chapitres
+            </Link>
+            <Link href="/gpx-builder" className={styles.gpxBuilderLink}>
+              Télécharger la trace GPX
+            </Link>
+          </div>
         </div>
       </section>
 
