@@ -18,7 +18,7 @@ export async function getGlobal(): Promise<GlobalData | null> {
       headers: {
         'Content-Type': 'application/json',
       },
-      cache: 'no-store',
+      next: { revalidate: 3600 }, // Cache 1 hour
     });
 
     if (!response.ok) {
