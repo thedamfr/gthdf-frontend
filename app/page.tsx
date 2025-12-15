@@ -1,6 +1,7 @@
 import styles from './page.module.css';
 import { getHomepage } from '@/lib/strapi';
 import Image from 'next/image';
+import Link from 'next/link';
 import HorizonsSection from '@/components/HorizonsSection';
 import EncountersSection from '@/components/EncountersSection';
 import PrinciplesSection from '@/components/PrinciplesSection';
@@ -201,6 +202,10 @@ export default async function Home() {
           <p className={styles.mapCaption}>
             {homepage?.mapCaption || 'A general direction. The itinerary is open to interpretation. No rush.'}
           </p>
+          
+          <Link href="/chapitres" className={styles.chaptersLink}>
+            Parcourir les chapitres
+          </Link>
         </div>
       </section>
 

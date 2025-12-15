@@ -1,0 +1,278 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 3rem;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 4rem;
+  padding-bottom: 3rem;
+  border-bottom: 3px solid var(--color-charbon);
+}
+
+.backLink {
+  display: inline-block;
+  color: var(--color-charbon);
+  text-decoration: none;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.backLink:hover {
+  opacity: 1;
+}
+
+.title {
+  font-size: 3rem;
+  margin-bottom: 2rem;
+  color: var(--color-charbon);
+}
+
+.meta {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.125rem;
+}
+
+.stations {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+}
+
+.station {
+  color: var(--color-charbon);
+}
+
+.arrow {
+  color: var(--color-rouge);
+  font-weight: bold;
+}
+
+.distance {
+  color: var(--color-charbon);
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.bidirectionalNotice {
+  background: var(--color-beige);
+  color: var(--color-charbon);
+  padding: 0.75rem 1.5rem;
+  border-left: 4px solid var(--color-bleu);
+  margin: 2rem auto;
+  max-width: 600px;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.intro {
+  font-size: 1.25rem;
+  font-style: italic;
+  color: var(--color-charbon);
+  opacity: 0.9;
+  max-width: 700px;
+  margin: 0 auto 0.5rem;
+  line-height: 1.6;
+}
+
+.lastUpdated {
+  font-size: 0.85rem;
+  color: #888;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Section Titles */
+.sectionTitle {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: var(--color-charbon);
+  border-left: 6px solid var(--color-rouge);
+  padding-left: 1rem;
+}
+
+/* Navigation Section */
+.navigationSection {
+  margin-bottom: 4rem;
+  padding: 3rem;
+  background: var(--color-beige);
+  border-top: 3px solid var(--color-charbon);
+  border-bottom: 3px solid var(--color-charbon);
+}
+
+/* Route Notes inside Navigation Section */
+.notesWrapper {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: white;
+  border-left: 6px solid var(--color-vert);
+}
+
+.notesTitle {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--color-charbon);
+}
+
+.komootContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 2rem;
+}
+
+.komootEmbed {
+  border: 3px solid var(--color-bleu);
+  padding: 1.5rem;
+  background: white;
+}
+
+.komootTitle {
+  font-size: 1.125rem;
+  margin-bottom: 1rem;
+  color: var(--color-bleu);
+  font-weight: 600;
+}
+
+.komootEmbed iframe {
+  width: 100%;
+  display: block;
+  border: 0;
+  margin-bottom: 1rem;
+}
+
+.gpxButton {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--color-bleu);
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.gpxButton:hover {
+  opacity: 0.8;
+}
+
+/* Horizons Section */
+.horizonsSection {
+  margin-bottom: 4rem;
+}
+
+.routeNotes {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--color-charbon);
+}
+
+.routeNotes p {
+  margin-bottom: 1rem;
+}
+
+.routeNotes ul,
+.routeNotes ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.routeNotes li {
+  margin-bottom: 0.5rem;
+}
+
+.routeNotes strong {
+  font-weight: 700;
+}
+
+.routeNotes em {
+  font-style: italic;
+}
+
+/* Testimonials */
+.testimonialsSection {
+  margin-bottom: 4rem;
+}
+
+.testimonialsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+.testimonial {
+  border: 3px solid;
+  padding: 0;
+  background: var(--color-creme);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+}
+
+.testimonial:hover {
+  transform: translateY(-2px);
+}
+
+.testimonialPhoto {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  padding: 0.5rem;
+  background: white;
+}
+
+.testimonialContent {
+  padding: 1.5rem;
+}
+
+.testimonialContent h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-charbon);
+}
+
+.testimonialContent p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-charbon);
+  margin: 0;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .container {
+    padding: 2rem 1.5rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .meta {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .komootContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionTitle {
+    font-size: 1.5rem;
+  }
+
+  .testimonialsList {
+    grid-template-columns: 1fr;
+  }
+}
