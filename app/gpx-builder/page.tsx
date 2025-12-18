@@ -56,7 +56,7 @@ export default function GpxBuilderPage() {
         const chapterMap = new Map(chapters.map((ch: any) => [ch.id, ch]));
         const referencedIds = new Set(
           chapters
-            .filter((ch: any) => ch.nextChapter)
+            .filter((ch: any) => ch.nextChapter?.id)
             .map((ch: any) => ch.nextChapter.id)
         );
         
@@ -71,7 +71,7 @@ export default function GpxBuilderPage() {
           orderedChapters.push(current);
           visited.add(current.id);
           
-          if (current.nextChapter) {
+          if (current.nextChapter?.id) {
             current = chapterMap.get(current.nextChapter.id);
           } else {
             break;

@@ -87,8 +87,8 @@ export async function getChaptersInOrder(): Promise<Chapter[]> {
     // Find chapters that are referenced as nextChapter
     const referencedIds = new Set(
       chapters
-        .filter((ch: Chapter) => ch.nextChapter)
-        .map((ch: Chapter) => ch.nextChapter.id)
+        .filter((ch: Chapter) => ch.nextChapter?.id)
+        .map((ch: Chapter) => ch.nextChapter!.id)
     );
 
     // Find the first chapter (not referenced by anyone)
@@ -108,7 +108,7 @@ export async function getChaptersInOrder(): Promise<Chapter[]> {
       orderedChapters.push(current);
       visited.add(current.id);
       
-      if (current.nextChapter) {
+      if (current.nextChapter?.id) {
         current = chapterMap.get(current.nextChapter.id);
       } else {
         break;
