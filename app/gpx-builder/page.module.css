@@ -225,6 +225,13 @@
   opacity: 0.7;
 }
 
+.discontinuityWarning {
+  font-size: 0.75rem;
+  color: var(--color-rouge);
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
 .segmentActions {
   display: flex;
   gap: 0.25rem;

@@ -18,6 +18,8 @@ interface Chapter {
   distance: number;
   gpxFileAB?: GpxFile;
   gpxFileBA?: GpxFile;
+  nextChapter?: { id: number; slug: string; title: string };
+  previousChapter?: { id: number; slug: string; title: string };
 }
 
 interface SelectedSegment {
@@ -26,6 +28,8 @@ interface SelectedSegment {
   direction: 'AB' | 'BA';
   title: string;
   stationLabel: string;
+  startStation: string;
+  endStation: string;
   gpxUrl: string;
 }
 
@@ -42,10 +46,48 @@ export default function GpxBuilderPage() {
     try {
       const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
       const response = await fetch(
-        `${strapiUrl}/api/chapters?populate[0]=gpxFileAB&populate[1]=gpxFileBA`
+        `${strapiUrl}/api/chapters?populate[0]=gpxFileAB&populate[1]=gpxFileBA&populate[2]=nextChapter&populate[3]=previousChapter`
       );
       const data = await response.json();
-      setChapters(data.data || []);
+      const chapters = data.data || [];
+      
+      // Sort chapters following the nextChapter chain
+      if (chapters.length > 0) {
+        const chapterMap = new Map(chapters.map((ch: any) => [ch.id, ch]));
+        const referencedIds = new Set(
+          chapters
+            .filter((ch: any) => ch.nextChapter)
+            .map((ch: any) => ch.nextChapter.id)
+        );
+        
+        let firstChapter = chapters.find((ch: any) => !referencedIds.has(ch.id));
+        if (!firstChapter) firstChapter = chapters[0];
+        
+        const orderedChapters: any[] = [];
+        let current = firstChapter;
+        const visited = new Set<number>();
+        
+        while (current && !visited.has(current.id)) {
+          orderedChapters.push(current);
+          visited.add(current.id);
+          
+          if (current.nextChapter) {
+            current = chapterMap.get(current.nextChapter.id);
+          } else {
+            break;
+          }
+        }
+        
+        chapters.forEach((ch: any) => {
+          if (!visited.has(ch.id)) {
+            orderedChapters.push(ch);
+          }
+        });
+        
+        setChapters(orderedChapters);
+      } else {
+        setChapters(chapters);
+      }
     } catch (error) {
       console.error('Error fetching chapters:', error);
     } finally {
@@ -66,16 +108,18 @@ export default function GpxBuilderPage() {
       ? `${chapter.startStation} → ${chapter.endStation}`
       : `${chapter.endStation} → ${chapter.startStation}`;
 
-    const segment: SelectedSegment = {
+    const newSegment: SelectedSegment = {
       id: `${chapter.id}-${direction}-${Date.now()}`,
       chapterId: chapter.id,
       direction,
       title: chapter.title,
       stationLabel,
+      startStation: direction === 'AB' ? chapter.startStation : chapter.endStation,
+      endStation: direction === 'AB' ? chapter.endStation : chapter.startStation,
       gpxUrl
     };
 
-    setSelectedSegments([...selectedSegments, segment]);
+    setSelectedSegments([...selectedSegments, newSegment]);
   };
 
   const addAllDirection = (direction: 'AB' | 'BA') => {
@@ -98,9 +142,28 @@ export default function GpxBuilderPage() {
           direction,
           title: chapter.title,
           stationLabel,
+          startStation: direction === 'AB' ? chapter.startStation : chapter.endStation,
+          endStation: direction === 'AB' ? chapter.endStation : chapter.startStation,
           gpxUrl
         };
       });
+
+    // Validate all segments are contiguous
+    for (let i = 1; i < newSegments.length; i++) {
+      if (newSegments[i - 1].endStation !== newSegments[i].startStation) {
+        alert(`❌ Impossible d'ajouter tous les segments !\n\nLa séquence n'est pas continue entre "${newSegments[i - 1].title}" et "${newSegments[i].title}".\n\nVérifiez la configuration des chapitres dans Strapi.`);
+        return;
+      }
+    }
+
+    // Validate with existing segments
+    if (selectedSegments.length > 0) {
+      const lastExisting = selectedSegments[selectedSegments.length - 1];
+      if (lastExisting.endStation !== newSegments[0].startStation) {
+        alert(`❌ Discontinuité détectée !\n\nVotre dernier segment se termine à "${lastExisting.endStation}"\nmais la séquence commence à "${newSegments[0].startStation}".`);
+        return;
+      }
+    }
 
     setSelectedSegments([...selectedSegments, ...newSegments]);
   };
@@ -300,40 +363,50 @@ ${allTrackPoints}  </trk>
           ) : (
             <>
               <div className={styles.selectedList}>
-                {selectedSegments.map((segment, index) => (
-                  <div key={segment.id} className={styles.selectedSegment}>
-                    <span className={styles.segmentNumber}>{index + 1}</span>
-                    <div className={styles.selectedInfo}>
-                      <span className={styles.selectedTitle}>{segment.title}</span>
-                      <span className={styles.selectedStations}>{segment.stationLabel}</span>
+                {selectedSegments.map((segment, index) => {
+                  const isContiguous = index === 0 || 
+                    selectedSegments[index - 1].endStation === segment.startStation;
+                  
+                  return (
+                    <div key={segment.id} className={styles.selectedSegment}>
+                      <span className={styles.segmentNumber}>{index + 1}</span>
+                      <div className={styles.selectedInfo}>
+                        <span className={styles.selectedTitle}>{segment.title}</span>
+                        <span className={styles.selectedStations}>{segment.stationLabel}</span>
+                        {!isContiguous && (
+                          <span className={styles.discontinuityWarning}>
+                            ⚠️ Discontinuité
+                          </span>
+                        )}
+                      </div>
+                      <div className={styles.segmentActions}>
+                        <button
+                          onClick={() => moveSegmentUp(index)}
+                          disabled={index === 0}
+                          className={styles.moveButton}
+                          title="Monter"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => moveSegmentDown(index)}
+                          disabled={index === selectedSegments.length - 1}
+                          className={styles.moveButton}
+                          title="Descendre"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          onClick={() => removeSegment(segment.id)}
+                          className={styles.removeButton}
+                          title="Retirer"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
-                    <div className={styles.segmentActions}>
-                      <button
-                        onClick={() => moveSegmentUp(index)}
-                        disabled={index === 0}
-                        className={styles.moveButton}
-                        title="Monter"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        onClick={() => moveSegmentDown(index)}
-                        disabled={index === selectedSegments.length - 1}
-                        className={styles.moveButton}
-                        title="Descendre"
-                      >
-                        ↓
-                      </button>
-                      <button
-                        onClick={() => removeSegment(segment.id)}
-                        className={styles.removeButton}
-                        title="Retirer"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               <button

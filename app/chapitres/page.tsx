@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import styles from './page.module.css';
-import { getChapters } from '@/lib/chapters';
+import { getChaptersInOrder } from '@/lib/chapters';
 
 export default async function ChaptersPage() {
-  const chapters = await getChapters();
+  const chapters = await getChaptersInOrder();
 
   return (
     <div className={styles.container}>
