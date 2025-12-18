@@ -54,7 +54,7 @@ export default function GpxBuilderPage() {
       
       // Sort chapters following the nextChapter chain
       if (chapters.length > 0) {
-        const chapterMap = new Map(chapters.map((ch: any) => [ch.id, ch]));
+        const chapterMap = new Map<number, any>(chapters.map((ch: any) => [ch.id, ch]));
         const referencedIds = new Set(
           chapters
             .filter((ch: any) => ch.nextChapter?.id)
@@ -268,15 +268,31 @@ export default function GpxBuilderPage() {
         }
       });
 
+      // Detect direction
+      const baCount = selectedSegments.filter(s => s.direction === 'BA').length;
+      const abCount = selectedSegments.filter(s => s.direction === 'AB').length;
+      const isFullReverse = baCount === selectedSegments.length;
+      const isMixed = baCount > 0 && abCount > 0;
+      
+      let directionLabel = '';
+      let filenameSuffix = '';
+      if (isFullReverse) {
+        directionLabel = ' (sens inverse)';
+        filenameSuffix = '-reverse';
+      } else if (isMixed) {
+        directionLabel = ` (${abCount} segment${abCount > 1 ? 's' : ''} classique, ${baCount} inverse)`;
+        filenameSuffix = '-mixed';
+      }
+
       // Build complete GPX
       const mergedGpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="GTHDF GPX Builder" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
   <metadata>
-    <name>Grand Tour des Hauts-de-France - Parcours personnalisé</name>
-    <desc>Parcours créé avec ${selectedSegments.length} segment${selectedSegments.length > 1 ? 's' : ''}</desc>
+    <name>Grand Tour des Hauts-de-France - Parcours personnalisé${directionLabel}</name>
+    <desc>Parcours créé avec ${selectedSegments.length} segment${selectedSegments.length > 1 ? 's' : ''}${directionLabel}</desc>
   </metadata>
   <trk>
-    <name>GTHDF Custom Route</name>
+    <name>GTHDF Custom Route${directionLabel}</name>
 ${allTrackPoints}  </trk>
 </gpx>`;
 
@@ -285,7 +301,7 @@ ${allTrackPoints}  </trk>
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `gthdf-custom-route-${new Date().toISOString().split('T')[0]}.gpx`;
+      a.download = `gthdf-custom-route${filenameSuffix}-${new Date().toISOString().split('T')[0]}.gpx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
