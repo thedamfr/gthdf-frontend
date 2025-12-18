@@ -39,6 +39,27 @@
   margin: 0 auto;
 }
 
+.adminAlert {
+  margin: 2rem auto;
+  max-width: 800px;
+  padding: 1rem 1.5rem;
+  background: #f8d7da;
+  border: 2px solid #dc3545;
+  border-radius: 0.5rem;
+  color: #721c24;
+}
+
+.adminAlert strong {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.adminAlert p {
+  margin: 0;
+  line-height: 1.5;
+}
+
 /* 3 Columns Layout */
 .content {
   display: grid;
@@ -67,6 +88,25 @@
   font-size: 1.5rem;
   color: var(--color-charbon);
   margin: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.discontinuityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .headerActions {

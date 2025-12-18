@@ -37,6 +37,7 @@ export default function GpxBuilderPage() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [selectedSegments, setSelectedSegments] = useState<SelectedSegment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chainError, setChainError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchChapters();
@@ -84,6 +85,32 @@ export default function GpxBuilderPage() {
           }
         });
         
+        // Validate the chain integrity
+        const orphanCount = chapters.length - visited.size;
+        const hasBidirectionalErrors = chapters.some((ch: any) => {
+          if (ch.nextChapter?.id) {
+            const next = chapterMap.get(ch.nextChapter.id);
+            if (next && next.previousChapter?.id !== ch.id) {
+              return true;
+            }
+          }
+          if (ch.previousChapter?.id) {
+            const prev = chapterMap.get(ch.previousChapter.id);
+            if (prev && prev.nextChapter?.id !== ch.id) {
+              return true;
+            }
+          }
+          return false;
+        });
+        
+        if (orphanCount > 0) {
+          setChainError(`⚠️ Configuration incorrecte : ${orphanCount} chapitre(s) non relié(s) à la chaîne principale. Vérifiez les relations nextChapter/previousChapter dans Strapi.`);
+        } else if (hasBidirectionalErrors) {
+          setChainError(`⚠️ Configuration incorrecte : incohérence bidirectionnelle détectée. Si A.nextChapter = B, alors B.previousChapter doit être A.`);
+        } else {
+          setChainError(null);
+        }
+        
         setChapters(orderedChapters);
       } else {
         setChapters(chapters);
@@ -123,7 +150,10 @@ export default function GpxBuilderPage() {
   };
 
   const addAllDirection = (direction: 'AB' | 'BA') => {
-    const newSegments = chapters
+    // For BA direction, reverse the chapter order
+    const orderedChapters = direction === 'BA' ? [...chapters].reverse() : chapters;
+    
+    const newSegments = orderedChapters
       .filter(chapter => direction === 'AB' ? chapter.gpxFileAB : chapter.gpxFileBA)
       .map(chapter => {
         const gpxFile = direction === 'AB' ? chapter.gpxFileAB : chapter.gpxFileBA;
@@ -284,6 +314,13 @@ ${allTrackPoints}  </trk>
         </p>
       </header>
 
+      {chainError && (
+        <div className={styles.adminAlert}>
+          <strong>Erreur de configuration (Admin)</strong>
+          <p>{chainError}</p>
+        </div>
+      )}
+
       <div className={styles.content}>
         {/* Direction AB (Classic) */}
         <section className={styles.directionColumn}>
@@ -354,7 +391,21 @@ ${allTrackPoints}  </trk>
         {/* Selected Basket */}
         <aside className={styles.basketColumn}>
           <div className={styles.columnHeader}>
-            <h2 className={styles.columnTitle}>Votre parcours</h2>
+            <div className={styles.titleRow}>
+              <h2 className={styles.columnTitle}>Votre parcours</h2>
+              {(() => {
+                const discontinuityCount = selectedSegments.filter((segment, index) => {
+                  if (index === 0) return false;
+                  return selectedSegments[index - 1].endStation !== segment.startStation;
+                }).length;
+                
+                return discontinuityCount > 0 && (
+                  <span className={styles.discontinuityBadge} title="Nombre de discontinuités">
+                    ⚠️ {discontinuityCount}
+                  </span>
+                );
+              })()}
+            </div>
             <div className={styles.headerActions}>
               {selectedSegments.length > 1 && (
                 <button 
