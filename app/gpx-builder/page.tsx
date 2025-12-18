@@ -148,23 +148,6 @@ export default function GpxBuilderPage() {
         };
       });
 
-    // Validate all segments are contiguous
-    for (let i = 1; i < newSegments.length; i++) {
-      if (newSegments[i - 1].endStation !== newSegments[i].startStation) {
-        alert(`❌ Impossible d'ajouter tous les segments !\n\nLa séquence n'est pas continue entre "${newSegments[i - 1].title}" et "${newSegments[i].title}".\n\nVérifiez la configuration des chapitres dans Strapi.`);
-        return;
-      }
-    }
-
-    // Validate with existing segments
-    if (selectedSegments.length > 0) {
-      const lastExisting = selectedSegments[selectedSegments.length - 1];
-      if (lastExisting.endStation !== newSegments[0].startStation) {
-        alert(`❌ Discontinuité détectée !\n\nVotre dernier segment se termine à "${lastExisting.endStation}"\nmais la séquence commence à "${newSegments[0].startStation}".`);
-        return;
-      }
-    }
-
     setSelectedSegments([...selectedSegments, ...newSegments]);
   };
 
@@ -362,6 +345,21 @@ ${allTrackPoints}  </trk>
             </p>
           ) : (
             <>
+              {/* Check for discontinuities */}
+              {(() => {
+                const hasDiscontinuity = selectedSegments.some((segment, index) => {
+                  if (index === 0) return false;
+                  return selectedSegments[index - 1].endStation !== segment.startStation;
+                });
+                
+                return hasDiscontinuity && (
+                  <div className={styles.discontinuityAlert}>
+                    ⚠️ Attention : Votre parcours contient des discontinuités. 
+                    Il manque des trajets pour relier certains segments.
+                  </div>
+                );
+              })()}
+              
               <div className={styles.selectedList}>
                 {selectedSegments.map((segment, index) => {
                   const isContiguous = index === 0 || 
