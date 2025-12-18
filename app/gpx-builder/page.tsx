@@ -159,6 +159,33 @@ export default function GpxBuilderPage() {
     setSelectedSegments([]);
   };
 
+  const autoOrganize = () => {
+    if (selectedSegments.length <= 1) return;
+
+    const organized: SelectedSegment[] = [selectedSegments[0]];
+    const remaining = [...selectedSegments.slice(1)];
+
+    while (remaining.length > 0) {
+      const lastSegment = organized[organized.length - 1];
+      
+      // Find a segment that starts where the last one ends
+      const nextIndex = remaining.findIndex(
+        seg => seg.startStation === lastSegment.endStation
+      );
+
+      if (nextIndex !== -1) {
+        organized.push(remaining[nextIndex]);
+        remaining.splice(nextIndex, 1);
+      } else {
+        // No contiguous segment found, just add the next one
+        organized.push(remaining[0]);
+        remaining.shift();
+      }
+    }
+
+    setSelectedSegments(organized);
+  };
+
   const moveSegmentUp = (index: number) => {
     if (index === 0) return;
     const newSegments = [...selectedSegments];
@@ -328,15 +355,26 @@ ${allTrackPoints}  </trk>
         <aside className={styles.basketColumn}>
           <div className={styles.columnHeader}>
             <h2 className={styles.columnTitle}>Votre parcours</h2>
-            {selectedSegments.length > 0 && (
-              <button 
-                onClick={clearAll}
-                className={styles.clearButton}
-                title="Tout retirer"
-              >
-                Vider
-              </button>
-            )}
+            <div className={styles.headerActions}>
+              {selectedSegments.length > 1 && (
+                <button 
+                  onClick={autoOrganize}
+                  className={styles.organizeButton}
+                  title="Réorganiser automatiquement"
+                >
+                  Trier
+                </button>
+              )}
+              {selectedSegments.length > 0 && (
+                <button 
+                  onClick={clearAll}
+                  className={styles.clearButton}
+                  title="Tout retirer"
+                >
+                  Vider
+                </button>
+              )}
+            </div>
           </div>
           
           {selectedSegments.length === 0 ? (

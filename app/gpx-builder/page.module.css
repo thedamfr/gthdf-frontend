@@ -69,8 +69,14 @@
   margin: 0;
 }
 
+.headerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .addAllButton,
-.clearButton {
+.clearButton,
+.organizeButton {
   padding: 0.5rem 1rem;
   background: var(--color-charbon);
   color: var(--color-creme);
@@ -84,6 +90,11 @@
 .addAllButton:hover {
   background: var(--color-bleu);
   border-color: var(--color-bleu);
+}
+
+.organizeButton:hover {
+  background: var(--color-vert);
+  border-color: var(--color-vert);
 }
 
 .clearButton:hover {
