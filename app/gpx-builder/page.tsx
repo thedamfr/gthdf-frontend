@@ -87,26 +87,30 @@ export default function GpxBuilderPage() {
         
         // Validate the chain integrity
         const orphanCount = chapters.length - visited.size;
-        const hasBidirectionalErrors = chapters.some((ch: any) => {
+        const orphanChapters = chapters
+          .filter((ch: any) => !visited.has(ch.id))
+          .map((ch: any) => ch.title);
+        
+        const bidirectionalErrors: string[] = [];
+        chapters.forEach((ch: any) => {
           if (ch.nextChapter?.id) {
             const next = chapterMap.get(ch.nextChapter.id);
             if (next && next.previousChapter?.id !== ch.id) {
-              return true;
+              bidirectionalErrors.push(`"${ch.title}" → nextChapter → "${next.title}" mais "${next.title}" → previousChapter → "${next.previousChapter ? chapterMap.get(next.previousChapter.id)?.title : 'aucun'}"`);
             }
           }
           if (ch.previousChapter?.id) {
             const prev = chapterMap.get(ch.previousChapter.id);
             if (prev && prev.nextChapter?.id !== ch.id) {
-              return true;
+              bidirectionalErrors.push(`"${ch.title}" → previousChapter → "${prev.title}" mais "${prev.title}" → nextChapter → "${prev.nextChapter ? chapterMap.get(prev.nextChapter.id)?.title : 'aucun'}"`);
             }
           }
-          return false;
         });
         
         if (orphanCount > 0) {
-          setChainError(`⚠️ Configuration incorrecte : ${orphanCount} chapitre(s) non relié(s) à la chaîne principale. Vérifiez les relations nextChapter/previousChapter dans Strapi.`);
-        } else if (hasBidirectionalErrors) {
-          setChainError(`⚠️ Configuration incorrecte : incohérence bidirectionnelle détectée. Si A.nextChapter = B, alors B.previousChapter doit être A.`);
+          setChainError(`⚠️ Configuration incorrecte : ${orphanCount} chapitre(s) non relié(s) à la chaîne principale.\n\nChapitres orphelins : ${orphanChapters.join(', ')}\n\nVérifiez les relations nextChapter/previousChapter dans Strapi.`);
+        } else if (bidirectionalErrors.length > 0) {
+          setChainError(`⚠️ Configuration incorrecte : incohérence bidirectionnelle détectée.\n\n${bidirectionalErrors.join('\n\n')}\n\nSi A.nextChapter = B, alors B.previousChapter doit être A.`);
         } else {
           setChainError(null);
         }

@@ -10,6 +10,7 @@ interface Chapter {
   distance: number;
   introSentence: string;
   updatedAt?: string;
+  thumbnail?: { url: string; alternativeText?: string };
   komootEmbedAB?: string;
   komootEmbedBA?: string;
   gpxFileAB?: { url: string; name: string };
@@ -59,9 +60,9 @@ export async function getChapters(): Promise<Chapter[]> {
  */
 export async function getChaptersInOrder(): Promise<Chapter[]> {
   try {
-    // Fetch all chapters with nextChapter relation
+    // Fetch all chapters with nextChapter relation and thumbnail
     const response = await fetch(
-      `${STRAPI_URL}/api/chapters?populate[0]=nextChapter`,
+      `${STRAPI_URL}/api/chapters?populate[0]=nextChapter&populate[1]=thumbnail`,
       {
         method: 'GET',
         headers: {
@@ -135,7 +136,7 @@ export async function getChaptersInOrder(): Promise<Chapter[]> {
 export async function getChapterBySlug(slug: string): Promise<Chapter | null> {
   try {
     const response = await fetch(
-      `${STRAPI_URL}/api/chapters?filters[slug][$eq]=${slug}&populate[0]=horizons.image&populate[1]=gpxFileAB&populate[2]=gpxFileBA&populate[3]=testimonials.photo`,
+      `${STRAPI_URL}/api/chapters?filters[slug][$eq]=${slug}&populate[0]=horizons.image&populate[1]=gpxFileAB&populate[2]=gpxFileBA&populate[3]=testimonials.photo&populate[4]=nextChapter&populate[5]=previousChapter&populate[6]=thumbnail`,
       {
         method: 'GET',
         headers: {

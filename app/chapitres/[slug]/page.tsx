@@ -199,6 +199,19 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
           </div>
         </section>
       )}
+      
+      {/* Navigation vers chapitre suivant */}
+      {chapter.nextChapter && (
+        <section className={styles.nextChapterSection}>
+          <Link 
+            href={`/chapitres/${chapter.nextChapter.slug}`}
+            className={styles.nextChapterLink}
+          >
+            <span className={styles.nextChapterLabel}>Chapitre suivant</span>
+            <span className={styles.nextChapterTitle}>{chapter.nextChapter.title} →</span>
+          </Link>
+        </section>
+      )}
     </div>
   );
 }

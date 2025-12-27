@@ -58,6 +58,9 @@
 .adminAlert p {
   margin: 0;
   line-height: 1.5;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9rem;
 }
 
 /* 3 Columns Layout */

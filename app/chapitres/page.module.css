@@ -47,17 +47,36 @@
 
 .chapterCard {
   border: 3px solid var(--color-charbon);
-  padding: 2rem;
   background: var(--color-creme);
   text-decoration: none;
   color: var(--color-charbon);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
 }
 
 .chapterCard:hover {
   transform: translateY(-4px);
   box-shadow: 8px 8px 0 var(--color-charbon);
+}
+
+.chapterContent {
+  margin-bottom: 1.5rem;
+}
+
+.withThumbnail .chapterContent {
+  margin-bottom: 1.5rem;
+}
+
+.chapterThumbnail {
+  width: 100%;
+  border-radius: 8px;
+  background: var(--color-beige);
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chapterTitle {
