@@ -241,6 +241,11 @@ export default async function Home() {
               ))}
             </div>
           )}
+          <div className={styles.footerLegal}>
+            <Link href="/mentions-legales" className={styles.legalLink}>
+              Mentions Légales
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

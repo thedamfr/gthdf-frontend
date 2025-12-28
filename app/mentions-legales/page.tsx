@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getLegalNotice } from '@/lib/strapi';
 import styles from './page.module.css';
+import { marked } from 'marked';
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -46,7 +47,7 @@ export default async function LegalNoticePage() {
         <article className={styles.content}>
           <div
             className={styles.richText}
-            dangerouslySetInnerHTML={{ __html: legalNotice.content }}
+            dangerouslySetInnerHTML={{ __html: marked(legalNotice.content) as string }}
           />
           <footer className={styles.footer}>
             <p className={styles.lastUpdated}>
