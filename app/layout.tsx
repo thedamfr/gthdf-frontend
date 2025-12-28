@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getGlobal } from "@/lib/global";
+import Footer from "@/components/Footer";
 
 export async function generateMetadata(): Promise<Metadata> {
   const global = await getGlobal();
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="fr">
       <body>
         {children}
+        <Footer />
       </body>
     </html>
   );

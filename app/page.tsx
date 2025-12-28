@@ -220,7 +220,7 @@ export default async function Home() {
         <PrinciplesSection principles={homepage?.principles || []} />
       </section>
 
-      {/* Footer */}
+      {/* Footer - Specific to homepage with social links */}
       <footer className={styles.footer}>
         <div className={styles.footerContent}>
           {homepage?.footerText && (
@@ -241,11 +241,6 @@ export default async function Home() {
               ))}
             </div>
           )}
-          <div className={styles.footerLegal}>
-            <Link href="/mentions-legales" className={styles.legalLink}>
-              Mentions Légales
-            </Link>
-          </div>
         </div>
       </footer>
     </div>
