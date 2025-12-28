@@ -20,6 +20,10 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
     notFound();
   }
 
+  // Debug: vérifier si nextChapter est présent
+  console.log('Chapter:', chapter.title);
+  console.log('Next Chapter:', chapter.nextChapter);
+
   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 
   // Normalize Komoot URLs to embed format

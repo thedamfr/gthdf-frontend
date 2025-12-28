@@ -1,0 +1,128 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 3rem;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 1.5rem;
+}
+
+.backLink {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: #666;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: #000;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.error {
+  padding: 1.5rem;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c33;
+  text-align: center;
+}
+
+.content {
+  line-height: 1.8;
+  color: #333;
+}
+
+.richText {
+  margin-bottom: 3rem;
+}
+
+.richText h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #2a2a2a;
+}
+
+.richText h3 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #3a3a3a;
+}
+
+.richText p {
+  margin-bottom: 1rem;
+}
+
+.richText ul,
+.richText ol {
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+}
+
+.richText li {
+  margin-bottom: 0.5rem;
+}
+
+.richText a {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.richText a:hover {
+  color: #0052a3;
+}
+
+.richText strong {
+  font-weight: 600;
+}
+
+.richText em {
+  font-style: italic;
+}
+
+.footer {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.lastUpdated {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1.5rem 1rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .richText h2 {
+    font-size: 1.5rem;
+  }
+
+  .richText h3 {
+    font-size: 1.2rem;
+  }
+}

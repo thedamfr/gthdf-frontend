@@ -155,3 +155,16 @@ export async function getHomepage() {
     wrappedByKey: 'data',
   });
 }
+
+/**
+ * Get Legal Notice content
+ */
+export async function getLegalNotice() {
+  return fetchAPI({
+    endpoint: '/legal-notice',
+    query: {
+      populate: '*',
+    },
+    wrappedByKey: 'data',
+  });
+}
