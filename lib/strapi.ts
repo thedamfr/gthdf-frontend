@@ -123,8 +123,16 @@ export const getCategories = cache(async () => {
  * Get global site data (favicon, SEO defaults, checkpointMap)
  * Long cache: 1 hour (changes rarely)
  */
+interface GlobalData {
+  siteName?: string;
+  siteDescription?: string;
+  favicon?: { url: string; alternativeText?: string };
+  defaultSeo?: { shareImage?: { url: string } };
+  [key: string]: any;
+}
+
 export const getGlobal = cache(async () => {
-  return fetchAPI({
+  return fetchAPI<GlobalData>({
     endpoint: '/global',
     query: {
       'populate[0]': 'favicon',
