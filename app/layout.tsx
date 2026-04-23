@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { getGlobal } from "@/lib/global";
+import { getGlobal } from "@/lib/strapi";
 import Footer from "@/components/Footer";
 
 export async function generateMetadata(): Promise<Metadata> {

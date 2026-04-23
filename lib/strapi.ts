@@ -1,4 +1,5 @@
 // lib/strapi.ts - Strapi API client
+import { cache } from 'react';
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 const STRAPI_API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
@@ -8,16 +9,17 @@ interface StrapiRequestOptions {
   query?: Record<string, any>;
   wrappedByKey?: string;
   wrappedByList?: boolean;
+  revalidate?: number;
 }
 
 /**
  * Fetch data from Strapi API
  */
 export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
-  const { endpoint, query = {}, wrappedByKey, wrappedByList } = options;
+  const { endpoint, query = {}, wrappedByKey, wrappedByList, revalidate = 60 } = options;
 
   const mergedOptions = {
-    next: { revalidate: 60 }, // Cache for 60 seconds
+    next: { revalidate }, // Cache configurable, default 60 seconds
     headers: {
       'Content-Type': 'application/json',
       ...(STRAPI_API_TOKEN && {
@@ -42,8 +44,6 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
   });
 
   const requestUrl = `${STRAPI_URL}/api${endpoint}${queryString.toString() ? `?${queryString.toString()}` : ''}`;
-  
-  console.log('Fetching:', requestUrl); // Debug
 
   try {
     const response = await fetch(requestUrl, mergedOptions);
@@ -71,22 +71,26 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
 
 /**
  * Get all articles with authors and categories
+ * @param category optional category slug to filter by
  */
-export async function getArticles() {
+export const getArticles = cache(async (category?: string) => {
   return fetchAPI({
     endpoint: '/articles',
     query: {
-      populate: ['cover', 'author.avatar', 'category'],
-      sort: ['publishedAt:desc'],
+      ...(category && { 'filters[category][slug][$eq]': category }),
+      'sort[0]': 'publishedAt:desc',
+      'populate[0]': 'cover',
+      'populate[1]': 'category',
+      'populate[2]': 'author.avatar',
     },
     wrappedByList: true,
   });
-}
+});
 
 /**
  * Get a single article by slug
  */
-export async function getArticleBySlug(slug: string) {
+export const getArticleBySlug = cache(async (slug: string) => {
   const articles = await fetchAPI<any[]>({
     endpoint: '/articles',
     query: {
@@ -97,38 +101,41 @@ export async function getArticleBySlug(slug: string) {
   });
 
   return articles[0] || null;
-}
+});
 
 /**
  * Get all categories
  */
-export async function getCategories() {
+export const getCategories = cache(async () => {
   return fetchAPI({
     endpoint: '/categories',
     query: {
-      populate: '*',
+      'sort[0]': 'name:asc',
     },
     wrappedByList: true,
   });
-}
+});
 
 /**
- * Get global site data (header, footer, SEO)
+ * Get global site data (favicon, SEO defaults, checkpointMap)
+ * Long cache: 1 hour (changes rarely)
  */
-export async function getGlobal() {
+export const getGlobal = cache(async () => {
   return fetchAPI({
     endpoint: '/global',
     query: {
-      populate: ['favicon', 'defaultSeo.shareImage'],
+      'populate[0]': 'favicon',
+      'populate[1]': 'defaultSeo.shareImage',
     },
     wrappedByKey: 'data',
+    revalidate: 3600,
   });
-}
+});
 
 /**
  * Get About page with blocks
  */
-export async function getAbout() {
+export const getAbout = cache(async () => {
   return fetchAPI({
     endpoint: '/about',
     query: {
@@ -136,12 +143,12 @@ export async function getAbout() {
     },
     wrappedByKey: 'data',
   });
-}
+});
 
 /**
  * Get Homepage content
  */
-export async function getHomepage() {
+export const getHomepage = cache(async () => {
   return fetchAPI({
     endpoint: '/homepage',
     query: {
@@ -154,17 +161,18 @@ export async function getHomepage() {
     },
     wrappedByKey: 'data',
   });
-}
+});
 
 /**
  * Get Legal Notice content
  */
-export async function getLegalNotice() {
+export const getLegalNotice = cache(async () => {
   return fetchAPI({
     endpoint: '/legal-notice',
     query: {
       populate: '*',
     },
     wrappedByKey: 'data',
+    revalidate: 3600,
   });
-}
+});

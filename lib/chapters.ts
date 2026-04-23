@@ -1,3 +1,5 @@
+import { cache } from 'react';
+
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 
 interface Chapter {
@@ -29,17 +31,48 @@ interface Chapter {
 }
 
 /**
- * Get all chapters
+ * Sort chapters by following the nextChapter chain
  */
-export async function getChapters(): Promise<Chapter[]> {
+export function sortChaptersByChain(chapters: Chapter[]): Chapter[] {
+  if (chapters.length === 0) return [];
+
+  const chapterMap = new Map(chapters.map((ch) => [ch.id, ch]));
+  const referencedIds = new Set(
+    chapters.filter((ch) => ch.nextChapter?.id).map((ch) => ch.nextChapter!.id)
+  );
+
+  let first = chapters.find((ch) => !referencedIds.has(ch.id)) ?? chapters[0];
+
+  const ordered: Chapter[] = [];
+  const visited = new Set<number>();
+
+  let current: Chapter | undefined = first;
+  while (current && !visited.has(current.id)) {
+    ordered.push(current);
+    visited.add(current.id);
+    current = current.nextChapter?.id ? chapterMap.get(current.nextChapter.id) : undefined;
+  }
+
+  chapters.forEach((ch) => {
+    if (!visited.has(ch.id)) ordered.push(ch);
+  });
+
+  return ordered;
+}
+
+/**
+ * Get all chapters (minimal fields for generateStaticParams)
+ */
+export const getChapters = cache(async (): Promise<Chapter[]> => {
   try {
-    const response = await fetch(`${STRAPI_URL}/api/chapters?populate=*`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-    });
+    const response = await fetch(
+      `${STRAPI_URL}/api/chapters?fields[0]=id&fields[1]=title&fields[2]=slug&fields[3]=startStation&fields[4]=endStation&fields[5]=distance&populate[0]=thumbnail`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        next: { revalidate: 300 },
+      }
+    );
 
     if (!response.ok) {
       console.error('Failed to fetch chapters');
@@ -52,23 +85,19 @@ export async function getChapters(): Promise<Chapter[]> {
     console.error('Error fetching chapters:', error);
     return [];
   }
-}
+});
 
 /**
  * Get chapters in sequential order following the nextChapter chain
- * Finds the first chapter (one without any previous reference) and follows the chain
  */
-export async function getChaptersInOrder(): Promise<Chapter[]> {
+export const getChaptersInOrder = cache(async (): Promise<Chapter[]> => {
   try {
-    // Fetch all chapters with nextChapter relation and thumbnail
     const response = await fetch(
       `${STRAPI_URL}/api/chapters?populate[0]=nextChapter&populate[1]=thumbnail`,
       {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        next: { revalidate: 300 },
       }
     );
 
@@ -78,71 +107,24 @@ export async function getChaptersInOrder(): Promise<Chapter[]> {
     }
 
     const json = await response.json();
-    const chapters = json.data || [];
-
-    if (chapters.length === 0) return [];
-
-    // Build a map for quick lookup
-    const chapterMap = new Map(chapters.map((ch: Chapter) => [ch.id, ch]));
-
-    // Find chapters that are referenced as nextChapter
-    const referencedIds = new Set(
-      chapters
-        .filter((ch: Chapter) => ch.nextChapter?.id)
-        .map((ch: Chapter) => ch.nextChapter!.id)
-    );
-
-    // Find the first chapter (not referenced by anyone)
-    let firstChapter = chapters.find((ch: Chapter) => !referencedIds.has(ch.id));
-    
-    // If no clear first chapter, just use the first one
-    if (!firstChapter) {
-      firstChapter = chapters[0];
-    }
-
-    // Follow the chain
-    const orderedChapters: Chapter[] = [];
-    let current = firstChapter;
-    const visited = new Set<number>();
-
-    while (current && !visited.has(current.id)) {
-      orderedChapters.push(current);
-      visited.add(current.id);
-      
-      if (current.nextChapter?.id) {
-        current = chapterMap.get(current.nextChapter.id);
-      } else {
-        break;
-      }
-    }
-
-    // Add any remaining chapters that weren't in the chain
-    chapters.forEach((ch: Chapter) => {
-      if (!visited.has(ch.id)) {
-        orderedChapters.push(ch);
-      }
-    });
-
-    return orderedChapters;
+    return sortChaptersByChain(json.data || []);
   } catch (error) {
     console.error('Error fetching chapters in order:', error);
     return [];
   }
-}
+})
 
 /**
  * Get a single chapter by slug
  */
-export async function getChapterBySlug(slug: string): Promise<Chapter | null> {
+export const getChapterBySlug = cache(async (slug: string): Promise<Chapter | null> => {
   try {
     const response = await fetch(
       `${STRAPI_URL}/api/chapters?filters[slug][$eq]=${slug}&populate[0]=horizons.image&populate[1]=gpxFileAB&populate[2]=gpxFileBA&populate[3]=testimonials.photo&populate[4]=nextChapter&populate[5]=previousChapter&populate[6]=thumbnail`,
       {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        next: { revalidate: 300 },
       }
     );
 
@@ -157,4 +139,4 @@ export async function getChapterBySlug(slug: string): Promise<Chapter | null> {
     console.error('Error fetching chapter:', error);
     return null;
   }
-}
+});
