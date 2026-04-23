@@ -94,8 +94,11 @@ export const getArticleBySlug = cache(async (slug: string) => {
   const articles = await fetchAPI<any[]>({
     endpoint: '/articles',
     query: {
-      filters: { slug: { $eq: slug } },
-      populate: ['cover', 'author.avatar', 'category', 'blocks'],
+      'filters[slug][$eq]': slug,
+      'populate[0]': 'cover',
+      'populate[1]': 'author.avatar',
+      'populate[2]': 'category',
+      'populate[3]': 'blocks',
     },
     wrappedByList: true,
   });

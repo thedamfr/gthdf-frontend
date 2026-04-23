@@ -1,0 +1,173 @@
+.page {
+  background: var(--color-creme);
+  min-height: 100vh;
+  padding: 4rem 1rem;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-bleu);
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.category {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: var(--color-beige);
+  color: var(--color-charbon);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  color: var(--color-charbon);
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+}
+
+.description {
+  font-size: 1.2rem;
+  color: var(--color-charbon);
+  opacity: 0.75;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.authorBlock {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--color-beige);
+}
+
+.authorAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.authorName {
+  font-weight: 600;
+  color: var(--color-charbon);
+}
+
+.authorEmail {
+  font-size: 0.85rem;
+  color: var(--color-charbon);
+  opacity: 0.6;
+}
+
+.coverImage {
+  position: relative;
+  height: 400px;
+  width: 100%;
+  margin-bottom: 3rem;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.content {
+  color: var(--color-charbon);
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.richText {
+  margin-bottom: 2rem;
+}
+
+.richText h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+}
+
+.richText h3 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.richText p {
+  margin-bottom: 1rem;
+}
+
+.richText a {
+  color: var(--color-bleu);
+  text-decoration: underline;
+}
+
+.richText ul,
+.richText ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.richText li {
+  margin-bottom: 0.25rem;
+}
+
+.mediaBlock {
+  position: relative;
+  height: 400px;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 2rem 0;
+}
+
+.quote {
+  border-left: 4px solid var(--color-rouge);
+  padding: 1rem 1.5rem;
+  margin: 2rem 0;
+  background: var(--color-beige);
+  border-radius: 0 4px 4px 0;
+}
+
+.quoteText {
+  font-style: italic;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.quoteAuthor {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.sliderGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.sliderImage {
+  position: relative;
+  height: 260px;
+  border-radius: 4px;
+  overflow: hidden;
+}
