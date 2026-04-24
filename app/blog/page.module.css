@@ -1,0 +1,88 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 3rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.backLink {
+  display: inline-block;
+  color: var(--color-charbon);
+  text-decoration: none;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.backLink:hover {
+  opacity: 1;
+}
+
+.title {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.intro {
+  max-width: 640px;
+  margin: 0 auto;
+  font-size: 1.125rem;
+  opacity: 0.85;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.filterChip {
+  border: 2px solid var(--color-charbon);
+  text-decoration: none;
+  color: var(--color-charbon);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.75rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.filterChip:hover {
+  background: var(--color-charbon);
+  color: var(--color-creme);
+}
+
+.filterChipActive {
+  background: var(--color-charbon);
+  color: var(--color-creme);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem 1rem;
+  border: 2px dashed var(--color-charbon);
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 2rem 1.5rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+}
