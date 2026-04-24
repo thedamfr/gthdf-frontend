@@ -157,24 +157,6 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Horizons Changeants */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{homepage?.HorizonsTitres || 'Changing Horizons'}</h2>
-        <HorizonsSection 
-          horizons={homepage?.horizons || []} 
-          strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
-        />
-      </section>
-
-      {/* Encounters */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>{homepage?.rencontresTitre || 'Encounters'}</h2>
-        <EncountersSection 
-          rencontres={homepage?.rencontres || []} 
-          strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
-        />
-      </section>
-
       {/* Map Overview */}
       <section className={styles.mapSection}>
         <div className={styles.mapContainer}>
@@ -218,6 +200,24 @@ export default async function Home() {
       <section className={styles.principleSection}>
         <h2 className={styles.sectionTitle}>{homepage?.principlesTitle || 'The Principle'}</h2>
         <PrinciplesSection principles={homepage?.principles || []} />
+      </section>
+
+      {/* Horizons Changeants */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>{homepage?.HorizonsTitres || 'Changing Horizons'}</h2>
+        <HorizonsSection 
+          horizons={homepage?.horizons || []} 
+          strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
+        />
+      </section>
+
+      {/* Encounters */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>{homepage?.rencontresTitre || 'Encounters'}</h2>
+        <EncountersSection 
+          rencontres={homepage?.rencontres || []} 
+          strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
+        />
       </section>
 
       {/* Footer - Specific to homepage with social links */}
