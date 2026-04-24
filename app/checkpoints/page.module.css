@@ -129,6 +129,14 @@
   padding: 1rem;
 }
 
+.heroImageMedia {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: 3px solid var(--color-charbon);
+}
+
 @media (max-width: 768px) {
   .heroLayout {
     grid-template-columns: 1fr;
@@ -152,6 +160,12 @@
 
 .grid > * + * {
   border-top: 2px solid var(--color-charbon);
+}
+
+.emptyState {
+  padding: 1.25rem;
+  color: var(--color-charbon);
+  opacity: 0.75;
 }
 
 /* Section cartes PDF */

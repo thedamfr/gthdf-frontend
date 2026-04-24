@@ -187,3 +187,44 @@ export const getLegalNotice = cache(async () => {
     revalidate: 3600,
   });
 });
+
+/**
+ * Get Checkpoints page single type content
+ */
+export const getCheckpointsPage = cache(async () => {
+  try {
+    return await fetchAPI({
+      endpoint: '/checkpoints-page',
+      query: {
+        'populate[0]': 'heroImage',
+        'populate[1]': 'mapA3Pdf',
+        'populate[2]': 'mapA1Pdf',
+      },
+      wrappedByKey: 'data',
+      revalidate: 300,
+    });
+  } catch (error) {
+    console.error('Error loading checkpoints page single type:', error);
+    return null;
+  }
+});
+
+/**
+ * Get all checkpoints
+ */
+export const getCheckpoints = cache(async () => {
+  try {
+    return await fetchAPI({
+      endpoint: '/checkpoints',
+      query: {
+        'sort[0]': 'number:asc',
+        'populate[0]': 'chapter',
+      },
+      wrappedByList: true,
+      revalidate: 300,
+    });
+  } catch (error) {
+    console.error('Error loading checkpoints collection:', error);
+    return [];
+  }
+});
