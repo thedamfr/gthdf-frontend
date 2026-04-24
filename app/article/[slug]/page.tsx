@@ -9,6 +9,11 @@ interface ArticlePageProps {
   params: Promise<{ slug: string }>;
 }
 
+function toAbsoluteMediaUrl(url: string | undefined, strapiUrl: string) {
+  if (!url) return null;
+  return url.startsWith("http") ? url : `${strapiUrl}${url}`;
+}
+
 // Generate static paths for all articles
 export async function generateStaticParams() {
   try {
@@ -58,9 +63,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
           {article.author && (
             <div className={styles.authorBlock}>
-              {article.author.avatar?.url && (
+              {toAbsoluteMediaUrl(article.author.avatar?.url, strapiUrl) && (
                 <Image
-                  src={`${strapiUrl}${article.author.avatar.url}`}
+                  src={toAbsoluteMediaUrl(article.author.avatar?.url, strapiUrl) || ""}
                   alt={article.author.name}
                   width={56}
                   height={56}
@@ -79,7 +84,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           {article.cover?.url && (
             <div className={styles.coverImage}>
               <Image
-                src={`${strapiUrl}${article.cover.url}`}
+                src={toAbsoluteMediaUrl(article.cover.url, strapiUrl) || ""}
                 alt={article.cover.alternativeText || article.title}
                 fill
                 style={{ objectFit: 'cover' }}
@@ -103,7 +108,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   return block.file?.url ? (
                     <div key={index} className={styles.mediaBlock}>
                       <Image
-                        src={`${strapiUrl}${block.file.url}`}
+                        src={toAbsoluteMediaUrl(block.file.url, strapiUrl) || ""}
                         alt={block.file.alternativeText || ''}
                         fill
                         style={{ objectFit: 'cover' }}
@@ -125,14 +130,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   return block.files?.length > 0 ? (
                     <div key={index} className={styles.sliderGrid}>
                       {block.files.map((file: any, fileIndex: number) => (
-                        <div key={fileIndex} className={styles.sliderImage}>
-                          <Image
-                            src={`${strapiUrl}${file.url}`}
-                            alt={file.alternativeText || ''}
-                            fill
-                            style={{ objectFit: 'cover' }}
-                          />
-                        </div>
+                        toAbsoluteMediaUrl(file.url, strapiUrl) ? (
+                          <div key={fileIndex} className={styles.sliderImage}>
+                            <Image
+                              src={toAbsoluteMediaUrl(file.url, strapiUrl) || ""}
+                              alt={file.alternativeText || ''}
+                              fill
+                              style={{ objectFit: 'cover' }}
+                            />
+                          </div>
+                        ) : null
                       ))}
                     </div>
                   ) : null;

@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
         hostname: 'cellar-c2.services.clever-cloud.com',
         pathname: '/gthdf-media/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'cms.gthf.fr',
+        pathname: '/uploads/**',
+      },
     ],
     dangerouslyAllowSVG: true,
     unoptimized: process.env.NODE_ENV === 'development',
