@@ -1,0 +1,141 @@
+.card {
+  border: 3px solid var(--color-charbon);
+  background: var(--color-creme);
+  display: flex;
+  flex-direction: column;
+}
+
+.cardOpen {
+  background: var(--color-creme);
+}
+
+.cardToggle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.25rem 1.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--color-charbon);
+  transition: background 0.15s;
+}
+
+.cardToggle:hover {
+  background: var(--color-beige);
+}
+
+.cardOpen .cardToggle {
+  border-bottom: 2px solid var(--color-charbon);
+}
+
+.cardBody {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.chevron {
+  margin-left: auto;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+  flex-shrink: 0;
+  color: var(--color-charbon);
+  opacity: 0.5;
+}
+
+.number {
+  font-family: var(--font-brand);
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-rouge);
+  min-width: 3rem;
+  flex-shrink: 0;
+}
+
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+}
+
+.chapterName {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-charbon);
+  opacity: 0.6;
+}
+
+.title {
+  font-family: var(--font-brand);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-charbon);
+}
+
+.enigma {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-charbon);
+  font-style: italic;
+}
+
+.hintSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hintToggle {
+  background: none;
+  border: 2px solid var(--color-charbon);
+  color: var(--color-charbon);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.15s, color 0.15s;
+}
+
+.hintToggle:hover {
+  background: var(--color-charbon);
+  color: var(--color-creme);
+}
+
+.hint {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-charbon);
+  background: var(--color-beige);
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--color-jaune);
+}
+
+.w3w {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-charbon);
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.w3w:hover {
+  opacity: 1;
+}
+
+.w3wPrefix {
+  color: var(--color-rouge);
+  font-weight: bold;
+}

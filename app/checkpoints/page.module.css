@@ -1,0 +1,226 @@
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+.pageHeader {
+  margin-bottom: 4rem;
+}
+
+.backLink {
+  display: inline-block;
+  color: var(--color-charbon);
+  text-decoration: none;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.backLink:hover {
+  opacity: 1;
+}
+
+.pageTitle {
+  font-size: 3.5rem;
+  margin-bottom: 2rem;
+  color: var(--color-charbon);
+}
+
+/* Hero layout : texte + image côte à côte */
+
+.heroLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.heroLead {
+  font-family: var(--font-brand);
+  font-size: 1.375rem;
+  line-height: 1.4;
+  color: var(--color-charbon);
+}
+
+.heroPara {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--color-charbon);
+  opacity: 0.85;
+}
+
+.rulesList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-left: 4px solid var(--color-rouge);
+  padding-left: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.rulesList li {
+  font-size: 0.95rem;
+  color: var(--color-charbon);
+  line-height: 1.5;
+}
+
+/* Bouton WhatsApp */
+
+.whatsappCta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: #25D366;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: background 0.15s, transform 0.15s;
+  align-self: flex-start;
+}
+
+.whatsappCta:hover {
+  background: #1da851;
+  transform: translateY(-2px);
+}
+
+.whatsappIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.whatsappSub {
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.85;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+
+.heroImage {
+  position: sticky;
+  top: 2rem;
+}
+
+.heroImagePlaceholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: var(--color-beige);
+  border: 3px dashed var(--color-charbon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: var(--color-charbon);
+  opacity: 0.5;
+  text-align: center;
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .heroLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .heroImage {
+    position: static;
+    order: -1;
+  }
+
+  .heroImagePlaceholder {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 3px solid var(--color-charbon);
+}
+
+.grid > * + * {
+  border-top: 2px solid var(--color-charbon);
+}
+
+/* Section cartes PDF */
+
+.mapsSection {
+  margin-bottom: 3rem;
+}
+
+.mapsSectionTitle {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: var(--color-charbon);
+}
+
+.mapsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.mapCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border: 3px solid var(--color-charbon);
+  background: var(--color-creme);
+  text-decoration: none;
+  color: var(--color-charbon);
+  transition: background 0.15s;
+}
+
+.mapCard:hover {
+  background: var(--color-beige);
+}
+
+.mapIcon {
+  font-family: var(--font-brand);
+  font-size: 1.5rem;
+  font-weight: 800;
+  min-width: 3rem;
+  color: var(--color-bleu);
+}
+
+.mapInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.mapLabel {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.mapFormat {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.mapDownload {
+  margin-left: auto;
+  font-size: 1.25rem;
+  opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+  .mapsGrid {
+    grid-template-columns: 1fr;
+  }
+}
