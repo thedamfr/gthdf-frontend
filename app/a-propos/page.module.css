@@ -1,0 +1,127 @@
+.page {
+  background: var(--color-creme);
+  min-height: 100vh;
+  padding: 3rem 1rem;
+}
+
+.container {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.backLink {
+  display: inline-flex;
+  color: var(--color-charbon);
+  text-decoration: none;
+  margin-bottom: 2rem;
+  opacity: 0.7;
+}
+
+.backLink:hover {
+  opacity: 1;
+}
+
+.header {
+  margin-bottom: 2.5rem;
+}
+
+.title {
+  font-size: clamp(2rem, 5vw, 3.3rem);
+  line-height: 1.1;
+  margin-bottom: 0.75rem;
+}
+
+.lead {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.82;
+  max-width: 62ch;
+}
+
+.content {
+  color: var(--color-charbon);
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.richText {
+  margin-bottom: 2rem;
+}
+
+.richText h2 {
+  font-size: 1.75rem;
+  margin: 2rem 0 1rem;
+}
+
+.richText h3 {
+  font-size: 1.35rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.richText p {
+  margin-bottom: 1rem;
+}
+
+.richText a {
+  color: var(--color-bleu);
+  text-decoration: underline;
+}
+
+.richText ul,
+.richText ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.mediaBlock {
+  position: relative;
+  width: 100%;
+  height: 420px;
+  border: 3px solid var(--color-charbon);
+  overflow: hidden;
+  margin: 2rem 0;
+}
+
+.quote {
+  border-left: 5px solid var(--color-vert);
+  background: var(--color-beige);
+  padding: 1rem 1.25rem;
+  margin: 2rem 0;
+}
+
+.quoteText {
+  font-style: italic;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+
+.quoteAuthor {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.emptyState {
+  border: 2px dashed var(--color-charbon);
+  padding: 2rem;
+  text-align: center;
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 2rem 1rem;
+  }
+
+  .sliderGrid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .sliderImage {
+    height: 350px;
+  }
+
+  .mediaBlock {
+    height: 280px;
+  }
+}
