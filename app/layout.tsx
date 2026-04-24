@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getGlobal } from "@/lib/strapi";
+import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
+        <Header />
         {children}
         <Footer />
       </body>
