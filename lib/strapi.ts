@@ -99,6 +99,8 @@ export const getArticleBySlug = cache(async (slug: string) => {
       'populate[1]': 'author.avatar',
       'populate[2]': 'category',
       'populate[3]': 'blocks',
+      'populate[4]': 'blocks.file',
+      'populate[5]': 'blocks.files',
     },
     wrappedByList: true,
   });
