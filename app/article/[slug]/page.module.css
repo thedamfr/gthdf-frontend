@@ -72,6 +72,12 @@
 .authorName {
   font-weight: 600;
   color: var(--color-charbon);
+  text-decoration: none;
+}
+
+.authorName:hover {
+  text-decoration: underline;
+  color: var(--color-bleu);
 }
 
 .authorEmail {

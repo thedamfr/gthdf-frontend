@@ -74,7 +74,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 />
               )}
               <div>
-                <div className={styles.authorName}>{article.author.name}</div>
+                {article.author.slug ? (
+                  <Link href={`/auteur/${article.author.slug}`} className={styles.authorName}>
+                    {article.author.name}
+                  </Link>
+                ) : (
+                  <div className={styles.authorName}>{article.author.name}</div>
+                )}
                 {article.author.email && (
                   <div className={styles.authorEmail}>{article.author.email}</div>
                 )}
