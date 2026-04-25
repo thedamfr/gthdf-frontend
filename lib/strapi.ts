@@ -180,19 +180,35 @@ export const getAbout = cache(async () => {
  * Get Homepage content
  */
 export const getHomepage = cache(async () => {
-  return fetchAPI({
-    endpoint: '/homepage',
-    query: {
-      'populate[0]': 'logo',
-      'populate[1]': 'horizons.image',
-      'populate[2]': 'rencontres.image',
-      'populate[3]': 'seo.shareImage',
-      'populate[4]': 'principles',
-      'populate[5]': 'socialLinks',
-      'populate[6]': 'mapPreviewImage',
-    },
-    wrappedByKey: 'data',
-  });
+  try {
+    return await fetchAPI({
+      endpoint: '/homepage',
+      query: {
+        'populate[0]': 'logo',
+        'populate[1]': 'horizons.image',
+        'populate[2]': 'rencontres.image',
+        'populate[3]': 'seo.shareImage',
+        'populate[4]': 'principles',
+        'populate[5]': 'socialLinks',
+        'populate[6]': 'mapPreviewImage',
+      },
+      wrappedByKey: 'data',
+    });
+  } catch {
+    // Fallback without mapPreviewImage (schema may not be deployed yet)
+    return fetchAPI({
+      endpoint: '/homepage',
+      query: {
+        'populate[0]': 'logo',
+        'populate[1]': 'horizons.image',
+        'populate[2]': 'rencontres.image',
+        'populate[3]': 'seo.shareImage',
+        'populate[4]': 'principles',
+        'populate[5]': 'socialLinks',
+      },
+      wrappedByKey: 'data',
+    });
+  }
 });
 
 /**
