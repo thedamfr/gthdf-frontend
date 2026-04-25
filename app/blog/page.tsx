@@ -1,7 +1,17 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import BlogCard from '@/components/BlogCard';
 import { getArticles, getCategories } from '@/lib/strapi';
 import styles from './page.module.css';
+
+export const metadata: Metadata = {
+  title: 'Contenus — Grand Tour des Hauts-de-France',
+  description: 'Articles, conseils pratiques et récits de voyage pour préparer votre tour à vélo des Hauts-de-France.',
+  openGraph: {
+    title: 'Contenus — Grand Tour des Hauts-de-France',
+    description: 'Articles, conseils pratiques et récits de voyage pour préparer votre tour à vélo des Hauts-de-France.',
+  },
+};
 
 interface BlogPageProps {
   searchParams?: Promise<{ category?: string }>;

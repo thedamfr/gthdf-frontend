@@ -1,9 +1,19 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { marked } from 'marked';
 import { getAbout } from '@/lib/strapi';
 import ImageSlider from '@/components/ImageSlider';
 import styles from './page.module.css';
+
+export const metadata: Metadata = {
+  title: 'À propos — Grand Tour des Hauts-de-France',
+  description: 'Le projet Grand Tour des Hauts-de-France : un carnet de voyage numérique pour explorer la région à vélo.',
+  openGraph: {
+    title: 'À propos — Grand Tour des Hauts-de-France',
+    description: 'Le projet Grand Tour des Hauts-de-France : un carnet de voyage numérique pour explorer la région à vélo.',
+  },
+};
 
 interface AboutBlock {
   __component: 'shared.rich-text' | 'shared.media' | 'shared.quote' | 'shared.slider';

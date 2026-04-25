@@ -1,8 +1,18 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from './page.module.css';
 import CheckpointCard, { type CheckpointData } from '@/components/CheckpointCard';
 import { getCheckpoints, getCheckpointsPage } from '@/lib/strapi';
+
+export const metadata: Metadata = {
+  title: 'Checkpoints — Grand Tour des Hauts-de-France',
+  description: '24 illustrations métalliques cachées sur le parcours. Trouvez-les grâce aux énigmes et aux adresses what3words.',
+  openGraph: {
+    title: 'Checkpoints — Grand Tour des Hauts-de-France',
+    description: '24 illustrations métalliques cachées sur le parcours. Trouvez-les grâce aux énigmes et aux adresses what3words.',
+  },
+};
 
 interface CheckpointItem {
   id: number;
