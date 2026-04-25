@@ -1,3 +1,4 @@
+import type { Metadata, ResolvingMetadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { marked } from "marked";
@@ -8,6 +9,47 @@ import styles from "./page.module.css";
 
 interface ArticlePageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata(
+  { params }: ArticlePageProps,
+  _parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { slug } = await params;
+  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+
+  let article: any = null;
+  try {
+    article = await getArticleBySlug(slug);
+  } catch {
+    // ignore
+  }
+
+  if (!article) {
+    return { title: "Article introuvable \u2014 GTHDF" };
+  }
+
+  const seo = article.seo;
+  const title = seo?.metaTitle || article.title;
+  const description = seo?.metaDescription || article.excerpt || article.description;
+  const imageUrl = seo?.shareImage?.url
+    ? toAbsoluteMediaUrl(seo.shareImage.url, strapiUrl)
+    : toAbsoluteMediaUrl(article.cover?.url, strapiUrl);
+
+  return {
+    title: `${title} \u2014 GTHDF`,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      publishedTime: article.publishedAt,
+      ...(imageUrl && { images: [{ url: imageUrl }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+    },
+  };
 }
 
 function toAbsoluteMediaUrl(url: string | undefined, strapiUrl: string) {

@@ -1,3 +1,4 @@
+import type { Metadata, ResolvingMetadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -18,6 +19,39 @@ export async function generateStaticParams() {
   } catch {
     return [];
   }
+}
+
+export async function generateMetadata(
+  { params }: AuthorPageProps,
+  _parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { slug } = await params;
+  let author: any = null;
+  try {
+    author = await getAuthorBySlug(slug);
+  } catch {
+    // ignore
+  }
+
+  if (!author) {
+    return { title: 'Auteur introuvable \u2014 GTHDF' };
+  }
+
+  const title = `${author.name} \u2014 GTHDF`;
+  const description = author.bio || `Articles de ${author.name} sur GTHDF.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'profile',
+    },
+    twitter: {
+      card: 'summary_large_image',
+    },
+  };
 }
 
 function toAbsoluteMediaUrl(url: string | undefined, strapiUrl: string) {

@@ -1,3 +1,4 @@
+import type { Metadata, ResolvingMetadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
@@ -10,6 +11,42 @@ export async function generateStaticParams() {
   return chapters.map((chapter) => ({
     slug: chapter.slug,
   }));
+}
+
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> },
+  _parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { slug } = await params;
+  const chapter = await getChapterBySlug(slug);
+
+  if (!chapter) {
+    return { title: 'Chapitre introuvable \u2014 GTHDF' };
+  }
+
+  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const title = chapter.title;
+  const description = chapter.introSentence
+    ? `${chapter.introSentence} It\u00e9n\u00e9raire v\u00e9lo de ${chapter.distance}\u202fkm entre ${chapter.startStation} et ${chapter.endStation}.`
+    : `It\u00e9n\u00e9raire v\u00e9lo de ${chapter.distance}\u202fkm entre ${chapter.startStation} et ${chapter.endStation}.`;
+
+  const thumbnailUrl = chapter.thumbnail?.url
+    ? (chapter.thumbnail.url.startsWith('http') ? chapter.thumbnail.url : `${strapiUrl}${chapter.thumbnail.url}`)
+    : null;
+
+  return {
+    title: `${title} \u2014 GTHDF`,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      ...(thumbnailUrl && { images: [{ url: thumbnailUrl }] }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+    },
+  };
 }
 
 export default async function ChapterPage({ params }: { params: Promise<{ slug: string }> }) {
