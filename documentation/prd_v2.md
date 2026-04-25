@@ -432,6 +432,13 @@ openGraph: {
 33. Créer catégories blog dans Strapi admin
 34. Ajouter `seo` sur les articles existants
 
+### Phase Dessert — Contenu destination par chapitre (nice-to-have)
+35. Phase explicitement ultérieure (dessert), hors backlog coeur V2
+36. Pour chaque chapitre, ajouter un bloc destination avec des suggestions touristiques pour la ville d'arrivee
+37. Exemple: chapitre Lille -> Saint-Omer, bloc "Que visiter a Saint-Omer"
+38. Le JSON-LD est rattache au niveau de la page chapitre, meme sans pages ville dediees
+39. Demarrer par un chapitre pilote avant generalisation
+
 ---
 
 ## Fichiers impactés
