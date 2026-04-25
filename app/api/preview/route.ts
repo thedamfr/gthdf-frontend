@@ -26,6 +26,14 @@ export async function OPTIONS(request: NextRequest) {
   return withPreviewCors(new NextResponse(null, { status: 204 }), request);
 }
 
+function getPublicBaseUrl(request: NextRequest): string {
+  // Behind a reverse proxy, request.url reflects the internal address (localhost).
+  // Use forwarded headers to reconstruct the real public URL.
+  const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
+  const host = request.headers.get('x-forwarded-host') || request.nextUrl.host;
+  return `${proto}://${host}`;
+}
+
 export async function GET(request: NextRequest) {
   const previewUrl = request.nextUrl.searchParams.get('url') || '/';
   const status = request.nextUrl.searchParams.get('status');
@@ -44,6 +52,6 @@ export async function GET(request: NextRequest) {
     draft.enable();
   }
 
-  const response = NextResponse.redirect(new URL(previewUrl, request.url));
+  const response = NextResponse.redirect(new URL(previewUrl, getPublicBaseUrl(request)));
   return withPreviewCors(response, request);
 }
