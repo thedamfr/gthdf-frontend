@@ -18,7 +18,16 @@ interface StrapiRequestOptions {
  */
 export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
   const { endpoint, query = {}, wrappedByKey, wrappedByList, revalidate = 60 } = options;
-  const { isEnabled: isDraftPreview } = await draftMode();
+  
+  // draftMode() only works in request scope, fails during static generation
+  let isDraftPreview = false;
+  try {
+    const draftStatus = await draftMode();
+    isDraftPreview = draftStatus.isEnabled;
+  } catch {
+    // Not in request scope (e.g., generateStaticParams), continue without draft mode
+    isDraftPreview = false;
+  }
 
   const requestQuery: Record<string, any> = { ...query };
   if (isDraftPreview && requestQuery.publicationState === undefined) {
