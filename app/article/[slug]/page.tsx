@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { marked } from "marked";
 import { getArticleBySlug, getArticles } from "@/lib/strapi";
+import ImageSlider from "@/components/ImageSlider";
 import { notFound } from "next/navigation";
 import styles from "./page.module.css";
 
@@ -128,20 +129,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
                 case 'shared.slider':
                   return block.files?.length > 0 ? (
-                    <div key={index} className={styles.sliderGrid}>
-                      {block.files.map((file: any, fileIndex: number) => (
-                        toAbsoluteMediaUrl(file.url, strapiUrl) ? (
-                          <div key={fileIndex} className={styles.sliderImage}>
-                            <Image
-                              src={toAbsoluteMediaUrl(file.url, strapiUrl) || ""}
-                              alt={file.alternativeText || ''}
-                              fill
-                              style={{ objectFit: 'cover' }}
-                            />
-                          </div>
-                        ) : null
-                      ))}
-                    </div>
+                    <ImageSlider
+                      key={index}
+                      images={block.files
+                        .map((file: any) => ({
+                          url: toAbsoluteMediaUrl(file.url, strapiUrl) || "",
+                          alternativeText: file.alternativeText,
+                        }))
+                        .filter((img: { url: string }) => img.url)
+                      }
+                    />
                   ) : null;
 
                 default:

@@ -157,17 +157,3 @@
   font-size: 0.85rem;
   opacity: 0.7;
 }
-
-.sliderGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin: 2rem 0;
-}
-
-.sliderImage {
-  position: relative;
-  height: 260px;
-  border-radius: 4px;
-  overflow: hidden;
-}
