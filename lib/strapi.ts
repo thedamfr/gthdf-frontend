@@ -108,6 +108,8 @@ export const getArticleBySlug = cache(async (slug: string) => {
       'populate[3]': 'blocks',
       'populate[4]': 'blocks.file',
       'populate[5]': 'blocks.files',
+      'populate[6]': 'seo',
+      'populate[7]': 'seo.shareImage',
     },
     wrappedByList: true,
   });

@@ -1,7 +1,14 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getLegalNotice } from '@/lib/strapi';
 import styles from './page.module.css';
 import { marked } from 'marked';
+
+export const metadata: Metadata = {
+  title: 'Mentions légales — GTHDF',
+  description: 'Mentions légales du site GTHDF.',
+  robots: 'noindex, nofollow',
+};
 
 export const revalidate = 3600; // Revalidate every hour
 

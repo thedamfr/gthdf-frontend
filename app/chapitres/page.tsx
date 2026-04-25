@@ -1,7 +1,21 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from './page.module.css';
 import { getChaptersInOrder } from '@/lib/chapters';
+
+export const metadata: Metadata = {
+  title: 'Les chapitres — GTHDF',
+  description: 'Le parcours GTHDF est découpé en chapitres. Chaque chapitre peut être parcouru dans les deux sens, à vélo.',
+  openGraph: {
+    title: 'Les chapitres — GTHDF',
+    description: 'Le parcours GTHDF est découpé en chapitres. Chaque chapitre peut être parcouru dans les deux sens, à vélo.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
+};
 
 export default async function ChaptersPage() {
   const chapters = await getChaptersInOrder();
