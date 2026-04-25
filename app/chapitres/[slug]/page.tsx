@@ -25,14 +25,21 @@ export async function generateMetadata(
   }
 
   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-  const title = chapter.title;
-  const description = chapter.introSentence
-    ? `${chapter.introSentence} It\u00e9n\u00e9raire v\u00e9lo de ${chapter.distance}\u202fkm entre ${chapter.startStation} et ${chapter.endStation}.`
-    : `It\u00e9n\u00e9raire v\u00e9lo de ${chapter.distance}\u202fkm entre ${chapter.startStation} et ${chapter.endStation}.`;
+  const seo = (chapter as any).seo;
+  const cities: string[] = (chapter as any).cities || [];
 
-  const thumbnailUrl = chapter.thumbnail?.url
-    ? (chapter.thumbnail.url.startsWith('http') ? chapter.thumbnail.url : `${strapiUrl}${chapter.thumbnail.url}`)
-    : null;
+  const title = seo?.metaTitle || chapter.title;
+  const citiesSuffix = cities.length > 0 ? ` \u2014 ${cities.join(', ')}` : '';
+  const description = seo?.metaDescription
+    || (chapter.introSentence
+      ? `${chapter.introSentence} It\u00e9n\u00e9raire v\u00e9lo de ${chapter.distance}\u202fkm entre ${chapter.startStation} et ${chapter.endStation}.${citiesSuffix}`
+      : `It\u00e9n\u00e9raire v\u00e9lo de ${chapter.distance}\u202fkm entre ${chapter.startStation} et ${chapter.endStation}.${citiesSuffix}`);
+
+  const imageUrl = seo?.shareImage?.url
+    ? (seo.shareImage.url.startsWith('http') ? seo.shareImage.url : `${strapiUrl}${seo.shareImage.url}`)
+    : chapter.thumbnail?.url
+      ? (chapter.thumbnail.url.startsWith('http') ? chapter.thumbnail.url : `${strapiUrl}${chapter.thumbnail.url}`)
+      : null;
 
   return {
     title: `${title} \u2014 GTHDF`,
@@ -41,7 +48,7 @@ export async function generateMetadata(
       title,
       description,
       type: 'website',
-      ...(thumbnailUrl && { images: [{ url: thumbnailUrl }] }),
+      ...(imageUrl && { images: [{ url: imageUrl }] }),
     },
     twitter: {
       card: 'summary_large_image',
