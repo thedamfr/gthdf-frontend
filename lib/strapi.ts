@@ -230,3 +230,35 @@ export const getCheckpoints = cache(async () => {
     return [];
   }
 });
+
+/**
+ * Get all authors (for static params generation)
+ */
+export const getAuthors = cache(async () => {
+  return fetchAPI({
+    endpoint: '/authors',
+    query: {
+      'populate[0]': 'avatar',
+    },
+    wrappedByList: true,
+  });
+});
+
+/**
+ * Get a single author by slug with their articles
+ */
+export const getAuthorBySlug = cache(async (slug: string) => {
+  const authors = await fetchAPI<any[]>({
+    endpoint: '/authors',
+    query: {
+      'filters[slug][$eq]': slug,
+      'populate[0]': 'avatar',
+      'populate[1]': 'articles',
+      'populate[2]': 'articles.cover',
+      'populate[3]': 'articles.category',
+    },
+    wrappedByList: true,
+  });
+
+  return authors[0] || null;
+});
