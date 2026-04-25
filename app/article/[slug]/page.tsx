@@ -72,7 +72,7 @@ export async function generateStaticParams() {
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
-  
+
   let article = null;
   try {
     article = await getArticleBySlug(slug);
@@ -89,10 +89,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   return (
     <div className={styles.page}>
       <main className={styles.container}>
-        <Link href="/" className={styles.backLink}>
-          ← Retour
-        </Link>
-
         <article>
           {article.category && (
             <span className={styles.category}>{article.category.name}</span>
@@ -127,17 +123,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   <div className={styles.authorEmail}>{article.author.email}</div>
                 )}
               </div>
-            </div>
-          )}
-
-          {article.cover?.url && (
-            <div className={styles.coverImage}>
-              <Image
-                src={toAbsoluteMediaUrl(article.cover.url, strapiUrl) || ""}
-                alt={article.cover.alternativeText || article.title}
-                fill
-                style={{ objectFit: 'cover' }}
-              />
             </div>
           )}
 
