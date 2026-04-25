@@ -1,5 +1,6 @@
 // lib/strapi.ts - Strapi API client
 import { cache } from 'react';
+import { draftMode } from 'next/headers';
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 const STRAPI_API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
@@ -17,9 +18,15 @@ interface StrapiRequestOptions {
  */
 export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
   const { endpoint, query = {}, wrappedByKey, wrappedByList, revalidate = 60 } = options;
+  const { isEnabled: isDraftPreview } = await draftMode();
+
+  const requestQuery: Record<string, any> = { ...query };
+  if (isDraftPreview && requestQuery.publicationState === undefined) {
+    requestQuery.publicationState = 'preview';
+  }
 
   const mergedOptions = {
-    next: { revalidate }, // Cache configurable, default 60 seconds
+    ...(isDraftPreview ? { cache: 'no-store' as const } : { next: { revalidate } }),
     headers: {
       'Content-Type': 'application/json',
       ...(STRAPI_API_TOKEN && {
@@ -30,7 +37,7 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
 
   const queryString = new URLSearchParams();
   
-  Object.entries(query).forEach(([key, value]) => {
+  Object.entries(requestQuery).forEach(([key, value]) => {
     if (Array.isArray(value)) {
       // For arrays, add multiple params with same key
       value.forEach((item) => {
