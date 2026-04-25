@@ -70,11 +70,3 @@ export default async function LegalNoticePage() {
     </div>
   );
 }
-
-export async function generateMetadata() {
-  // Return static metadata to avoid build errors if Strapi is not ready
-  return {
-    title: 'Mentions Légales',
-    description: 'Mentions légales du site',
-  };
-}
