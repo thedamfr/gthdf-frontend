@@ -5,6 +5,9 @@ import { notFound } from 'next/navigation';
 import styles from './page.module.css';
 import { getChapterBySlug, getChapters } from '@/lib/chapters';
 import HorizonsSection from '@/components/HorizonsSection';
+import DestinationSection from '@/components/DestinationSection';
+import CheckpointCard from '@/components/CheckpointCard';
+import SocialSection, { type SocialItem } from '@/components/SocialSection';
 
 export async function generateStaticParams() {
   const chapters = await getChapters();
@@ -65,6 +68,31 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
   }
 
   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const checkpoints = Array.isArray((chapter as any).checkpoints) ? (chapter as any).checkpoints : [];
+  const relatedArticles = Array.isArray((chapter as any).relatedArticles) ? (chapter as any).relatedArticles : [];
+
+  const socialItems: SocialItem[] = [
+    ...(chapter.testimonials ?? []).map((t): SocialItem => ({
+      kind: 'testimonial',
+      id: t.id,
+      author: t.author,
+      quote: t.quote,
+      borderColor: t.borderColor,
+      photoUrl: t.photo?.url
+        ? (t.photo.url.startsWith('http') ? t.photo.url : `${strapiUrl}${t.photo.url}`)
+        : null,
+    })),
+    ...relatedArticles.map((a: any): SocialItem => ({
+      kind: 'article',
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      excerpt: a.excerpt || a.description,
+      coverUrl: a.cover?.url
+        ? (a.cover.url.startsWith('http') ? a.cover.url : `${strapiUrl}${a.cover.url}`)
+        : null,
+    })),
+  ];
 
   // Normalize Komoot URLs to embed format
   const normalizeKomootUrl = (url: string | undefined) => {
@@ -127,14 +155,6 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
           </div>
         )}
       </header>
-
-      {/* Horizons */}
-      {chapter.horizons && chapter.horizons.length > 0 && (
-        <section className={styles.horizonsSection}>
-          <h2 className={styles.sectionTitle}>Horizons</h2>
-          <HorizonsSection horizons={chapter.horizons} strapiUrl={strapiUrl} />
-        </section>
-      )}
 
       {/* Navigation (Komoot + GPX) */}
       {(komootAB || komootBA) && (
@@ -204,44 +224,55 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
         </section>
       )}
 
-      {/* Testimonials */}
-      {chapter.testimonials && chapter.testimonials.length > 0 && (
-        <section className={styles.testimonialsSection}>
-          <h2 className={styles.sectionTitle}>Témoignages</h2>
-          <div className={styles.testimonialsList}>
-            {chapter.testimonials.map((testimonial) => {
-              const photoUrl = testimonial.photo?.url
-                ? (testimonial.photo.url.startsWith('http')
-                    ? testimonial.photo.url
-                    : `${strapiUrl}${testimonial.photo.url}`)
-                : null;
-
-              return (
-                <article 
-                  key={testimonial.id} 
-                  className={styles.testimonial}
-                  style={{ borderColor: `var(--color-${testimonial.borderColor})` }}
-                >
-                  {photoUrl && (
-                    <div className={styles.testimonialPhoto}>
-                      <Image
-                        src={photoUrl}
-                        alt={testimonial.photo?.alternativeText || testimonial.author}
-                        width={300}
-                        height={200}
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
-                    </div>
-                  )}
-                  <div className={styles.testimonialContent}>
-                    <h3>{testimonial.author}</h3>
-                    <p>{testimonial.quote}</p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+      {/* Checkpoints + Horizons */}
+      <div className={styles.twoColumnRow}>
+        <section className={styles.checkpointsSection}>
+          <h2 className={styles.sectionTitle}>Checkpoints</h2>
+          <Link href="/checkpoints" className={styles.checkpointsCta}>
+            Découvrir les checkpoints
+          </Link>
+          {checkpoints.length === 0 ? (
+            <p className={styles.emptyState}>Aucun checkpoint visible pour ce chapitre pour le moment.</p>
+          ) : (
+            <div className={styles.checkpointsList}>
+              {checkpoints
+                .sort((a: any, b: any) => a.number - b.number)
+                .map((cp: any) => (
+                  <CheckpointCard key={cp.id} checkpoint={cp} />
+                ))}
+            </div>
+          )}
         </section>
+
+        {chapter.horizons && chapter.horizons.length > 0 && (
+          <section className={styles.horizonsSection}>
+            <h2 className={styles.sectionTitle}>Horizons</h2>
+            <HorizonsSection
+              horizons={chapter.horizons}
+              strapiUrl={strapiUrl}
+              gridClassName={styles.horizonsGridRow}
+              itemsPerPageDesktop={2}
+            />
+          </section>
+        )}
+      </div>
+
+      {/* Témoignages & Articles */}
+      <section className={styles.socialSection}>
+        <h2 className={styles.sectionTitle}>Témoignages &amp; Articles</h2>
+        {socialItems.length === 0 ? (
+          <p className={styles.emptyState}>Aucun témoignage ni article lié pour ce chapitre pour le moment.</p>
+        ) : (
+          <SocialSection items={socialItems} />
+        )}
+      </section>
+
+      {/* Destination & POIs */}
+      {(chapter as any).destination && (
+        <DestinationSection 
+          destination={(chapter as any).destination} 
+          strapiUrl={strapiUrl}
+        />
       )}
       
       {/* Navigation vers chapitre suivant */}

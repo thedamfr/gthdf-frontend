@@ -120,7 +120,7 @@ export const getChaptersInOrder = cache(async (): Promise<Chapter[]> => {
 export const getChapterBySlug = cache(async (slug: string): Promise<Chapter | null> => {
   try {
     const response = await fetch(
-      `${STRAPI_URL}/api/chapters?filters[slug][$eq]=${slug}&populate[0]=horizons.image&populate[1]=gpxFileAB&populate[2]=gpxFileBA&populate[3]=testimonials.photo&populate[4]=nextChapter&populate[5]=previousChapter&populate[6]=thumbnail&populate[7]=seo&populate[8]=seo.shareImage`,
+      `${STRAPI_URL}/api/chapters?filters[slug][$eq]=${slug}&populate[0]=horizons.image&populate[1]=gpxFileAB&populate[2]=gpxFileBA&populate[3]=testimonials.photo&populate[4]=nextChapter&populate[5]=previousChapter&populate[6]=thumbnail&populate[7]=seo&populate[8]=seo.shareImage&populate[9]=destination&populate[10]=destination.pois&populate[11]=destination.pois.photo&populate[12]=checkpoints&populate[13]=relatedArticles&populate[14]=relatedArticles.cover`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },

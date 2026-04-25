@@ -168,7 +168,26 @@
 
 /* Horizons Section */
 .horizonsSection {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* prevent grid blowout */
+}
+
+/* Single-row grid used inside twoColumnRow */
+.horizonsGridRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+/* Two-column row: Checkpoints + Horizons */
+.twoColumnRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3rem;
   margin-bottom: 4rem;
+  align-items: start;
 }
 
 .routeNotes {
@@ -200,7 +219,7 @@
 }
 
 /* Testimonials */
-.testimonialsSection {
+.socialSection {
   margin-bottom: 4rem;
 }
 
@@ -275,6 +294,19 @@
   .testimonialsList {
     grid-template-columns: 1fr;
   }
+
+  .twoColumnRow {
+    grid-template-columns: 1fr;
+  }
+
+  .checkpointsSection {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .horizonsGridRow {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Navigation vers chapitre suivant */
@@ -304,13 +336,124 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-charbon);
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .nextChapterTitle {
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--color-charbon);
+}
+
+/* Articles liés (cards dans socialSection) */
+.articlesList {
+  margin-top: 2rem;
+}
+
+.articleCard {
+  border: 3px solid var(--color-bleu);
+  padding: 0;
+  background: var(--color-creme);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: var(--color-charbon);
+  transition: transform 0.2s ease;
+}
+
+.articleCard:hover {
+  transform: translateY(-2px);
+}
+
+.articleCard .testimonialContent h3 {
   color: var(--color-bleu);
+}
+
+.emptyState {
+  padding: 1rem 1.25rem;
+  border-left: 4px solid var(--color-jaune);
+  background: var(--color-beige);
+  color: var(--color-charbon);
+  opacity: 0.85;
+}
+
+/* Checkpoints */
+.checkpointsSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 280px;
+  max-width: 420px;
+}
+
+.checkpointsCta {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--color-charbon);
+  background: var(--color-jaune);
+  color: var(--color-charbon);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.checkpointsCta:hover {
+  background: var(--color-creme);
+}
+
+.checkpointsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.checkpointItem {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 2px solid var(--color-charbon);
+  background: var(--color-creme);
+}
+
+.checkpointNumber {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-rouge);
+  min-width: 2.5rem;
+}
+
+.checkpointItem strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--color-charbon);
+}
+
+.checkpointItem p {
+  font-size: 0.95rem;
+  color: var(--color-charbon);
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.w3wLink {
+  display: inline-block;
+  font-size: 0.875rem;
+  color: var(--color-bleu);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.w3wLink:hover {
+  text-decoration: underline;
+}
+
+.hint {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--color-charbon);
+  opacity: 0.7;
+  margin-top: 0.5rem;
 }
 
 @media (max-width: 768px) {

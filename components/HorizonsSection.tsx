@@ -33,18 +33,22 @@ function ImagePlaceholder({ text, height }: { text: string; height: number }) {
 
 export default function HorizonsSection({ 
   horizons, 
-  strapiUrl 
+  strapiUrl,
+  gridClassName: gridClassNameProp,
+  itemsPerPageDesktop = 3,
 }: { 
   horizons: HorizonCard[]; 
   strapiUrl: string;
+  gridClassName?: string;
+  itemsPerPageDesktop?: number;
 }) {
   return (
     <PagedSection
       items={horizons}
       itemsPerPageMobile={1}
-      itemsPerPageDesktop={3}
+      itemsPerPageDesktop={itemsPerPageDesktop}
       className={styles.horizonsContainer}
-      gridClassName={styles.horizonsGrid}
+      gridClassName={gridClassNameProp ?? styles.horizonsGrid}
       renderItem={(horizon: HorizonCard) => {
         const imageUrl = horizon.image?.url 
           ? (horizon.image.url.startsWith('http') 
