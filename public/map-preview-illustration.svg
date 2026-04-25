@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="Illustration d'aperçu de carte">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7db4cf"/>
+      <stop offset="100%" stop-color="#6aa4c0"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eecf9c"/>
+      <stop offset="100%" stop-color="#e6bf86"/>
+    </linearGradient>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="1.4"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sea)"/>
+  <path d="M220 120 L1260 70 Q1500 230 1450 520 Q1390 790 980 860 L200 800 Z" fill="url(#land)"/>
+
+  <g opacity="0.18" stroke="#3f4d58" stroke-width="2" fill="none">
+    <path d="M260 170 C500 240, 900 210, 1320 270"/>
+    <path d="M240 290 C540 320, 840 340, 1360 420"/>
+    <path d="M280 420 C520 470, 940 520, 1320 640"/>
+    <path d="M300 560 C590 580, 900 640, 1220 770"/>
+    <path d="M430 120 C410 290, 450 490, 520 760"/>
+    <path d="M690 110 C680 280, 700 510, 760 790"/>
+    <path d="M980 110 C950 260, 980 500, 1030 820"/>
+  </g>
+
+  <path d="M470 190 C270 260, 250 450, 360 610 C530 860, 920 840, 1160 640 C1320 500, 1260 300, 1060 230 C860 160, 640 130, 470 190 Z"
+        fill="none" stroke="#0f6f9b" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" filter="url(#soft)"/>
+  <path d="M470 190 C270 260, 250 450, 360 610 C530 860, 920 840, 1160 640 C1320 500, 1260 300, 1060 230 C860 160, 640 130, 470 190 Z"
+        fill="none" stroke="#0b85bb" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g>
+    <circle cx="472" cy="193" r="14" fill="#ffbb2e" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="378" cy="275" r="14" fill="#ff5a36" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="318" cy="392" r="14" fill="#ffbb2e" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="334" cy="548" r="14" fill="#0f6f9b" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="426" cy="694" r="14" fill="#ff5a36" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="592" cy="787" r="14" fill="#ffbb2e" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="780" cy="806" r="14" fill="#0f6f9b" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="964" cy="760" r="14" fill="#ff5a36" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="1116" cy="656" r="14" fill="#ffbb2e" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="1218" cy="532" r="14" fill="#0f6f9b" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="1236" cy="394" r="14" fill="#ff5a36" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="1148" cy="290" r="14" fill="#ffbb2e" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="1008" cy="234" r="14" fill="#0f6f9b" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="850" cy="204" r="14" fill="#ff5a36" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="684" cy="190" r="14" fill="#ffbb2e" stroke="#1f2a44" stroke-width="3"/>
+    <circle cx="548" cy="186" r="14" fill="#0f6f9b" stroke="#1f2a44" stroke-width="3"/>
+  </g>
+</svg>

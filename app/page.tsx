@@ -5,6 +5,7 @@ import Link from 'next/link';
 import HorizonsSection from '@/components/HorizonsSection';
 import EncountersSection from '@/components/EncountersSection';
 import PrinciplesSection from '@/components/PrinciplesSection';
+import DeferredMapEmbed from '@/components/DeferredMapEmbed';
 import type { Metadata } from 'next';
 
 // Temporary placeholder component until images are added
@@ -89,10 +90,10 @@ interface SocialLink {
 
 export async function generateMetadata(): Promise<Metadata> {
   const homepage = await getHomepage() as { 
-    seo?: SeoComponent[];
+    seo?: SeoComponent;
   };
 
-  const seo = homepage?.seo?.[0];
+  const seo = homepage?.seo;
   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
   
   const shareImageUrl = seo?.shareImage?.url
@@ -122,6 +123,7 @@ export default async function Home() {
     mapTitle?: string;
     mapEmbedUrl?: string;
     mapCaption?: string;
+    mapPreviewImage?: { url: string };
     principlesTitle?: string;
     principles?: PrincipleCard[];
     footerText?: string;
@@ -163,15 +165,16 @@ export default async function Home() {
           <h2 className={styles.sectionTitle}>{homepage?.mapTitle || 'Map Overview'}</h2>
           <div className={styles.mapFrame}>
             {homepage?.mapEmbedUrl ? (
-              <iframe
+              <DeferredMapEmbed
                 src={homepage.mapEmbedUrl}
-                width="100%"
-                height="480"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
                 title={homepage.mapTitle || 'Map Overview'}
+                previewImageSrc={
+                  homepage?.mapPreviewImage?.url
+                    ? (homepage.mapPreviewImage.url.startsWith('http')
+                        ? homepage.mapPreviewImage.url
+                        : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${homepage.mapPreviewImage.url}`)
+                    : '/map-preview-illustration.svg'
+                }
               />
             ) : (
               <div className={styles.mapPlaceholder}>

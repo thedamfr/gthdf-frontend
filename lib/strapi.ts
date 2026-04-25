@@ -189,6 +189,7 @@ export const getHomepage = cache(async () => {
       'populate[3]': 'seo.shareImage',
       'populate[4]': 'principles',
       'populate[5]': 'socialLinks',
+      'populate[6]': 'mapPreviewImage',
     },
     wrappedByKey: 'data',
   });

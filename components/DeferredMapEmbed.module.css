@@ -1,0 +1,108 @@
+.wrapper {
+  position: relative;
+  min-height: 480px;
+}
+
+.mapIframe {
+  display: block;
+  width: 100%;
+  min-height: 480px;
+}
+
+.preloadFrame {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  left: -9999px;
+  top: -9999px;
+  border: 0;
+}
+
+.placeholderButton {
+  width: 100%;
+  min-height: 480px;
+  border: 0;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  cursor: pointer;
+  background:
+    linear-gradient(135deg, rgba(245, 234, 208, 0.62), rgba(255, 248, 227, 0.66)),
+    url('/map-preview-screenshot.webp'),
+    url('/map-preview-illustration.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-charbon);
+  padding: 2rem;
+  text-align: center;
+}
+
+.placeholderButton:hover {
+  background-image:
+    linear-gradient(135deg, rgba(245, 234, 208, 0.55), rgba(255, 248, 227, 0.6)),
+    url('/map-preview-screenshot.webp'),
+    url('/map-preview-illustration.svg');
+}
+
+.placeholderButton:focus-visible {
+  outline: 3px solid var(--color-bleu);
+  outline-offset: 2px;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.4), transparent 42%),
+    linear-gradient(180deg, rgba(12, 19, 29, 0.08), rgba(12, 19, 29, 0.24));
+  z-index: 0;
+}
+
+.overlayCard {
+  z-index: 1;
+  max-width: 640px;
+  border: 2px solid rgba(31, 42, 68, 0.24);
+  background: rgba(255, 248, 227, 0.8);
+  backdrop-filter: blur(2px);
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.placeholderTitle {
+  font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.placeholderHint {
+  font-size: 0.92rem;
+  line-height: 1.4;
+  opacity: 0.78;
+  max-width: 55ch;
+}
+
+@media (max-width: 768px) {
+  .wrapper,
+  .mapIframe,
+  .placeholderButton {
+    min-height: 360px;
+  }
+
+  .overlayCard {
+    width: min(100%, 38rem);
+    padding: 1rem;
+  }
+
+  .placeholderHint {
+    font-size: 0.9rem;
+  }
+}
