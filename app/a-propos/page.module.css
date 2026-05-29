@@ -31,13 +31,6 @@
   margin-bottom: 0.75rem;
 }
 
-.lead {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  opacity: 0.82;
-  max-width: 62ch;
-}
-
 .content {
   color: var(--color-charbon);
   font-size: 1.05rem;

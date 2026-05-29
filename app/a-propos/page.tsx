@@ -60,7 +60,6 @@ export default async function AboutPage() {
 
         <header className={styles.header}>
           <h1 className={styles.title}>{title}</h1>
-          <p className={styles.lead}>Carnet de route, paysages traversés et principes de voyage lent.</p>
         </header>
 
         {blocks.length > 0 ? (
