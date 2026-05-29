@@ -6,6 +6,7 @@ import HorizonsSection from '@/components/HorizonsSection';
 import EncountersSection from '@/components/EncountersSection';
 import PrinciplesSection from '@/components/PrinciplesSection';
 import DeferredMapEmbed from '@/components/DeferredMapEmbed';
+import FaqSection from '@/components/FaqSection';
 import type { Metadata } from 'next';
 
 // Temporary placeholder component until images are added
@@ -88,6 +89,12 @@ interface SocialLink {
   label: string;
 }
 
+interface FaqItem {
+  id: number;
+  question?: string;
+  answer?: string;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const homepage = await getHomepage() as { 
     seo?: SeoComponent;
@@ -126,6 +133,10 @@ export default async function Home() {
     mapPreviewImage?: { url: string };
     principlesTitle?: string;
     principles?: PrincipleCard[];
+    introTitle?: string;
+    introText?: string;
+    faqTitle?: string;
+    faqItems?: FaqItem[];
     footerText?: string;
     socialLinks?: SocialLink[];
   };
@@ -158,6 +169,15 @@ export default async function Home() {
           <p className={styles.subtitle}>{homepage?.subtitle || 'Carnet de voyage numérique. Notes from the road.'}</p>
         </div>
       </header>
+
+      {(homepage?.introTitle || homepage?.introText) && (
+        <section className={styles.introSection}>
+          <div className={styles.introContainer}>
+            {homepage?.introTitle && <h2 className={styles.sectionTitle}>{homepage.introTitle}</h2>}
+            {homepage?.introText && <p className={styles.introText}>{homepage.introText}</p>}
+          </div>
+        </section>
+      )}
 
       {/* Map Overview */}
       <section className={styles.mapSection}>
@@ -213,6 +233,11 @@ export default async function Home() {
           strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
         />
       </section>
+
+      <FaqSection
+        title={homepage?.faqTitle || 'Questions frequentes'}
+        items={homepage?.faqItems || []}
+      />
 
       {/* Encounters */}
       <section className={styles.section}>

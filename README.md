@@ -22,7 +22,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Routes principales
 
-- `/` : Homepage CMS
+- `/` : Homepage CMS (header, intro, carte, principes, horizons, FAQ, rencontres)
 - `/chapitres` : Liste des chapitres
 - `/chapitres/[slug]` : Détail chapitre
 - `/checkpoints` : Page checkpoints CMS + accordéon

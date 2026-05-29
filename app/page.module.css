@@ -40,6 +40,24 @@
   font-style: italic;
 }
 
+.introSection {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 3rem 3rem;
+}
+
+.introContainer {
+  max-width: 780px;
+}
+
+.introText {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  margin: 0;
+  color: var(--color-charbon);
+  opacity: 0.9;
+}
+
 /* Section */
 .section {
   max-width: 1400px;
@@ -256,6 +274,10 @@
     gap: 2rem;
   }
 
+  .introSection {
+    padding: 0 2rem 2rem;
+  }
+
   .title {
     font-size: 2.5rem;
   }
@@ -340,6 +362,14 @@
 }
 
 @media (max-width: 768px) {
+  .introSection {
+    padding: 0 1.5rem 2rem;
+  }
+
+  .introText {
+    font-size: 1rem;
+  }
+
   .footer {
     padding: 2rem 1.5rem;
   }
