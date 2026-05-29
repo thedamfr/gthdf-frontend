@@ -40,22 +40,23 @@
   font-style: italic;
 }
 
-.introSection {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 3rem 3rem;
+.introContainer {
+  margin-top: 1.5rem;
 }
 
-.introContainer {
-  max-width: 780px;
+.introTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-charbon);
+  margin: 0 0 0.75rem 0;
 }
 
 .introText {
   font-size: 1.1rem;
-  line-height: 1.7;
+  line-height: 1.75;
   margin: 0;
   color: var(--color-charbon);
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 /* Section */
@@ -275,7 +276,7 @@
   }
 
   .introSection {
-    padding: 0 2rem 2rem;
+    padding: 2rem;
   }
 
   .title {
@@ -363,11 +364,11 @@
 
 @media (max-width: 768px) {
   .introSection {
-    padding: 0 1.5rem 2rem;
+    padding: 2rem 1.5rem;
   }
 
   .introText {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
   .footer {

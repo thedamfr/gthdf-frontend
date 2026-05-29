@@ -167,17 +167,14 @@ export default async function Home() {
         <div className={styles.headerText}>
           <h1 className={styles.title}>{homepage?.title || 'Grand Tour des Hauts-de-France'}</h1>
           <p className={styles.subtitle}>{homepage?.subtitle || 'Carnet de voyage numérique. Notes from the road.'}</p>
+          {(homepage?.introTitle || homepage?.introText) && (
+            <div className={styles.introContainer}>
+              {homepage?.introTitle && <h2 className={styles.introTitle}>{homepage.introTitle}</h2>}
+              {homepage?.introText && <p className={styles.introText}>{homepage.introText}</p>}
+            </div>
+          )}
         </div>
       </header>
-
-      {(homepage?.introTitle || homepage?.introText) && (
-        <section className={styles.introSection}>
-          <div className={styles.introContainer}>
-            {homepage?.introTitle && <h2 className={styles.sectionTitle}>{homepage.introTitle}</h2>}
-            {homepage?.introText && <p className={styles.introText}>{homepage.introText}</p>}
-          </div>
-        </section>
-      )}
 
       {/* Map Overview */}
       <section className={styles.mapSection}>
