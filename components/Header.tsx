@@ -29,7 +29,7 @@ export default function Header() {
     <header className={styles.header}>
       <div className={styles.container}>
         <Link href="/" className={styles.logo}>
-          GTHDF
+          GTHF
         </Link>
 
         {/* Desktop Nav */}
