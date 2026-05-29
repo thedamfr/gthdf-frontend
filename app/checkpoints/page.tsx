@@ -37,7 +37,9 @@ interface CheckpointsPageContent {
   whatsappSubtitle?: string;
   mapsSectionTitle?: string;
   mapA3Label?: string;
+  mapA3Format?: string;
   mapA1Label?: string;
+  mapA1Format?: string;
   heroImage?: { url: string; alternativeText?: string };
   mapA3Pdf?: { url: string };
   mapA1Pdf?: { url: string };
@@ -153,7 +155,7 @@ export default async function CheckpointsPage() {
             <div className={styles.mapIcon}>A3</div>
             <div className={styles.mapInfo}>
               <span className={styles.mapLabel}>{pageData.mapA3Label || 'Carte de randonnée'}</span>
-              <span className={styles.mapFormat}>Format A3 — PDF</span>
+              <span className={styles.mapFormat}>{pageData.mapA3Format || 'Format A3 — PDF'}</span>
             </div>
             <span className={styles.mapDownload}>↓</span>
           </a>
@@ -167,7 +169,7 @@ export default async function CheckpointsPage() {
             <div className={styles.mapIcon}>A1</div>
             <div className={styles.mapInfo}>
               <span className={styles.mapLabel}>{pageData.mapA1Label || 'Carte grand format'}</span>
-              <span className={styles.mapFormat}>Format A1 — PDF</span>
+              <span className={styles.mapFormat}>{pageData.mapA1Format || 'Format A1 — PDF'}</span>
             </div>
             <span className={styles.mapDownload}>↓</span>
           </a>

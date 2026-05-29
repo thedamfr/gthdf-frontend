@@ -1,9 +1,9 @@
 # PRD V2 — Grand Tour des Hauts-de-France
 
-**Version:** 2.0  
-**Date:** 23 avril 2026  
+**Version:** 2.3  
+**Date:** 25 avril 2026  
 **Auteur:** @thedamfr  
-**Statut:** En cours d'implémentation  
+**Statut:** Phases 0 + 1 CMS + 2 Pages + 3 Header + Dessert terminées — Phase 4 SEO partielle, Phase 5 contenu à faire  
 **ADRs liés:** [adr_legal_notice.md](adr_legal_notice.md)
 
 ---
@@ -33,14 +33,14 @@ Transformer le site en plateforme découvrable (SEO) avec navigation claire, gam
 - Image optimization (MinIO/Cellar S3)
 
 ### Manquant pour V2
-- Header/navigation persistante
+- ~~Header/navigation persistante~~ _(à faire après les pages)_
 - Metadata sur chapters, articles, checkpoints, blog
 - Page `/checkpoints` (concept gamification)
 - Page `/blog` (index articles)
 - Page `/a-propos` (content type `about` existe dans Strapi mais pas de route)
-- SEO component dans Strapi pour Article & Chapter
-- Champ `cities[]` dans Chapter pour SEO local
-- Relations bidirectionnelles Article ↔ Chapter
+- ~~SEO component dans Strapi pour Article & Chapter~~ ✅ Fait
+- ~~Champ `cities[]` dans Chapter pour SEO local~~ ✅ Fait
+- ~~Relations bidirectionnelles Article ↔ Chapter~~ ✅ Fait
 
 ### Bugs de performance identifiés
 
@@ -182,20 +182,9 @@ Champs à ajouter :
 
 ### 4. Content Type : Global (modification)
 
-**Fichier :** `gthdf-cms/src/api/global/content-types/global/schema.json`
+**Décision :** Pas de modification de Global pour les cartes PDF. La carte A3/A1 sera stockée dans un content type dédié à la page Checkpoints (à définir lors du dev de la page).
 
-Champ à ajouter :
-```json
-{
-  "checkpointMap": {
-    "type": "media",
-    "allowedTypes": ["images", "files"],
-    "multiple": false
-  }
-}
-```
-
-**Rationale :** Héberger la carte A3 des checkpoints (PDF pour impression + PNG pour preview). Upload unique dans Media Library, référencé par le singleton Global.
+**Rationale :** On construit la page d'abord pour voir exactement ce dont on a besoin, puis on adapte le schema CMS.
 
 ---
 
@@ -395,35 +384,43 @@ openGraph: {
 6. Supprimer tous les `console.log` debug
 7. Réécrire `app/article/[slug]/page.tsx` en CSS Modules
 
-### Phase 1 — Backend Strapi
-8. Créer content type Checkpoint (via Strapi admin ou fichiers JSON)
-9. Modifier schema Article : ajouter `seo`, `excerpt`, `relatedChapters`
-10. Modifier schema Chapter : ajouter `seo`, `cities`, `relatedArticles`
-11. Modifier schema Global : ajouter `checkpointMap`
-12. `cd gthdf-cms && npm run strapi ts:generate-types`
+### ✅ Phase 0 — Performance (terminée — commits `5cebf9c`, `8181405`, `d19ae56`)
+1. ✅ Supprimer `lib/global.ts`, fusionner dans `lib/strapi.ts`
+2. ✅ Wrapper toutes les fonctions avec `React.cache()`
+3. ✅ Remplacer `cache: 'no-store'` par `next: { revalidate: 300 }` dans `lib/chapters.ts`
+4. ✅ Remplacer `populate=*` dans `getChapters()` par champs ciblés
+5. ✅ Extraire `sortChaptersByChain()` en utilitaire partagé
+6. ✅ Supprimer tous les `console.log` debug
+7. ✅ Réécrire `app/article/[slug]/page.tsx` en CSS Modules
 
-### Phase 2 — Header Navigation
-13. Créer `components/Header.tsx` + `Header.module.css`
-14. Créer `components/MobileNav.tsx`
-15. Intégrer `<Header />` dans `app/layout.tsx`
+### ✅ Phase 1 — Backend Strapi (terminée — commits `beadf74`, `68233a7`)
+8. ✅ Créer content type Checkpoint avec relation bidirectionnelle Chapter
+9. ✅ Modifier schema Article : ajouter `seo`, `excerpt`, `relatedChapters`
+10. ✅ Modifier schema Chapter : ajouter `seo`, `cities`, `relatedArticles`, `checkpoints`
+11. ✅ Schema Global : inchangé (carte PDF → à faire lors du dev page checkpoints)
+12. ✅ Upgrade Strapi 5.32 → 5.43 (`3c753be`)
 
-### Phase 3 — Nouvelles pages
-16. Créer `lib/checkpoints.ts` : `getCheckpoints()` avec `React.cache()`
-17. Créer `app/checkpoints/page.tsx` + `page.module.css`
-18. Créer `components/CheckpointCard.tsx` + `CheckpointCard.module.css`
-19. Modifier `lib/strapi.ts` : `getArticles(category?)` avec filtre optionnel
-20. Créer `app/blog/page.tsx` + `page.module.css`
-21. Créer `components/BlogCard.tsx` + `BlogCard.module.css`
-22. Créer `app/a-propos/page.tsx`, extraire `BlockRenderer` depuis `article/[slug]/page.tsx`
+### Phase 2 — Nouvelles pages (à démarrer)
+13. ✅ Créer `lib/checkpoints.ts` : `getCheckpoints()`, `getCheckpointsPage()` avec `React.cache()`
+14. ✅ Créer `app/checkpoints/page.tsx` + `page.module.css`
+15. ✅ Créer `components/CheckpointCard.tsx` + `CheckpointCard.module.css`
+16. ✅ Créer `app/blog/page.tsx` + `page.module.css`
+17. ✅ Créer `components/BlogCard.tsx` + `BlogCard.module.css`
+18. ✅ Créer `app/a-propos/page.tsx` (avec `getAbout()`, `ImageSlider`, `BlockRenderer`)
+
+### Phase 3 — Header Navigation
+19. ✅ Créer `components/Header.tsx` + `Header.module.css` (logo + 6 liens + menu mobile hamburger intégré)
+20. ~~Créer `components/MobileNav.tsx`~~ — intégré directement dans `Header.tsx`
+21. ✅ Intégrer `<Header />` dans `app/layout.tsx`
 
 ### Phase 4 — SEO Metadata
-23. `app/chapitres/page.tsx` → `generateMetadata()` statique
-24. `app/chapitres/[slug]/page.tsx` → `generateMetadata()` dynamique (seo + cities)
-25. `app/article/[slug]/page.tsx` → `generateMetadata()` avec seo, OG `type: 'article'`
-26. `app/gpx-builder/page.tsx` → `export const metadata: Metadata`
-27. `app/checkpoints/page.tsx` → `generateMetadata()` statique
-28. `app/blog/page.tsx` → `generateMetadata()` statique
-29. `app/a-propos/page.tsx` → `generateMetadata()` statique
+22. ✅ `app/chapitres/page.tsx` → `export const metadata: Metadata`
+23. ✅ `app/chapitres/[slug]/page.tsx` → `generateMetadata()` dynamique (seo + cities)
+24. ✅ `app/article/[slug]/page.tsx` → `generateMetadata()` avec seo, OG `type: 'article'`, `publishedTime`
+25. ✅ `app/gpx-builder/page.tsx` → `export const metadata: Metadata` (dans `layout.tsx`)
+26. ⚠️ `app/checkpoints/page.tsx` → `export const metadata` — **manquant**
+27. ⚠️ `app/blog/page.tsx` → `export const metadata` — **manquant**
+28. ⚠️ `app/a-propos/page.tsx` → `export const metadata` — **manquant**
 
 ### Phase 5 — Contenu Strapi (hors dev)
 30. Remplir 24 entries Checkpoint (number, what3words, enigma)
@@ -433,11 +430,14 @@ openGraph: {
 34. Ajouter `seo` sur les articles existants
 
 ### Phase Dessert — Contenu destination par chapitre (nice-to-have)
-35. Phase explicitement ultérieure (dessert), hors backlog coeur V2
-36. Pour chaque chapitre, ajouter un bloc destination avec des suggestions touristiques pour la ville d'arrivee
-37. Exemple: chapitre Lille -> Saint-Omer, bloc "Que visiter a Saint-Omer"
-38. Le JSON-LD est rattache au niveau de la page chapitre, meme sans pages ville dediees
-39. Demarrer par un chapitre pilote avant generalisation
+35. ✅ Layout chapitre redesigné : `twoColumnRow` (checkpoints à gauche, horizons à droite), checkpoints liste verticale scrollable, grille horizons 2 colonnes — commit `d8bbc7a`
+36. ✅ Hint checkpoint masqué derrière toggle (`CheckpointCard` existant, branché) — commit `d8bbc7a`
+37. ✅ Section "Témoignages & Articles" unifiée (`SocialSection`) : merge témoignages + articles avec images, pagination mobile 1 item/page, grid desktop — commit `d8bbc7a`
+38. ✅ `DestinationSection` : bloc destination avec suggestions touristiques par chapitre — commit `d8bbc7a`
+39. ✅ `DeferredMapEmbed` : carte home avec placeholder cliquable, préchargement iframe `requestIdleCallback`, fallback SVG si pas de preview Strapi — commit `6c8f78c`
+40. ✅ Champ `mapPreviewImage` (media) ajouté au schema Homepage CMS — commit `c15f26f`
+41. ✅ `populate[6]: mapPreviewImage` dans `getHomepage()` avec fallback gracieux si schema prod pas encore déployé — commit `6c8f78c`
+42. ✅ SEO Homepage en composant non-repeatable (CMS + frontend alignés) — commit `c15f26f`
 
 ---
 
@@ -468,6 +468,29 @@ openGraph: {
 - `gthdf-cms/src/api/article/content-types/article/schema.json`
 - `gthdf-cms/src/api/chapter/content-types/chapter/schema.json`
 - `gthdf-cms/src/api/global/content-types/global/schema.json`
+
+---
+
+## Notes infra prod (CleverCloud)
+
+### Déploiement
+- Push sur `main` déclenche automatiquement le redéploiement
+- Script de démarrage : `strapi start` (pas `develop`)
+- Port attendu : `8080` (variable `PORT` CleverCloud)
+
+### Problème connu — Migration Strapi 5.43 sur CleverCloud
+La migration `5.0.0-06-add-document-id-indexes` accède à `pg_database` (tables système PostgreSQL), ce que CleverCloud refuse pour les rôles non-superadmin.
+
+**Fix :** Marquer la migration comme appliquée manuellement via la console SQL de l'addon `gthdf-pg` :
+```sql
+INSERT INTO strapi_migrations_internal (name, time) 
+VALUES ('5.0.0-06-add-document-id-indexes', NOW()) 
+ON CONFLICT DO NOTHING;
+```
+Puis redéployer. Les index que crée cette migration sont des optimisations, pas des contraintes structurelles.
+
+### Avertissement S3
+L'avertissement `S3 configuration options passed at root level` est non-bloquant. Fix à faire plus tard : wrapper dans `s3Options: {}` dans `config/plugins.ts`.
 
 ---
 
