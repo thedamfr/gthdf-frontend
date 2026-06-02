@@ -164,6 +164,19 @@ export const getGlobal = cache(async () => {
 });
 
 /**
+ * Get LLMs.txt content from Strapi Global
+ */
+export const getLlmsTxt = cache(async (): Promise<string | null> => {
+  const data = await fetchAPI<{ llmsTxt?: string }>({
+    endpoint: '/global',
+    query: {},
+    wrappedByKey: 'data',
+    revalidate: 3600,
+  });
+  return data?.llmsTxt ?? null;
+});
+
+/**
  * Get About page with blocks
  */
 export const getAbout = cache(async () => {
