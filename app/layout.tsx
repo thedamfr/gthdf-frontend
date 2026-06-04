@@ -22,6 +22,17 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Grand Tour des Hauts-de-France',
+  url: 'https://grandtourdeshautsdefrance.fr',
+  sameAs: [
+    'https://www.facebook.com/groups/1070406531384166',
+    'https://www.instagram.com/grandtourdeshautsdefrance/',
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,6 +40,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+      </head>
       <body>
         <Header />
         {children}
