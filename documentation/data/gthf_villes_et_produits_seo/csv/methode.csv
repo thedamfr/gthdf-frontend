@@ -1,0 +1,18 @@
+Section,Élément,Règle / valeur,Source URL
+Définition,Ville traversée,Commune dont le polygone administratif est rencontré par la trace GPX.,https://geo.api.gouv.fr/decoupage-administratif/communes
+Définition,Ville admissible,"Au moins un commerce actif shop=bakery, shop=convenience ou shop=supermarket dans la commune.",https://wiki.openstreetmap.org/wiki/Shops
+Définition,Commerce actif,"Exclusion des objets explicitement fermés, abandonnés, désaffectés ou en construction.",https://wiki.openstreetmap.org/wiki/Lifecycle_prefix
+Produit,Paire canonique,Une paire ville A × ville B non ordonnée ; la présentation peut être inversée sans créer une deuxième URL.,https://developers.google.com/search/docs/specialty/ecommerce/designing-a-url-structure-for-ecommerce-sites
+Produit,Critère itinéraire,Distance minimale sur la boucle strictement inférieure à 60 km.,https://cms.gthf.fr
+Produit,Critère direct,Distance géodésique entre ancres strictement inférieure à 40 km.,https://epsg.org/home.html
+Calcul,Passages multiples,La distance minimale est retenue entre toutes les occurrences de chaque commune sur la boucle.,https://cms.gthf.fr
+Calcul,Ancre communale,"France : mairie officielle. Belgique : centre géographique NGI/ODWB 2025, avec repli intérieur documenté pour 5 communes. L’ancre est projetée sur la trace dans la commune.",https://www.odwb.be/explore/dataset/communes-gemeente-vintage-millesime-belgium/
+Calcul,Précision,Échantillonnage de la trace tous les 10 m ; seuils testés sur les mètres non arrondis.,https://www.topografix.com/GPX/1/1/
+Qualité,Commerce éloigné,"Les commerces situés à plus de 2 km de la trace sont signalés pour contrôle, sans être exclus automatiquement.",https://www.openstreetmap.org/copyright
+Qualité,Paires proches des seuils,"Inventaire distinct des paires à ±250 m d’un seuil, y compris celles qui ne sont pas retenues comme produits.",https://cms.gthf.fr
+Source,GPX GTHF,Fichiers GPX publiés dans le CMS GTHF ; empreintes SHA-256 dans l’onglet Chapitres.,https://cms.gthf.fr
+Source,Communes françaises,API Découpage administratif de l’État français.,https://geo.api.gouv.fr/decoupage-administratif/communes
+Source,Communes belges,"Limites communales NGI-IGN, millésime 2025, diffusées via ODWB en WGS84.",https://www.odwb.be/explore/dataset/communes-gemeente-vintage-millesime-belgium/
+Source,Commerces,"OpenStreetMap / Overpass, instantané 2026-07-19T13:38:10Z.",https://www.openstreetmap.org/copyright
+Version,Date du calcul,2026-07-19,
+Version,Note de calcul,Paires non ordonnées sur la boucle; distance minimale entre occurrences; seuils < stricts sur mètres non arrondis; QA à ±250 m des seuils.,

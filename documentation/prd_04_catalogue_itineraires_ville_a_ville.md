@@ -214,7 +214,10 @@ frontend doit rester compatible avec un catalogue vide.
 
 ### 7.1 Identité et structure
 
-Fichier inspecté : `GTHF_villes_et_produits_SEO.xlsx`\
+Fichier inspecté :
+[`GTHF_villes_et_produits_SEO.xlsx`](data/gthf_villes_et_produits_seo/source/GTHF_villes_et_produits_SEO.xlsx)\
+Exports reproductibles et manifeste :
+[`documentation/data/gthf_villes_et_produits_seo/`](data/gthf_villes_et_produits_seo/)\
 Taille : 1 015 386 octets\
 SHA-256 :
 `dc7c251553907bf98ea444f79840cc52f9b702989353b241eaa083bb24d240a2`
