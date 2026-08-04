@@ -9,7 +9,7 @@ const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN
 
 interface StrapiRequestOptions {
   endpoint: string;
-  query?: Record<string, any>;
+  query?: Record<string, unknown>;
   wrappedByKey?: string;
   wrappedByList?: boolean;
   revalidate?: number;
