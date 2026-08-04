@@ -12,8 +12,9 @@ des villes et pages hubs\
 
 ## 1. Résumé de la décision
 
-Ce lot transforme `/chapitres` en point d’entrée pratique sur mobile sans
-supprimer sa galerie éditoriale.
+Ce lot transforme `/chapitres` en point d’entrée pratique sur mobile. Sur
+mobile, la liste compacte remplace entièrement la galerie de grandes cartes.
+La galerie éditoriale reste disponible sur tablette et bureau.
 
 Le haut de page contient une interface unique « Trouver un chapitre » qui :
 
@@ -73,7 +74,9 @@ une question limitée : « quelle fiche de chapitre dois-je ouvrir ? »
 - fournir un résultat géographique prudent et explicable ;
 - préserver la recherche et la liste lorsque la position est refusée ou
   indisponible ;
-- préserver le HTML serveur, les URL et la galerie éditoriale existante ;
+- préserver le HTML serveur et les URL existantes ;
+- préserver la galerie éditoriale sur tablette et bureau sans la rendre sur
+  mobile ;
 - limiter le poids initial et éviter le téléchargement des GPX bruts sur
   mobile ;
 - ne traiter que les chapitres et relations publiés ;
@@ -119,7 +122,8 @@ affiche plusieurs possibilités au lieu d’en choisir une arbitrairement.
 ### Visiteur en découverte
 
 Sans saisir de texte et sans partager sa position, il parcourt une liste
-compacte ordonnée, puis retrouve sous celle-ci les cartes illustrées actuelles.
+compacte ordonnée. Sur tablette et bureau, il peut aussi retrouver les cartes
+illustrées actuelles.
 
 ### Visiteur sans JavaScript ou sans géolocalisation
 
@@ -146,9 +150,9 @@ disponibles, mais la navigation essentielle reste fonctionnelle.
   il n’existe pas de parseur GPX ou de fonction géographique partagée ;
 - les textes de metadata de `/chapitres` emploient encore la marque legacy
   `GTHDF` et devront afficher `GTHF` lors de l’implémentation ;
-- les images de la galerie ne sont pas marquées `priority`, ce qui permet de
-  conserver leur chargement différé lorsqu’elles sont repoussées sous le
-  nouveau bloc.
+- les images de la galerie ne sont pas marquées `priority` ; l’implémentation
+  devra en plus garantir qu’elles ne sont pas téléchargées sur le viewport
+  mobile où les cartes sont absentes.
 
 ### 6.2 CMS
 
@@ -254,8 +258,8 @@ Le Server Component construit un objet minimal par chapitre publié :
   - `city.alternativeNames` lorsqu’il s’agit d’un tableau valide.
 
 Le DTO client ne contient ni introduction, ni image, ni contenu riche, ni SEO,
-ni URL de GPX. La galerie serveur peut continuer à consommer les champs
-éditoriaux nécessaires à ses cartes.
+ni URL de GPX. La vue éditoriale tablette/bureau peut continuer à consommer les
+champs nécessaires à ses cartes.
 
 Le dénivelé n’est pas affiché dans ce lot : aucun champ correspondant n’existe
 et aucune valeur actuellement rendue ne peut être considérée comme fiable.
@@ -289,7 +293,8 @@ n’est reconstruit depuis un identifiant ou un GPX.
    initial ;
 4. transmet le DTO minimal à un Client Component dédié à l’amélioration
    interactive ;
-5. rend ensuite la galerie éditoriale existante.
+5. rend ensuite la galerie éditoriale uniquement pour la présentation
+   tablette/bureau, sans téléchargement de ses images sur mobile.
 
 Le Client Component gère uniquement :
 
@@ -334,7 +339,7 @@ Le contenu apparaît dans cet ordre :
 5. bouton `Autour de moi` ;
 6. zone de résultats contextuelle ;
 7. liste compacte des chapitres ;
-8. galerie éditoriale actuelle.
+8. galerie éditoriale actuelle sur tablette et bureau uniquement.
 
 Le champ et le bouton sont visibles sans être cachés derrière une icône ou un
 menu. Aucun carrousel horizontal n’est introduit.
@@ -356,17 +361,23 @@ Une ligne possède une cible tactile d’au moins 44 × 44 pixels CSS et un
 intitulé compréhensible hors contexte. Le lien englobe la ligne sans imbriquer
 de second contrôle interactif.
 
-### 9.3 Galerie éditoriale
+### 9.3 Remplacement des cartes sur mobile
 
-Les cartes illustrées restent sous la liste. Elles conservent leur fonction de
-découverte et leurs URL actuelles.
+Sur un viewport mobile, la liste compacte est l’unique présentation de
+l’ensemble des chapitres. Les grandes cartes ne sont ni visibles, ni
+atteignables par les technologies d’assistance, ni téléchargées.
+
+Sur tablette et bureau, les cartes illustrées restent sous le finder et
+conservent leur fonction de découverte ainsi que leurs URL actuelles.
 
 - aucune image de carte n’est préchargée ;
-- la nouvelle section ne duplique pas les filtres ou états dans les cartes ;
-- les cartes peuvent recevoir des ajustements responsive mineurs, mais leur
-  suppression ou leur transformation en accordéon sort de ce lot ;
-- le finder doit être évaluable indépendamment d’une refonte visuelle de la
-  galerie.
+- masquer les cartes uniquement avec une technique qui continuerait à
+  télécharger toutes leurs images sur mobile ne satisfait pas ce PRD ;
+- le breakpoint initial reprend la convention existante de 768 px et doit être
+  vérifié visuellement avant livraison ;
+- la liste compacte reste la source des résultats de recherche ; la galerie
+  ne reçoit pas un second filtre ou état interactif ;
+- une refonte visuelle de la galerie tablette/bureau sort de ce lot.
 
 ## 10. Recherche textuelle
 
@@ -446,8 +457,8 @@ alternatif, mais affiche le nom canonique.
   catalogue vide.
 
 Les résultats remplacent temporairement les lignes non correspondantes dans la
-liste compacte. La galerie éditoriale n’est pas filtrée : elle reste une zone
-de découverte indépendante.
+liste compacte. Sur tablette et bureau, la galerie éditoriale n’est pas
+filtrée : elle reste une zone de découverte indépendante.
 
 ## 11. Index géographique de proximité
 
@@ -684,8 +695,8 @@ vers la liste immédiatement disponible.
 - aucun défilement horizontal n’apparaît à 320 px de largeur ;
 - le zoom navigateur n’est pas désactivé ;
 - la page est vérifiée à 200 % de zoom ;
-- le finder reste prioritaire sur mobile et s’intègre sans casser la galerie
-  sur tablette ou bureau.
+- la liste remplace la galerie sur mobile, sans casser cette dernière sur
+  tablette ou bureau.
 
 ## 15. Rendu, cache et performance
 
@@ -787,7 +798,7 @@ Ordre recommandé :
 7. effectuer la recette géographique et responsive ;
 8. activer publiquement le bouton de localisation.
 
-Le retour arrière du frontend rétablit la galerie actuelle. Le champ
+Le retour arrière du frontend peut rétablir la galerie mobile actuelle. Le champ
 `displayOrder` est additif et peut rester dans Strapi sans effet sur l’ancien
 frontend. Les GPX et relations historiques ne sont ni modifiés ni supprimés.
 
@@ -842,12 +853,13 @@ la fonction « Autour de moi » ; la recherche et la liste restent utilisables.
 
 ### Page et absence de JavaScript
 
-- à 320 × 568 et 390 × 844, le finder et le début de la liste précèdent la
-  première grande carte sans défilement horizontal ;
+- à 320 × 568 et 390 × 844, le finder et la liste remplacent entièrement les
+  grandes cartes, sans défilement horizontal ;
 - le champ possède un libellé visible et le bouton une cible tactile adaptée ;
 - sans JavaScript, les 10 liens de chapitres restent présents et utilisables ;
-- les cartes et URL actuelles restent accessibles sous le finder ;
-- aucune image de carte n’est chargée avec priorité du fait de ce lot.
+- les URL actuelles restent accessibles depuis chaque ligne compacte ;
+- aucune carte ou image de carte n’est rendue ou téléchargée sur mobile ;
+- sur tablette et bureau, les cartes restent accessibles sous le finder.
 
 ### Recherche
 
@@ -1016,7 +1028,7 @@ temps, ni extensions et ne convient jamais à l’export.
 
 ### Décisions prises
 
-- liste compacte toujours visible avant la galerie ;
+- liste compacte remplaçant la galerie sur mobile ;
 - recherche locale et sans appel réseau ;
 - ordre explicite `displayOrder` ancré à Lille → Arras ;
 - villes non dotées d’une page hub néanmoins cherchables ;
@@ -1050,7 +1062,8 @@ inexpliquée.
 
 Le lot est terminé lorsqu’un voyageur peut ouvrir `/chapitres` sur mobile et
 accéder au bon chapitre depuis une liste compacte, une ville enregistrée ou
-une position ponctuelle, sans faire défiler la galerie illustrée.
+une position ponctuelle. Sur mobile, aucune galerie illustrée ne suit la
+liste.
 
 Le HTML reste utile sans JavaScript, la recherche ne dépend d’aucun service
 externe, les GPX bruts ne sont pas transférés au navigateur et la position ne
