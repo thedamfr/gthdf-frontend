@@ -1,5 +1,24 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Architecture GTHF et documentation transverse
+
+Le produit GTHF est réparti entre deux dépôts :
+
+- `gthdf-frontend` : application publique Next.js ;
+- [`gthdf-cms`](https://github.com/thedamfr/gthdf-cms) : CMS Strapi et
+  schémas éditoriaux.
+
+Le schéma exécutable appartient au CMS ; son contrat public est consommé par
+le frontend. Les PRD qui décrivent ce contrat ou une fonctionnalité concernant
+les deux applications sont conservés une seule fois dans
+[`documentation/`](documentation/). Chaque PRD nomme les dépôts concernés,
+l’ordre de déploiement et les contraintes de compatibilité.
+
+Cet emplacement est la source canonique de la documentation d’architecture, pas
+un couplage de déploiement. Chaque dépôt conserve ses branches, ses pull
+requests et son cycle de livraison. Ne pas dupliquer les PRD dans le CMS :
+ajouter un lien vers la source canonique.
+
 ## Getting Started
 
 First, run the development server:
