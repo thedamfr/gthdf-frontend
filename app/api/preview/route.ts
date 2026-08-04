@@ -1,5 +1,9 @@
 import { draftMode } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  isAllowedPreviewPath,
+  isValidPreviewSecret,
+} from '@/lib/preview-security';
 
 function withPreviewCors(response: NextResponse, request: NextRequest) {
   const origin = request.headers.get('origin') || '';
@@ -19,6 +23,7 @@ function withPreviewCors(response: NextResponse, request: NextRequest) {
   response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
   response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  response.headers.set('Cache-Control', 'private, no-store');
   return response;
 }
 
@@ -27,20 +32,36 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 function getPublicBaseUrl(request: NextRequest): string {
-  // Behind a reverse proxy, request.url reflects the internal address (localhost).
-  // Use forwarded headers to reconstruct the real public URL.
-  const proto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
-  const host = request.headers.get('x-forwarded-host') || request.nextUrl.host;
-  return `${proto}://${host}`;
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  return configuredSiteUrl ? new URL(configuredSiteUrl).origin : request.nextUrl.origin;
 }
 
 export async function GET(request: NextRequest) {
   const previewUrl = request.nextUrl.searchParams.get('url') || '/';
   const status = request.nextUrl.searchParams.get('status');
+  const candidateSecret = request.nextUrl.searchParams.get('secret');
+  const configuredSecret = process.env.PREVIEW_SECRET;
 
-  // Allow only internal paths to avoid open redirects.
-  if (!previewUrl.startsWith('/')) {
+  if (!configuredSecret) {
+    return withPreviewCors(new NextResponse('Preview is not configured', {
+      status: 503,
+    }), request);
+  }
+
+  if (!isValidPreviewSecret(candidateSecret, configuredSecret)) {
+    return withPreviewCors(new NextResponse('Invalid preview secret', {
+      status: 401,
+    }), request);
+  }
+
+  if (!isAllowedPreviewPath(previewUrl)) {
     return withPreviewCors(new NextResponse('Invalid preview url', {
+      status: 400,
+    }), request);
+  }
+
+  if (status !== 'draft' && status !== 'published') {
+    return withPreviewCors(new NextResponse('Invalid preview status', {
       status: 400,
     }), request);
   }

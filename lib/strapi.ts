@@ -1,9 +1,11 @@
 // lib/strapi.ts - Strapi API client
 import { cache } from 'react';
 import { draftMode } from 'next/headers';
+import { withStrapiStatus } from './strapi-status';
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-const STRAPI_API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
+const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN
+  || process.env.NEXT_PUBLIC_STRAPI_API_TOKEN; // Legacy fallback during env migration.
 
 interface StrapiRequestOptions {
   endpoint: string;
@@ -29,10 +31,7 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
     isDraftPreview = false;
   }
 
-  const requestQuery: Record<string, any> = { ...query };
-  if (isDraftPreview && requestQuery.publicationState === undefined) {
-    requestQuery.publicationState = 'preview';
-  }
+  const requestQuery = withStrapiStatus(query, isDraftPreview);
 
   const mergedOptions = {
     ...(isDraftPreview ? { cache: 'no-store' as const } : { next: { revalidate } }),
@@ -50,12 +49,12 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
     if (Array.isArray(value)) {
       // For arrays, add multiple params with same key
       value.forEach((item) => {
-        queryString.append(key, item);
+        queryString.append(key, String(item));
       });
-    } else if (typeof value === 'object') {
+    } else if (value !== null && typeof value === 'object') {
       queryString.append(key, JSON.stringify(value));
-    } else {
-      queryString.append(key, value);
+    } else if (value !== undefined && value !== null) {
+      queryString.append(key, String(value));
     }
   });
 

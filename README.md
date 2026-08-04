@@ -25,6 +25,10 @@ manifeste sont décrits dans
 
 ## Getting Started
 
+Create `.env.local` from `.env.example`. `PREVIEW_SECRET` must contain the
+same long random value in the frontend and CMS environments. Keep it
+server-only: do not prefix it with `NEXT_PUBLIC_`.
+
 First, run the development server:
 
 ```bash
