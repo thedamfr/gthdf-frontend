@@ -19,6 +19,10 @@ un couplage de déploiement. Chaque dépôt conserve ses branches, ses pull
 requests et son cycle de livraison. Ne pas dupliquer les PRD dans le CMS :
 ajouter un lien vers la source canonique.
 
+Le classeur de cadrage des villes et itinéraires, ses exports CSV et leur
+manifeste sont décrits dans
+[`documentation/data/gthf_villes_et_produits_seo/`](documentation/data/gthf_villes_et_produits_seo/).
+
 ## Getting Started
 
 First, run the development server:

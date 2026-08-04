@@ -536,9 +536,12 @@ factuel des chapitres sans créer leur propre route publique.
 7. activer `hasPublicPage` uniquement pour les pages relues ;
 8. contrôler pages, liens et sitemap sur l’environnement cible.
 
-Le fichier contrôlé `GTHF_villes_et_produits_SEO.xlsx`, qualifié dans le
-PRD 04, peut servir de table de correspondance en lecture seule pour les seules
-villes retenues dans cette saisie initiale. Il permet de proposer
+Le
+[classeur contrôlé `GTHF_villes_et_produits_SEO.xlsx`](data/gthf_villes_et_produits_seo/source/GTHF_villes_et_produits_SEO.xlsx),
+qualifié dans le PRD 04, et ses
+[exports CSV documentés](data/gthf_villes_et_produits_seo/) peuvent servir de
+table de correspondance en lecture seule pour les seules villes retenues dans
+cette saisie initiale. Ils permettent de proposer
 `municipalityKey`, pays, code national, coordonnées et provenance.
 
 Ce raccourci reste sélectif :

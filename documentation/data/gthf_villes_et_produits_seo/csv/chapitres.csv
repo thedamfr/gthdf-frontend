@@ -1,0 +1,11 @@
+Slug chapitre,Chapitre,Fichier GPX,SHA-256 GPX,Distance GPX (m),Points échantillonnés,Segments,Source CMS
+hirson-a-soissons,Hirson → Soissons,01_hirson_soissons.gpx,66dffba15bea72fc7591ff146c6acbcf708c60849bfe0e076546210950c81f21,201030.54593232856,21765,1,https://cms.gthf.fr
+soissons-a-beauvais,Soissons → Beauvais,02_soissons_beauvais.gpx,ff1fa2de9f40df3e43030f097198ae6f4b4da7784686d2225be2b68ee82d3cc2,160334.52900046142,17436,1,https://cms.gthf.fr
+beauvais-a-amiens,Beauvais → Amiens,03_beauvais_amiens.gpx,7df5d4377999e4a8bcc111581941a8e885fc39fa90944197de90b1fe37ca3b3f,156648.20051801353,16803,1,https://cms.gthf.fr
+amiens-a-etaples,Amiens → Étaples,04_amiens_etaples.gpx,d42d7c9ce17c5a2e0e1f6bd921817e47fac703ef2690a8f40380ce97ee408ce6,204619.44239686095,22268,1,https://cms.gthf.fr
+etaples-a-calais,Étaples → Calais,05_etaples_calais.gpx,5fbaf4c67bfcc754d73ba91072dde8511a9a82688db39c7d80791df903ce2780,82940.35013021229,9143,1,https://cms.gthf.fr
+calais-a-saint-omer,Calais → Saint-Omer,06_calais_saint_omer.gpx,8a8551181a3bbd58d8ff240ba2a2708e666920583481055a6b5c4fe0e140a457,134158.72942154977,14928,1,https://cms.gthf.fr
+st-omer-lille,Saint-Omer → Lille,07_saint_omer_lille.gpx,b4fdde5fcf863f8cc88f94b6549dd1c8d4030abb6b6b3c0f45c3ebb893ebc599,101741.17496244767,11163,1,https://cms.gthf.fr
+lille-a-arras,Lille → Arras,08_lille_arras.gpx,1b4bf79869cc998090c39dc49a5378085b933b138643358b656eb4a7b12f872d,119498.79140965764,13243,1,https://cms.gthf.fr
+arras-a-conde-sur-l-escaut,Arras → Condé-sur-l’Escaut,09_arras_conde.gpx,ae08cacbd20c38e44c0a8bab375e6c188b961fcc2c66028574648a403994a9f3,99464.90680811541,10734,1,https://cms.gthf.fr
+conde-sur-l-escaut-a-hirson,Condé-sur-l’Escaut → Hirson,10_conde_hirson.gpx,450803943a9ec79c7f2ee27c024114a98ace3be36ffd6005ac4fc102e83fab76,145987.68918027735,15784,1,https://cms.gthf.fr
