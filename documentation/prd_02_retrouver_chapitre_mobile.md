@@ -1,6 +1,6 @@
 # PRD 02 — Retrouver son chapitre sur mobile
 
-**Version :** 0.2\
+**Version :** 0.3\
 **Date :** 4 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -97,7 +97,7 @@ Ce lot ne doit pas :
 - produire ou télécharger une portion ville à ville ;
 - modifier, fusionner ou découper un GPX ;
 - créer les pages `/villes/[slug]` du PRD 01 ;
-- créer les pages SEO ville à ville d’un lot ultérieur ;
+- créer le catalogue ville à ville du PRD 04 ;
 - modifier le GPX Builder ;
 - synchroniser Google My Maps ;
 - ajouter une tolérance générale aux fautes de frappe ;
@@ -241,6 +241,10 @@ Les noms canoniques affichés proviennent des villes `start` et `end` du PRD 01
 lorsqu’elles existent. `startStation` et `endStation` restent le fallback
 pendant la transition. La migration de l’ordre ne modifie aucun slug.
 
+`displayOrder` est exclusivement un ordre de présentation, ancré à Lille. Il
+ne définit ni le chaînage géographique, ni l’origine de boucle, ni le sens des
+portions du PRD 04, dont la baseline XLSX démarre à Hirson.
+
 ### 7.2 DTO du sélecteur
 
 Le Server Component construit un objet minimal par chapitre publié :
@@ -279,6 +283,11 @@ pas de lien vers une page ville non éligible.
 
 Une relation brouillon, manquante ou non peuplée est ignorée. Aucun libellé
 n’est reconstruit depuis un identifiant ou un GPX.
+
+L’existence d’une ville dans le référentiel ou parmi les 223 communes importées
+par le PRD 04 ne suffit pas. Seules les villes publiées reliées à la version
+publiée d’un chapitre par `cityPassages` entrent dans le DTO et le bundle de
+recherche.
 
 ## 8. Architecture frontend cible
 
@@ -847,6 +856,8 @@ la fonction « Autour de moi » ; la recherche et la liste restent utilisables.
 - seuls les chapitres publiés sont présents dans le HTML et le DTO client ;
 - seuls les documents City publiés reliés à ces chapitres alimentent la
   recherche ;
+- une ville seulement importée ou qualifiée par le PRD 04, sans
+  `cityPassages` publié, n’est ni exposée ni cherchable ;
 - une ville publiée avec `hasPublicPage=false` reste cherchable et ouvre le
   chapitre, jamais une page ville inexistante ;
 - aucun dénivelé n’est inventé ou affiché.
@@ -1009,16 +1020,21 @@ Dépendance requise pour :
 Le présent PRD précise que `hasPublicPage` ne filtre pas la recherche d’un
 chapitre.
 
-L’ajout de `displayOrder` devra être reporté lors de la revue croisée des
-quatre PRD : les pages hubs du PRD 01 pourront alors trier leurs chapitres avec
-ce champ plutôt qu’avec une boucle sans ancre.
+La revue croisée du PRD 01 est intégrée : ses pages hubs trient par
+`displayOrder` dès que ce champ est déployé et emploient avant cela un
+fallback déterministe qui ne prétend pas donner une origine à la boucle.
 
-### Futur catalogue ville à ville
+### PRD 04 — Catalogue d’itinéraires ville à ville
 
-Il pourra réutiliser les identités de villes et l’ordre des passages, mais ne
-doit pas utiliser l’index simplifié comme source d’un GPX exportable.
+Il réutilise les identités de villes, mais ne doit pas utiliser
+`displayOrder` comme origine géographique ni l’index simplifié comme source
+d’ancres, de métriques ou d’un GPX exportable.
 
-### Futur découpage GPX
+La divergence des directions est intentionnelle : le finder compare AB et BA
+pour localiser le chapitre le plus proche ; le catalogue MVP qualifie sa boucle
+officielle avec les dix GPX AB seulement.
+
+### PRD 03 — GPX Builder v2
 
 Il peut réutiliser des fonctions de parsing testées si leurs contrats sont
 compatibles. Le fichier simplifié du présent lot ne conserve ni altitude, ni
@@ -1031,6 +1047,9 @@ temps, ni extensions et ne convient jamais à l’export.
 - liste compacte remplaçant la galerie sur mobile ;
 - recherche locale et sans appel réseau ;
 - ordre explicite `displayOrder` ancré à Lille → Arras ;
+- recherche limitée aux `cityPassages` publiés, indépendamment de l’import
+  exhaustif du PRD 04 ;
+- ordre d’interface distinct du chaînage géographique du PRD 04 ;
 - villes non dotées d’une page hub néanmoins cherchables ;
 - absence de dénivelé dans le MVP ;
 - index même origine, partagé, cacheable et sans coordonnées ;

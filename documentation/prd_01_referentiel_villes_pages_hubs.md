@@ -1,6 +1,6 @@
 # PRD 01 — Référentiel des villes et pages hubs
 
-**Version :** 0.2\
+**Version :** 0.3\
 **Date :** 4 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -59,7 +59,7 @@ pour les noms, slugs ou contenus éditoriaux.
 - publier uniquement les pages villes apportant une navigation ou un contenu
   utile ;
 - fournir un contrat stable aux PRD suivants ;
-- préparer la future désambiguïsation et l’import de communes sans lancer cet
+- préparer la désambiguïsation et l’import complet du PRD 04 sans lancer cet
   import dans le présent lot.
 
 ## 4. Non-objectifs
@@ -129,6 +129,8 @@ mêmes passages ordonnés.
   secondes ;
 - `app/sitemap.ts` construit un sitemap dynamique, revalidé toutes les heures ;
 - le Draft Mode Next est déjà relié à la preview Strapi ;
+- la route Next `/api/preview` active actuellement le Draft Mode sans secret
+  partagé ; limiter son CORS ne constitue pas une authentification ;
 - le champ JSON `cities` alimente actuellement le fallback de meta description
   d’un chapitre, mais aucun bloc de villes n’est rendu dans le corps HTML ;
 - le helper Strapi utilise encore le paramètre legacy `publicationState` pour
@@ -164,17 +166,23 @@ Option : `draftAndPublish=true`
 | `name` | string | oui | Libellé public, par exemple `Saint-Omer` |
 | `slug` | UID basé initialement sur `name` | oui | Unique et stable après première publication publique |
 | `alternativeNames` | JSON | non | Tableau de variantes réelles, sans créer d’URL |
-| `inseeCode` | string | non | Identité de désambiguïsation ; unique lorsqu’il est renseigné |
-| `departmentCode` | string | non | Code textuel, notamment pour distinguer les homonymes |
+| `municipalityKey` | string | oui à la publication | Identité technique unique et immuable, par exemple `FR-02381` |
+| `countryCode` | string | oui à la publication | Code ISO 3166-1 alpha-2, par exemple `FR` ou `BE` |
+| `municipalityCode` | string | oui à la publication | Code national conservé comme texte ; code INSEE pour la France |
+| `administrativeArea` | string | non | Département, province ou autre zone utile à la désambiguïsation |
 | `latitude` | decimal | non | Latitude éditoriale, comprise entre -90 et 90 |
 | `longitude` | decimal | non | Longitude éditoriale, comprise entre -180 et 180 |
+| `coordinateSource` | JSON | non | Provenance privée de la paire de coordonnées : source, date et méthode |
 | `shortDescription` | text | non | Introduction propre à la ville, sans texte générique automatique |
 | `blocks` | dynamic zone existante | non | Réutilise uniquement les composants éditoriaux partagés nécessaires |
 | `hasPublicPage` | boolean | oui | Défaut `false` ; active l’éligibilité de la route Next |
 | `seo` | `shared.seo` | non | Surcharge des métadonnées par défaut |
 
-`inseeCode` est ajouté dès maintenant pour éviter que le futur import de masse
-ne dépende du nom comme identifiant. Le nom n’est donc pas déclaré unique. Si
+`municipalityKey` est la clé de rapprochement entre les lots. Elle est formée
+une fois depuis le pays et le code administratif, porte une contrainte
+`unique`, puis ne change plus lorsque le nom ou le slug évolue.
+`municipalityCode` remplace un champ exclusivement français `inseeCode` : sa
+valeur seule n’est pas unique entre pays. Le nom n’est pas déclaré unique. Si
 deux communes homonymes doivent être publiées, le slug est désambiguïsé de
 façon éditoriale avant sa première publication.
 
@@ -187,7 +195,9 @@ façon éditoriale avant sa première publication.
 - aucune URL ou redirection générée à partir de ces valeurs.
 
 Les coordonnées sont soit toutes les deux absentes, soit toutes les deux
-valides. Elles ne sont ni calculées ni affichées par ce lot.
+valides. Lorsqu’elles sont renseignées depuis une source externe,
+`coordinateSource` est obligatoire et n’entre pas dans le DTO public. Elles ne
+sont ni calculées ni affichées par ce lot.
 
 Le composant SEO existant est réutilisé. `City` doit rejoindre la validation
 centrale de l’image de partage déjà appliquée aux autres contenus SEO.
@@ -326,16 +336,18 @@ Chaque chapitre est affiché une seule fois avec :
 - le rôle de la ville dans ce chapitre, formulé en français ;
 - un lien vers `/chapitres/[slug]`.
 
-Les chapitres sont triés selon l’ordre canonique déjà établi par la chaîne
-`nextChapter`, et non selon l’ordre de retour de l’API.
+Lorsque le PRD 02 est déployé, les chapitres sont triés par `displayOrder`.
+Avant ce déploiement, un fallback déterministe par titre puis slug est accepté :
+la chaîne `nextChapter` forme une boucle et ne fournit pas seule une origine
+stable. L’ordre de retour de l’API n’est jamais utilisé.
 
 Une ville sans blocs éditoriaux peut avoir une page publique si elle dessert au
 moins un chapitre : la page constitue alors un hub de navigation factuel. Le
 frontend ne génère aucun paragraphe de remplissage.
 
-Aucun emplacement vide « itinéraires à venir » n’est affiché. Cette zone sera
-ajoutée uniquement lorsque le futur catalogue ville à ville disposera de
-données publiées.
+Aucun emplacement vide « itinéraires à venir » n’est affiché. Le PRD 04 ajoute
+cette zone uniquement lorsque le catalogue dispose de données publiées et
+explicitement mises en avant.
 
 ## 10. Contrat API et architecture frontend
 
@@ -396,6 +408,11 @@ les fonctions propres aux chapitres et le client générique.
   en 404 si une version ISR valide peut encore être servie.
 
 ### 10.5 Preview Strapi 5
+
+Avant d’ajouter `City` à la preview, la route `/api/preview` doit exiger un
+secret serveur vérifié en temps constant et n’accepter qu’un chemin interne
+construit pour un type autorisé. Le CORS existant reste une protection
+navigateur complémentaire, pas le contrôle d’accès.
 
 Le client utilise le contrat Strapi 5 :
 
@@ -502,7 +519,7 @@ Pour chaque chapitre existant, le script prépare :
 La reprise par nom normalisé peut ignorer casse, accents, espaces et tirets pour
 proposer une correspondance. Elle ne fusionne jamais automatiquement deux
 homonymes ou deux cas ambigus. Ces cas apparaissent dans le rapport et sont
-résolus éditorialement, notamment avec `inseeCode`.
+résolus éditorialement avec `municipalityKey`.
 
 Les villes nécessaires aux chapitres publics peuvent être publiées dans
 Strapi avec `hasPublicPage=false`. Elles peuvent alors alimenter le contenu
@@ -519,10 +536,21 @@ factuel des chapitres sans créer leur propre route publique.
 7. activer `hasPublicPage` uniquement pour les pages relues ;
 8. contrôler pages, liens et sitemap sur l’environnement cible.
 
-Le futur import fondé sur le fichier
-`GTHF_villes_et_produits_SEO.xlsx` reste hors périmètre. Le numéro du PRD qui
-le prendra en charge n’est pas fixé ici afin de ne pas coupler ce socle à
-l’ordre de livraison des lots suivants.
+Le fichier contrôlé `GTHF_villes_et_produits_SEO.xlsx`, qualifié dans le
+PRD 04, peut servir de table de correspondance en lecture seule pour les seules
+villes retenues dans cette saisie initiale. Il permet de proposer
+`municipalityKey`, pays, code national, coordonnées et provenance.
+
+Ce raccourci reste sélectif :
+
+- il ne limite pas la sélection éditoriale aux communes du classeur ;
+- il ne charge pas automatiquement ses 223 communes ;
+- il ne copie ni commerces ni qualification OSM dans le contenu public ;
+- il n’active ni publication Strapi ni `hasPublicPage` ;
+- chaque rapprochement est visible dans le dry-run et relu avant application.
+
+La conversion complète du classeur, la reconstitution de toutes les ancres et
+la qualification des paires appartiennent au PRD 04.
 
 ## 14. Déploiement et retour arrière
 
@@ -574,6 +602,8 @@ Le retour arrière repose sur les propriétés suivantes :
 ### Administration et données
 
 - un éditeur peut créer une ville et la réutiliser dans plusieurs chapitres ;
+- toute ville publiée possède un `municipalityKey` unique et immuable, un pays
+  et un code national ;
 - le slug est unique et ne change pas lorsqu’un nom public est corrigé ;
 - les variantes sont stockées sans produire de routes supplémentaires ;
 - les coordonnées sont absentes par paire ou valides par paire ;
@@ -597,12 +627,14 @@ Le retour arrière repose sur les propriétés suivantes :
 - une ville éligible répond sur `/villes/[slug]` ;
 - la page contient un H1, ses chapitres et les liens correspondants ;
 - chaque rôle est lisible en français ;
-- une ville liée à plusieurs chapitres les présente dans l’ordre canonique ;
+- une ville liée à plusieurs chapitres les présente par `displayOrder` lorsque
+  disponible, sinon selon le fallback déterministe documenté ;
 - une ville éligible sans blocs mais avec un chapitre publié reste utile et
   accessible ;
 - un slug absent, un document non publié, `hasPublicPage=false` ou l’absence de
   chapitre publié produisent une 404 publique ;
-- la preview permet de relire un brouillon sans l’indexer.
+- la preview authentifiée permet de relire un brouillon sans l’indexer ; une
+  requête sans secret valide ne peut pas activer le Draft Mode.
 
 ### SEO et sitemap
 
@@ -616,6 +648,8 @@ Le retour arrière repose sur les propriétés suivantes :
 
 - le dry-run ne modifie aucune donnée ;
 - le rapport identifie les cas ambigus ;
+- la correspondance XLSX sélective est faite par `municipalityKey` et
+  n’importe ni commerce ni publication ;
 - deux exécutions appliquées ne créent pas de doublons ;
 - aucune publication de page ville n’est activée automatiquement ;
 - aucun chapitre n’est republié silencieusement ;
@@ -677,15 +711,16 @@ Cette liste guide l’agent de production sans imposer son découpage final.
 - `app/chapitres/[slug]/page.tsx` et son module CSS ;
 - `app/villes/[slug]/page.tsx` et son module CSS ;
 - `app/sitemap.ts` ;
-- `app/api/preview/route.ts` : réutilisé, sans élargir les redirections.
+- `app/api/preview/route.ts` : authentification serveur et allow-list des
+  routes de preview.
 
 ## 19. Dépendances avec les lots suivants
 
 Le contrat stable fourni aux lots suivants est :
 
-- identité `documentId` et `slug` d’une ville ;
+- identités `documentId`, `municipalityKey` et `slug` d’une ville ;
 - `name` et `alternativeNames` pour la recherche ;
-- coordonnées éditoriales facultatives ;
+- pays, code national, coordonnées éditoriales facultatives et provenance ;
 - passages ordonnés par chapitre ;
 - rôle et mise en avant de chaque passage ;
 - distinction entre existence dans le référentiel et existence d’une page
@@ -693,6 +728,13 @@ Le contrat stable fourni aux lots suivants est :
 
 Les lots suivants ne doivent pas recréer leur propre tableau de villes ni
 dériver les slugs depuis les GPX.
+
+Le PRD 02 ajoute `Chapter.displayOrder`. Les hubs l’emploient dès qu’il est
+disponible, sans rendre le présent lot dépendant de la recherche mobile.
+
+Le PRD 04 consomme `municipalityKey` pour rapprocher les 223 communes du
+classeur. Il est seul responsable de leur import complet, des qualifications,
+des ancres et des produits ville à ville.
 
 ## 20. Décisions prises et donnée éditoriale restante
 
@@ -702,11 +744,13 @@ dériver les slugs depuis les GPX.
 - composant répétable ordonné sans champ numérique redondant ;
 - rôles relatifs au sens canonique existant ;
 - double verrou Strapi publié + `hasPublicPage` ;
-- `inseeCode` facultatif introduit avant le futur import de masse ;
+- identité multinationale par `municipalityKey`, pays et code national ;
+- usage sélectif du XLSX dans ce lot, import complet réservé au PRD 04 ;
 - conservation non destructive du JSON legacy ;
 - absence de page d’index `/villes` ;
 - absence de redirections automatiques et de données structurées dans ce lot ;
-- preview des villes intégrée au mécanisme existant et corrigée pour Strapi 5.
+- preview des villes intégrée seulement après authentification de la route et
+  correction du contrat Strapi 5.
 
 ### Donnée éditoriale à fournir avant mise en production
 

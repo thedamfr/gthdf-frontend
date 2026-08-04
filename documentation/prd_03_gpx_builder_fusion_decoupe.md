@@ -1,6 +1,6 @@
 # PRD 03 — GPX Builder v2 : fusionner et découper ses étapes
 
-**Version :** 0.2\
+**Version :** 0.3\
 **Date :** 4 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôt concerné par l’implémentation :** `gthdf-frontend`\
@@ -670,8 +670,9 @@ La normalisation du fichier :
 
 ### 16.1 Distance
 
-La distance est la somme géodésique des paires de points consécutifs au sein de
-chaque séquence continue.
+La distance est la somme des inverses géodésiques sur l’ellipsoïde WGS84 pour
+chaque paire de points consécutifs au sein d’une séquence continue. Une
+haversine sphérique n’est pas assez précise pour devenir le contrat partagé.
 
 - aucune distance entre deux `trkseg`, `trk` ou `rte` distincts ;
 - une coupure interpolée partage la distance de son segment selon sa fraction ;
@@ -680,8 +681,10 @@ chaque séquence continue.
 - la somme interne des étapes doit égaler la distance interne de la source à
   un mètre ou 0,01 %, la tolérance la plus grande étant retenue.
 
-La méthode géodésique peut partager le module pur du PRD 02, sans créer de
-dépendance fonctionnelle entre les pages.
+La méthode doit reproduire à un centimètre les fixtures de distance directe du
+XLSX qualifié dans le PRD 04. Le PRD 02 peut réutiliser la même primitive
+lorsqu’elle convient à son calcul point–segment, sans créer de dépendance
+fonctionnelle entre les pages.
 
 ### 16.2 Éligibilité du dénivelé
 
@@ -1179,10 +1182,10 @@ un prérequis au mode découpe.
 `displayOrder` peut stabiliser le mode fusion lorsqu’il existe, avec fallback
 tant que le PRD 02 n’est pas déployé.
 
-### PRD 04 — Catalogue SEO ville à ville
+### PRD 04 — Catalogue d’itinéraires ville à ville
 
-Le futur pipeline officiel peut réutiliser le noyau pur de lecture et découpe
-si son environnement serveur le permet. Il doit fournir ses propres règles de
+Le pipeline officiel peut réutiliser le noyau pur de lecture et découpe si son
+environnement serveur le permet. Il doit fournir ses propres règles de
 publication, reproductibilité et stockage.
 
 Le partage de code :
@@ -1190,6 +1193,11 @@ Le partage de code :
 - ne transmet jamais un fichier utilisateur au catalogue ;
 - ne donne aucune permission Strapi au Builder ;
 - ne fait pas de l’index d’affichage simplifié une source exportable ;
+- garantit au minimum des fixtures communes pour WGS84, points interpolés,
+  discontinuités, dénivelé et sérialisation, même si aucun package runtime
+  commun n’est introduit entre les dépôts ;
+- conserve les horodatages du fichier personnel dans le Builder, tandis que le
+  catalogue omet ceux de ses dix tours officiels distincts ;
 - ne bloque pas la livraison manuelle du présent lot.
 
 ## 29. Décisions prises et validations restantes
@@ -1208,7 +1216,7 @@ Le partage de code :
 - snapping sur segment original avec choix aux croisements ;
 - alternative accessible par kilomètre ;
 - coupures espacées de 250 mètres ;
-- calcul distance géodésique et méthode altimétrique explicite ;
+- calcul WGS84 ellipsoïdal et méthode altimétrique explicite ;
 - affichage simplifié, export original ;
 - `fflate` pour le ZIP local ;
 - limites initiales 10 Mio et 100 000 points ;
