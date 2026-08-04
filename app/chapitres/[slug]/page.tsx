@@ -1,6 +1,5 @@
-import type { Metadata, ResolvingMetadata } from 'next';
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import styles from './page.module.css';
 import { getChapterBySlug, getChapters } from '@/lib/chapters';
@@ -8,6 +7,8 @@ import HorizonsSection from '@/components/HorizonsSection';
 import DestinationSection from '@/components/DestinationSection';
 import CheckpointCard from '@/components/CheckpointCard';
 import SocialSection, { type SocialItem } from '@/components/SocialSection';
+import ChapterCitiesSummary from '@/components/ChapterCitiesSummary';
+import { getCitySummary } from '@/lib/city-content';
 
 export async function generateStaticParams() {
   const chapters = await getChapters();
@@ -17,8 +18,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata(
-  { params }: { params: Promise<{ slug: string }> },
-  _parent: ResolvingMetadata
+  { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
   const { slug } = await params;
   const chapter = await getChapterBySlug(slug);
@@ -28,11 +28,16 @@ export async function generateMetadata(
   }
 
   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-  const seo = (chapter as any).seo;
-  const cities: string[] = (chapter as any).cities || [];
+  const seo = chapter.seo;
+  const citySummary = getCitySummary(chapter.cityPassages ?? []);
+  const featuredCities = citySummary?.featuredIntermediates
+    .slice(0, 3)
+    .map((passage) => passage.city.name) ?? [];
 
   const title = seo?.metaTitle || chapter.title;
-  const citiesSuffix = cities.length > 0 ? ` \u2014 ${cities.join(', ')}` : '';
+  const citiesSuffix = featuredCities.length > 0
+    ? ` Via ${featuredCities.join(', ')}.`
+    : '';
   const description = seo?.metaDescription
     || (chapter.introSentence
       ? `${chapter.introSentence} It\u00e9n\u00e9raire v\u00e9lo de ${chapter.distance}\u202fkm entre ${chapter.startStation} et ${chapter.endStation}.${citiesSuffix}`
@@ -68,8 +73,8 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
   }
 
   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-  const checkpoints = Array.isArray((chapter as any).checkpoints) ? (chapter as any).checkpoints : [];
-  const relatedArticles = Array.isArray((chapter as any).relatedArticles) ? (chapter as any).relatedArticles : [];
+  const checkpoints = chapter.checkpoints ?? [];
+  const relatedArticles = chapter.relatedArticles ?? [];
 
   const socialItems: SocialItem[] = [
     ...(chapter.testimonials ?? []).map((t): SocialItem => ({
@@ -82,14 +87,14 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
         ? (t.photo.url.startsWith('http') ? t.photo.url : `${strapiUrl}${t.photo.url}`)
         : null,
     })),
-    ...relatedArticles.map((a: any): SocialItem => ({
+    ...relatedArticles.map((article): SocialItem => ({
       kind: 'article',
-      id: a.id,
-      slug: a.slug,
-      title: a.title,
-      excerpt: a.excerpt || a.description,
-      coverUrl: a.cover?.url
-        ? (a.cover.url.startsWith('http') ? a.cover.url : `${strapiUrl}${a.cover.url}`)
+      id: article.id,
+      slug: article.slug,
+      title: article.title,
+      excerpt: article.excerpt || article.description,
+      coverUrl: article.cover?.url
+        ? (article.cover.url.startsWith('http') ? article.cover.url : `${strapiUrl}${article.cover.url}`)
         : null,
     })),
   ];
@@ -155,6 +160,12 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
           </div>
         )}
       </header>
+
+      <ChapterCitiesSummary
+        passages={chapter.cityPassages}
+        className={styles.citiesSection}
+        linkClassName={styles.cityLink}
+      />
 
       {/* Navigation (Komoot + GPX) */}
       {(komootAB || komootBA) && (
@@ -235,10 +246,10 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
             <p className={styles.emptyState}>Aucun checkpoint visible pour ce chapitre pour le moment.</p>
           ) : (
             <div className={styles.checkpointsList}>
-              {checkpoints
-                .sort((a: any, b: any) => a.number - b.number)
-                .map((cp: any) => (
-                  <CheckpointCard key={cp.id} checkpoint={cp} />
+              {[...checkpoints]
+                .sort((checkpointA, checkpointB) => checkpointA.number - checkpointB.number)
+                .map((checkpoint) => (
+                  <CheckpointCard key={checkpoint.id} checkpoint={checkpoint} />
                 ))}
             </div>
           )}
@@ -268,9 +279,9 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
       </section>
 
       {/* Destination & POIs */}
-      {(chapter as any).destination && (
+      {chapter.destination && (
         <DestinationSection 
-          destination={(chapter as any).destination} 
+          destination={chapter.destination}
           strapiUrl={strapiUrl}
         />
       )}

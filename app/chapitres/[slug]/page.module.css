@@ -92,6 +92,38 @@
   margin-bottom: 0;
 }
 
+.citiesSection {
+  max-width: 900px;
+  margin: 0 auto 4rem;
+  padding: 2rem;
+  border: 3px solid var(--color-charbon);
+  border-left: 8px solid var(--color-vert);
+  background: var(--color-beige);
+}
+
+.citiesSection h2 {
+  margin-bottom: 1rem;
+  font-size: 1.75rem;
+  color: var(--color-charbon);
+}
+
+.citiesSection p {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+.cityLink {
+  color: var(--color-bleu);
+  font-weight: 700;
+  text-underline-offset: 0.2em;
+}
+
+.cityLink:focus-visible {
+  outline: 3px solid var(--color-rouge);
+  outline-offset: 3px;
+}
+
 /* Section Titles */
 .sectionTitle {
   font-size: 2rem;
