@@ -1,8 +1,8 @@
 # PRD 01 — Référentiel des villes et pages hubs
 
-**Version :** 0.3\
-**Date :** 4 août 2026\
-**Statut :** prêt pour revue produit et technique\
+**Version :** 0.4\
+**Date :** 5 août 2026\
+**Statut :** amendé après recette locale\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Marque publique :** GTHF
 
@@ -288,8 +288,12 @@ et sort du flux éditorial normal.
 
 ### 9.1 Bloc dans une page chapitre
 
-Une section serveur est ajoutée après l’introduction du chapitre et avant la
-section de navigation :
+Un bloc serveur compact est regroupé avec la section des checkpoints, après la
+navigation du chapitre. Lorsque la largeur le permet, les villes et les
+checkpoints forment deux colonnes adjacentes dans une même zone de repères du
+parcours. Sur écran étroit, ces deux colonnes sont empilées.
+
+Le bloc conserve un résumé naturel et indexable :
 
 > **Villes traversées**\
 > Ce chapitre relie Hirson à Soissons en passant notamment par Guise,
@@ -297,6 +301,14 @@ section de navigation :
 
 Le bloc respecte les règles suivantes :
 
+- il ne forme plus une carte pleine largeur entre l’introduction et la
+  navigation ;
+- son poids visuel est comparable à celui de la liste des checkpoints : titre
+  de section, phrase courte puis cartes bordées compactes ;
+- les cartes de villes sont statiques et ne reprennent pas le bouton ou le
+  comportement dépliant d’un checkpoint ;
+- la liste ordonnée complète reste visible dans le HTML initial, sans
+  accordéon ni troncature ;
 - il utilise la ville `start`, la ville `end` et les intermédiaires
   `featured=true` ;
 - toutes les villes sont affichées dans l’ordre de `cityPassages` ;
@@ -618,6 +630,10 @@ Le retour arrière repose sur les propriétés suivantes :
 ### Pages de chapitre
 
 - une page chapitre affiche son résumé de villes dans le HTML initial ;
+- le résumé et la liste compacte sont placés dans la zone des checkpoints, et
+  non dans une carte pleine largeur en haut de page ;
+- villes et checkpoints sont adjacents sur écran large et empilés sans
+  débordement sur écran étroit ;
 - les extrémités et intermédiaires mis en avant suivent l’ordre Strapi ;
 - les formulations avec zéro, un ou plusieurs intermédiaires sont
   grammaticales ;
