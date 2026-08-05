@@ -22,6 +22,8 @@ export interface CitySummary {
   featuredIntermediates: CityPassage[];
 }
 
+export const MAX_FEATURED_INTERMEDIATES = 6;
+
 export function hasPublicCityPage(city: CityReference): boolean {
   return Boolean(city.slug && city.hasPublicPage && city.publishedAt);
 }
@@ -91,8 +93,24 @@ export function getCitySummary(passages: CityPassage[]): CitySummary | null {
     end,
     featuredIntermediates: passages.filter(
       (passage) => passage.role === 'intermediate' && passage.featured
-    ),
+    ).slice(0, MAX_FEATURED_INTERMEDIATES),
   };
+}
+
+export function getVisibleCityPassages(passages: CityPassage[]): CityPassage[] {
+  const summary = getCitySummary(passages);
+
+  if (!summary) {
+    return [];
+  }
+
+  const visiblePassages = new Set([
+    summary.start,
+    ...summary.featuredIntermediates,
+    summary.end,
+  ]);
+
+  return passages.filter((passage) => visiblePassages.has(passage));
 }
 
 export function formatCitySummaryText(passages: CityPassage[]): string | null {

@@ -5,6 +5,7 @@ import {
   formatCitySummaryText,
   filterEligibleCityReferences,
   getCityRoleLabel,
+  getVisibleCityPassages,
   hasPublicCityPage,
   sortCityChapters,
 } from '../lib/city-content.ts';
@@ -71,6 +72,39 @@ test('formatCitySummaryText omits incomplete transition data', () => {
       { role: 'start', featured: false, city: { name: 'Hirson' } },
     ]),
     null
+  );
+});
+
+test('getVisibleCityPassages keeps endpoints and featured intermediates in route order', () => {
+  const visiblePassages = getVisibleCityPassages([
+    { role: 'start', featured: false, city: { name: 'Hirson' } },
+    { role: 'intermediate', featured: false, city: { name: 'Vervins' } },
+    { role: 'intermediate', featured: true, city: { name: 'Guise' } },
+    { role: 'intermediate', featured: false, city: { name: 'Chauny' } },
+    { role: 'intermediate', featured: true, city: { name: 'Laon' } },
+    { role: 'end', featured: false, city: { name: 'Soissons' } },
+  ]);
+
+  assert.deepEqual(
+    visiblePassages.map((passage) => passage.city.name),
+    ['Hirson', 'Guise', 'Laon', 'Soissons']
+  );
+});
+
+test('getVisibleCityPassages defensively limits featured intermediates to six', () => {
+  const visiblePassages = getVisibleCityPassages([
+    { role: 'start', featured: false, city: { name: 'Départ' } },
+    ...Array.from({ length: 7 }, (_, index) => ({
+      role: 'intermediate' as const,
+      featured: true,
+      city: { name: `Ville ${index + 1}` },
+    })),
+    { role: 'end', featured: false, city: { name: 'Arrivée' } },
+  ]);
+
+  assert.deepEqual(
+    visiblePassages.map((passage) => passage.city.name),
+    ['Départ', 'Ville 1', 'Ville 2', 'Ville 3', 'Ville 4', 'Ville 5', 'Ville 6', 'Arrivée']
   );
 });
 
