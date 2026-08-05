@@ -1,8 +1,8 @@
 # PRD 02 — Retrouver son chapitre sur mobile
 
-**Version :** 0.4\
+**Version :** 0.5\
 **Date :** 5 août 2026\
-**Statut :** amendé après extension du PRD 01\
+**Statut :** prêt pour implémentation — données PRD 01 chargées en brouillon\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendance bloquante pour la recherche complète :** PRD 01 — Référentiel
 des villes et pages hubs\
@@ -289,10 +289,17 @@ intermédiaires `featured=false`.
 Une relation brouillon, manquante ou non peuplée est ignorée. Aucun libellé
 n’est reconstruit depuis un identifiant ou un GPX.
 
-L’existence d’une ville dans le référentiel ou parmi les 223 communes importées
-par le PRD 04 ne suffit pas. Seules les villes publiées reliées à la version
+L’existence d’une ville dans le référentiel ou parmi les 223 documents chargés
+par le PRD 01 ne suffit pas. Seules les villes publiées reliées à la version
 publiée d’un chapitre par `cityPassages` entrent dans le DTO et le bundle de
 recherche.
+
+Au 5 août 2026, les 223 documents `City` et les 233 passages des dix chapitres
+existent en production sous forme de brouillons. Ils ne sont donc pas encore
+exposés par le sélecteur public. La mise à disposition complète du PRD 02 exige
+la publication éditoriale de ces villes avec `hasPublicPage=false`, puis des
+versions de chapitre qui portent les relations relues. Cette publication rend
+les noms cherchables sans ouvrir de page `/villes/[slug]`.
 
 ## 8. Architecture frontend cible
 
@@ -790,7 +797,9 @@ silencieusement.
 
 ### 17.2 Villes
 
-La reprise des villes appartient au PRD 01. Ce lot :
+La reprise des villes appartient au PRD 01. Elle a déjà chargé en production,
+sans les publier, 223 documents `City` et 233 passages sur les dix brouillons
+de chapitre. Ce lot :
 
 - lit `cityPassages` lorsqu’ils sont disponibles ;
 - conserve temporairement les recherches sur `startStation` et `endStation` ;
@@ -798,22 +807,26 @@ La reprise des villes appartient au PRD 01. Ce lot :
 - ne crée aucune ville ;
 - ne complète aucun nom alternatif automatiquement.
 
-Une livraison intermédiaire peut afficher la liste compacte avant la fin de la
-saisie des villes. La définition de terminé exige néanmoins la recherche sur
-les passages normalisés.
+Avant l’activation de la recherche complète, l’équipe éditoriale relit les 233
+relations, publie les documents `City` avec `hasPublicPage=false`, puis publie
+les versions correspondantes des chapitres. Une livraison intermédiaire peut
+afficher la liste compacte avant cette publication. La définition de terminé
+exige néanmoins la recherche sur tous les passages normalisés publiés.
 
 ## 18. Déploiement et retour arrière
 
 Ordre recommandé :
 
-1. déployer le PRD 01 et valider ses données publiques ;
-2. déployer le schéma CMS contenant `displayOrder` ;
-3. exécuter le dry-run puis la migration d’ordre ;
-4. contrôler la boucle et les 10 valeurs publiées ;
-5. déployer le frontend avec la liste et la recherche locale ;
-6. générer et valider l’index de proximité sur l’environnement cible ;
-7. effectuer la recette géographique et responsive ;
-8. activer publiquement le bouton de localisation.
+1. déployer le PRD 01 et valider ses 223 villes et 233 passages en brouillon ;
+2. publier, après relecture, les villes avec `hasPublicPage=false` et les
+   versions de chapitre requises ;
+3. déployer le schéma CMS contenant `displayOrder` ;
+4. exécuter le dry-run puis la migration d’ordre ;
+5. contrôler la boucle et les 10 valeurs publiées ;
+6. déployer le frontend avec la liste et la recherche locale ;
+7. générer et valider l’index de proximité sur l’environnement cible ;
+8. effectuer la recette géographique et responsive ;
+9. activer publiquement le bouton de localisation.
 
 Le retour arrière du frontend peut rétablir la galerie mobile actuelle. Le champ
 `displayOrder` est additif et peut rester dans Strapi sans effet sur l’ancien
@@ -864,7 +877,7 @@ la fonction « Autour de moi » ; la recherche et la liste restent utilisables.
 - seuls les chapitres publiés sont présents dans le HTML et le DTO client ;
 - seuls les documents City publiés reliés à ces chapitres alimentent la
   recherche ;
-- une ville seulement importée ou qualifiée par le PRD 04, sans
+- une ville seulement chargée par le PRD 01 ou qualifiée par le PRD 04, sans
   `cityPassages` publié, n’est ni exposée ni cherchable ;
 - une ville publiée avec `hasPublicPage=false` reste cherchable et ouvre le
   chapitre, jamais une page ville inexistante ;
@@ -1030,6 +1043,11 @@ Dépendance requise pour :
 Le présent PRD précise que `hasPublicPage` ne filtre pas la recherche d’un
 chapitre.
 
+Le socle de 223 villes et 233 passages existe déjà en brouillon. Sa publication
+éditoriale constitue un prérequis de mise à disposition des résultats complets,
+mais ne doit pas activer les pages hubs : `hasPublicPage` reste à `false` tant
+qu’une page ville n’a pas été relue séparément.
+
 La revue croisée du PRD 01 est intégrée : ses pages hubs trient par
 `displayOrder` dès que ce champ est déployé et emploient avant cela un
 fallback déterministe qui ne prétend pas donner une origine à la boucle.
@@ -1057,8 +1075,8 @@ temps, ni extensions et ne convient jamais à l’export.
 - liste compacte remplaçant la galerie sur mobile ;
 - recherche locale et sans appel réseau ;
 - ordre explicite `displayOrder` ancré à Lille → Arras ;
-- recherche limitée aux `cityPassages` publiés, indépendamment de l’import
-  exhaustif du PRD 04 ;
+- recherche limitée aux `cityPassages` publiés issus du référentiel exhaustif
+  chargé par le PRD 01 ;
 - recherche portant sur tous ces passages, indépendamment de leur valeur
   `featured` ;
 - ordre d’interface distinct du chaînage géographique du PRD 04 ;
@@ -1083,7 +1101,8 @@ temps, ni extensions et ne convient jamais à l’export.
   résultats ;
 - valider les seuils et formulations avec des positions terrain ;
 - choisir les appareils médians de référence pour les budgets ;
-- achever et publier les passages de villes requis par le PRD 01.
+- relire puis publier les 223 documents `City` avec `hasPublicPage=false` et
+  les dix versions de chapitre contenant les 233 passages du PRD 01.
 
 Une modification issue de cette recette est consignée dans la PR de production
 avec sa mesure ou son cas de test. Elle ne doit pas rester une constante

@@ -1,8 +1,8 @@
 # PRD 01 — Référentiel des villes et pages hubs
 
-**Version :** 0.5\
+**Version :** 0.6\
 **Date :** 5 août 2026\
-**Statut :** amendé après recette et sélection éditoriale\
+**Statut :** implémenté — référentiel et relations chargés en brouillon\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Marque publique :** GTHF
 
@@ -31,7 +31,10 @@ Les décisions structurantes sont les suivantes :
 6. le champ JSON legacy `cities` est conservé pendant une transition
    réversible ; sa suppression fera l’objet d’un nettoyage ultérieur ;
 7. aucune page `/villes` générale et aucune page ville à ville ne sont créées
-   dans ce lot.
+   dans ce lot ;
+8. la reprise initiale charge les 223 villes uniques du parcours et leurs 233
+   passages ordonnés dans les brouillons Strapi, sans publier de ville ni de
+   nouvelle version de chapitre.
 
 ## 2. Contexte et problème
 
@@ -59,14 +62,17 @@ pour les noms, slugs ou contenus éditoriaux.
 - publier uniquement les pages villes apportant une navigation ou un contenu
   utile ;
 - fournir un contrat stable aux PRD suivants ;
-- préparer la désambiguïsation et l’import complet du PRD 04 sans lancer cet
-  import dans le présent lot.
+- charger en brouillon les 223 villes uniques et les 233 passages nécessaires
+  à la recherche complète du PRD 02 ;
+- préparer le PRD 04 sans importer ses commerces, produits ville à ville ni
+  ancres de route dans le présent lot.
 
 ## 4. Non-objectifs
 
 Ce lot ne doit pas :
 
-- importer automatiquement les 223 communes du dénombrement existant ;
+- publier automatiquement les villes ou les nouvelles versions des chapitres
+  issues de la reprise ;
 - considérer les commerces OSM comme une donnée éditoriale de référence ;
 - générer une page publique pour chaque entrée du référentiel ;
 - créer une page d’index `/villes` ;
@@ -103,7 +109,10 @@ Les lots de recherche mobile, de géolocalisation, de catalogue ville à ville
 et de Builder doivent pouvoir consommer la même identité, le même slug et les
 mêmes passages ordonnés.
 
-## 6. État du dépôt confirmé par inspection
+## 6. État initial du dépôt confirmé par inspection
+
+Cette section conserve le point de départ observé avant l’implémentation. Le
+bilan post-déploiement figure en section 13.4.
 
 ### CMS
 
@@ -520,15 +529,21 @@ Strapi 5, avec :
 
 ### 13.2 Sources de reprise
 
-Pour chaque chapitre existant, le script prépare :
+La reprise initiale utilise le
+[CSV contrôlé des villes](data/gthf_villes_et_produits_seo/csv/villes.csv)
+comme source d’identité pour les 223 documents `City`. Le chaînage documenté,
+les bornes des dix chapitres et les champs legacy `startStation` et
+`endStation` permettent de construire 233 passages : dix départs, 213
+intermédiaires et dix arrivées.
 
-1. la ville `start` à partir de `startStation` ;
-2. la ville `end` à partir de `endStation` ;
-3. les intermédiaires à partir du tableau JSON `cities` lorsqu’il est valide ;
-4. l’ordre proposé à partir du tableau existant, après suppression des
-   doublons évidents des extrémités ;
-5. `featured=true` uniquement pour les intermédiaires de la sélection
-   éditoriale ci-dessous.
+Les champs legacy servent à contrôler les extrémités et à rapprocher les dix
+villes déjà présentes. Ils ne remplacent pas la liste exhaustive issue du
+jeu de données contrôlé. Les 213 identités absentes sont créées à partir de
+leur `municipalityKey` ; aucune correspondance ambiguë n’est acceptée.
+
+Une seconde migration indépendante applique `featured=true` uniquement aux
+intermédiaires de la sélection éditoriale ci-dessous. Tous les autres passages
+restent dans le modèle et pourront alimenter la recherche du PRD 02.
 
 La sélection initiale est assistée par les données du CSV (population,
 commerces, proximité de la trace et répartition le long du parcours), puis
@@ -560,33 +575,49 @@ factuel des chapitres sans créer leur propre route publique.
 
 ### 13.3 Workflow éditorial
 
-1. exécuter le dry-run et relire son rapport ;
-2. corriger les correspondances et homonymes ;
-3. appliquer la migration ;
-4. relire les passages de chaque chapitre ;
-5. publier les nouvelles versions des chapitres ;
-6. enrichir progressivement 5 à 15 lieux pertinents par chapitre ;
-7. activer `hasPublicPage` uniquement pour les pages relues ;
-8. contrôler pages, liens et sitemap sur l’environnement cible.
+1. sauvegarder la base avant toute application ;
+2. exécuter le dry-run des 223 documents `City` et relire son rapport ;
+3. créer les identités absentes sans publier les documents ;
+4. exécuter puis appliquer le rapprochement des 233 passages sur les dix
+   brouillons de chapitre ;
+5. exécuter puis appliquer la sélection des 58 intermédiaires `featured` ;
+6. rejouer chaque dry-run et exiger un résultat inchangé ;
+7. relire les passages de chaque chapitre ;
+8. publier séparément les villes et versions de chapitres nécessaires au
+   produit concerné ;
+9. activer `hasPublicPage` uniquement pour les pages hubs relues ;
+10. contrôler pages, liens et sitemap sur l’environnement cible.
 
 Le
 [classeur contrôlé `GTHF_villes_et_produits_SEO.xlsx`](data/gthf_villes_et_produits_seo/source/GTHF_villes_et_produits_SEO.xlsx),
 qualifié dans le PRD 04, et ses
-[exports CSV documentés](data/gthf_villes_et_produits_seo/) peuvent servir de
-table de correspondance en lecture seule pour les seules villes retenues dans
-cette saisie initiale. Ils permettent de proposer
-`municipalityKey`, pays, code national, coordonnées et provenance.
+[exports CSV documentés](data/gthf_villes_et_produits_seo/) constituent la
+source contrôlée de cette reprise. Le PRD 01 n’en importe que les identités et
+attributs utiles aux documents `City` et à leurs passages ordonnés.
 
-Ce raccourci reste sélectif :
+Les commerces, qualifications OSM, ancres de route et produits ville à ville
+restent hors de ce lot et relèvent du PRD 04. La reprise n’active ni publication
+Strapi ni `hasPublicPage`, et chaque rapprochement reste visible dans le
+dry-run avant application.
 
-- il ne limite pas la sélection éditoriale aux communes du classeur ;
-- il ne charge pas automatiquement ses 223 communes ;
-- il ne copie ni commerces ni qualification OSM dans le contenu public ;
-- il n’active ni publication Strapi ni `hasPublicPage` ;
-- chaque rapprochement est visible dans le dry-run et relu avant application.
+### 13.4 Bilan de la migration de production
 
-La conversion complète du classeur, la reconstitution de toutes les ancres et
-la qualification des paires appartiennent au PRD 04.
+La reprise exécutée le 5 août 2026 a produit le résultat suivant :
+
+- 223 documents `City` en brouillon : dix déjà présents et 213 créés ;
+- 233 passages ordonnés sur les dix brouillons de chapitre : dix `start`, 213
+  `intermediate` et dix `end` ;
+- 58 passages intermédiaires `featured`, conformément à la sélection de la
+  section 13.2 ;
+- `hasPublicPage=false` pour toutes les villes reprises ;
+- aucune publication automatique de ville ou de chapitre ;
+- aucun conflit et aucune erreur dans les rapports d’application ;
+- dry-runs de contrôle sans changement après application, confirmant
+  l’idempotence des deux migrations.
+
+Ces brouillons constituent le socle de données du PRD 02. Ils ne deviennent
+publics et cherchables qu’après publication éditoriale des documents `City` et
+des versions de chapitre qui portent leurs `cityPassages`.
 
 ## 14. Déploiement et retour arrière
 
@@ -693,8 +724,10 @@ Le retour arrière repose sur les propriétés suivantes :
 
 - le dry-run ne modifie aucune donnée ;
 - le rapport identifie les cas ambigus ;
-- la correspondance XLSX sélective est faite par `municipalityKey` et
+- la reprise exhaustive des 223 identités est faite par `municipalityKey` et
   n’importe ni commerce ni publication ;
+- les dix chapitres totalisent exactement 233 passages ordonnés ;
+- la sélection éditoriale totalise exactement 58 intermédiaires `featured` ;
 - deux exécutions appliquées ne créent pas de doublons ;
 - aucune publication de page ville n’est activée automatiquement ;
 - aucun chapitre n’est republié silencieusement ;
@@ -777,9 +810,10 @@ dériver les slugs depuis les GPX.
 Le PRD 02 ajoute `Chapter.displayOrder`. Les hubs l’emploient dès qu’il est
 disponible, sans rendre le présent lot dépendant de la recherche mobile.
 
-Le PRD 04 consomme `municipalityKey` pour rapprocher les 223 communes du
-classeur. Il est seul responsable de leur import complet, des qualifications,
-des ancres et des produits ville à ville.
+Le PRD 04 réutilise les 223 documents `City` déjà rapprochés par
+`municipalityKey`. Il reste seul responsable des qualifications, des ancres de
+route, des passages multiples propres au catalogue et des produits ville à
+ville.
 
 ## 20. Décisions prises et donnée éditoriale restante
 
@@ -790,18 +824,18 @@ des ancres et des produits ville à ville.
 - rôles relatifs au sens canonique existant ;
 - double verrou Strapi publié + `hasPublicPage` ;
 - identité multinationale par `municipalityKey`, pays et code national ;
-- usage sélectif du XLSX dans ce lot, import complet réservé au PRD 04 ;
+- reprise exhaustive en brouillon des 223 identités du CSV, sans les données
+  commerciales et produits réservés au PRD 04 ;
 - conservation non destructive du JSON legacy ;
 - absence de page d’index `/villes` ;
 - absence de redirections automatiques et de données structurées dans ce lot ;
 - preview des villes intégrée seulement après authentification de la route et
   correction du contrat Strapi 5.
 
-### Donnée éditoriale à fournir avant mise en production
+### Donnée éditoriale restant à publier ou enrichir
 
-- la liste initiale des villes et leur ordre par chapitre ;
-- les correspondances manuelles pour les homonymes ;
-- les intermédiaires `featured` ;
+- la publication contrôlée des villes et versions de chapitres nécessaires au
+  PRD 02 ;
 - les villes autorisées à recevoir `hasPublicPage=true` ;
 - les descriptions et surcharges SEO relues.
 
