@@ -1,10 +1,20 @@
 import { cache } from 'react';
 
+import {
+  assignStableDisplayOrder,
+  hasCompleteDisplayOrder,
+  sortChaptersByDisplayOrder,
+} from './chapter-order';
 import type { CityPassage } from './city-content';
 import { fetchAPI } from './strapi';
 
 interface StrapiMedia {
+  id?: number;
   url: string;
+  documentId?: string;
+  updatedAt?: string;
+  hash?: string;
+  size?: number;
   name?: string;
   alternativeText?: string;
 }
@@ -92,6 +102,16 @@ export interface Chapter {
   cityPassages?: CityPassage[];
 }
 
+export interface ChapterGpxSource {
+  documentId: string;
+  title: string;
+  slug: string;
+  displayOrder?: number | null;
+  updatedAt?: string;
+  gpxFileAB?: StrapiMedia;
+  gpxFileBA?: StrapiMedia;
+}
+
 /**
  * Sort chapters by following the nextChapter chain.
  */
@@ -152,27 +172,83 @@ export const getChapters = cache(async (): Promise<Chapter[]> => {
   }
 });
 
-/**
- * Get chapters in sequential order following the nextChapter chain.
- */
+/** Get published chapters in stable display order with a transitional fallback. */
 export const getChaptersInOrder = cache(async (): Promise<Chapter[]> => {
-  try {
-    const chapters = await fetchAPI<Chapter[]>({
-      endpoint: '/chapters',
-      query: {
-        'populate[0]': 'nextChapter',
-        'populate[1]': 'thumbnail',
-      },
-      wrappedByList: true,
-      revalidate: 300,
-    });
+  const chapters = await fetchAPI<Chapter[]>({
+    endpoint: '/chapters',
+    query: {
+      'fields[0]': 'documentId',
+      'fields[1]': 'title',
+      'fields[2]': 'slug',
+      'fields[3]': 'startStation',
+      'fields[4]': 'endStation',
+      'fields[5]': 'distance',
+      'fields[6]': 'introSentence',
+      'fields[7]': 'displayOrder',
+      'fields[8]': 'updatedAt',
+      'fields[9]': 'publishedAt',
+      'populate[thumbnail][fields][0]': 'url',
+      'populate[thumbnail][fields][1]': 'name',
+      'populate[thumbnail][fields][2]': 'alternativeText',
+      'populate[cityPassages][fields][0]': 'role',
+      'populate[cityPassages][fields][1]': 'featured',
+      'populate[cityPassages][populate][city][fields][0]': 'documentId',
+      'populate[cityPassages][populate][city][fields][1]': 'name',
+      'populate[cityPassages][populate][city][fields][2]': 'alternativeNames',
+      'populate[cityPassages][populate][city][fields][3]': 'publishedAt',
+      'pagination[pageSize]': 100,
+    },
+    wrappedByList: true,
+    revalidate: 300,
+  });
 
-    return sortChaptersByChain(chapters);
-  } catch (error) {
-    console.error('Error fetching chapters in order:', error);
-    return [];
+  if (!hasCompleteDisplayOrder(chapters)) {
+    console.error(
+      'Published chapter displayOrder values are incomplete; using a deterministic fallback.'
+    );
   }
+
+  return sortChaptersByDisplayOrder(chapters);
 });
+
+/**
+ * Published GPX metadata used only by the server-side proximity index.
+ * Draft Mode must never expose draft traces through the public endpoint.
+ */
+export async function getPublishedChapterGpxSources(): Promise<ChapterGpxSource[]> {
+  const chapters = await fetchAPI<ChapterGpxSource[]>({
+    endpoint: '/chapters',
+    query: {
+      'fields[0]': 'documentId',
+      'fields[1]': 'title',
+      'fields[2]': 'slug',
+      'fields[3]': 'displayOrder',
+      'fields[4]': 'updatedAt',
+      'populate[gpxFileAB][fields][0]': 'url',
+      'populate[gpxFileAB][fields][1]': 'documentId',
+      'populate[gpxFileAB][fields][2]': 'updatedAt',
+      'populate[gpxFileAB][fields][3]': 'hash',
+      'populate[gpxFileAB][fields][4]': 'size',
+      'populate[gpxFileBA][fields][0]': 'url',
+      'populate[gpxFileBA][fields][1]': 'documentId',
+      'populate[gpxFileBA][fields][2]': 'updatedAt',
+      'populate[gpxFileBA][fields][3]': 'hash',
+      'populate[gpxFileBA][fields][4]': 'size',
+      'pagination[pageSize]': 100,
+    },
+    wrappedByList: true,
+    forcePublished: true,
+    cacheMode: 'no-store',
+  });
+
+  if (!hasCompleteDisplayOrder(chapters)) {
+    console.error(
+      'Published GPX chapter displayOrder values are incomplete; using a deterministic fallback.'
+    );
+  }
+
+  return assignStableDisplayOrder(chapters);
+}
 
 /**
  * Get a single chapter by slug, including ordered city passages in one request.

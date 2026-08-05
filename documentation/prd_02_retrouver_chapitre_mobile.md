@@ -135,7 +135,7 @@ disponibles, mais la navigation essentielle reste fonctionnelle.
 
 ### 6.1 Frontend
 
-- le frontend utilise Next.js `16.0.10`, React `19.2.1` et App Router ;
+- le frontend utilise Next.js `16.3.0`, React `19.2.1` et App Router ;
 - `app/chapitres/page.tsx` est un Server Component ;
 - la page récupère les chapitres avec `getChaptersInOrder()` et une
   revalidation de 300 secondes ;
@@ -156,7 +156,7 @@ disponibles, mais la navigation essentielle reste fonctionnelle.
 
 ### 6.2 CMS
 
-- le CMS utilise Strapi `5.43.0` ;
+- le CMS utilise Strapi `5.51.1` ;
 - `Chapter` est une collection avec `draftAndPublish=true` ;
 - un chapitre possède actuellement `title`, `slug`, `startStation`,
   `endStation`, `distance`, `nextChapter`, `previousChapter`, `gpxFileAB` et
