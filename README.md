@@ -25,6 +25,9 @@ manifeste sont décrits dans
 
 ## Getting Started
 
+Le projet requiert Node.js 22.12 ou une version plus récente de Node 22 à 24.
+Cette contrainte est également utilisée par Clever Cloud lors du déploiement.
+
 Create `.env.local` from `.env.example`. `PREVIEW_SECRET` must contain the
 same long random value in the frontend and CMS environments. Keep it
 server-only: do not prefix it with `NEXT_PUBLIC_`.
