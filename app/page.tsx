@@ -9,26 +9,6 @@ import DeferredMapEmbed from '@/components/DeferredMapEmbed';
 import FaqSection from '@/components/FaqSection';
 import type { Metadata } from 'next';
 
-// Temporary placeholder component until images are added
-function ImagePlaceholder({ text, height }: { text: string; height: number }) {
-  return (
-    <div style={{
-      width: '100%',
-      height: `${height}px`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '0.875rem',
-      color: 'var(--color-charbon)',
-      opacity: 0.5,
-      background: 'var(--color-beige)',
-      border: '2px dashed var(--color-charbon)',
-    }}>
-      {text}
-    </div>
-  );
-}
-
 function LogoPlaceholder() {
   return (
     <div style={{

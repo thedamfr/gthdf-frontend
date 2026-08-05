@@ -63,7 +63,7 @@ export default function CheckpointCard({ checkpoint }: { checkpoint: CheckpointD
             rel="noopener noreferrer"
             className={styles.w3w}
           >
-            <span className={styles.w3wPrefix}>///</span>
+            <span className={styles.w3wPrefix}>{'///'}</span>
             {checkpoint.what3words}
           </a>
         </div>

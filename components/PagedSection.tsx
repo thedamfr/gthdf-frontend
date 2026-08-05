@@ -3,23 +3,23 @@
 import { ReactNode, useState, useEffect } from 'react';
 import styles from './PagedSection.module.css';
 
-interface PagedSectionProps {
-  items: any[];
+interface PagedSectionProps<T> {
+  items: T[];
   itemsPerPageMobile?: number;
   itemsPerPageDesktop?: number;
-  renderItem: (item: any, index: number) => ReactNode;
+  renderItem: (item: T, index: number) => ReactNode;
   className?: string;
   gridClassName?: string;
 }
 
-export default function PagedSection({
+export default function PagedSection<T>({
   items,
   itemsPerPageMobile = 1,
   itemsPerPageDesktop = 3,
   renderItem,
   className = '',
   gridClassName = '',
-}: PagedSectionProps) {
+}: PagedSectionProps<T>) {
   const [currentPage, setCurrentPage] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 

@@ -11,7 +11,7 @@ interface BlogCardProps {
     publishedAt?: string;
     category?: { name?: string; slug?: string };
     author?: { name?: string };
-    cover?: { url?: string; alternativeText?: string };
+    cover?: { url?: string; alternativeText?: string | null };
   };
   strapiUrl: string;
 }
