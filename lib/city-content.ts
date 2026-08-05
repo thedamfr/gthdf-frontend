@@ -3,6 +3,7 @@ export type CityRole = 'start' | 'intermediate' | 'end';
 export interface CityReference {
   documentId?: string;
   name: string;
+  alternativeNames?: string[];
   slug?: string;
   hasPublicPage?: boolean;
   publishedAt?: string | null;

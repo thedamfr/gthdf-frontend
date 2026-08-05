@@ -76,6 +76,46 @@ npm run test:integration:prd01
 Le smoke test contrôle une ville publique, les 404 des villes privées, le
 résumé serveur d'un chapitre, le sitemap et une preview Draft Mode protégée.
 
+## Validation PRD 02 et revue sur téléphone
+
+Avec Strapi démarré par `npm run develop` dans `gthdf-cms` et le frontend
+démarré par `npm run dev` dans ce dossier, lancer depuis le frontend :
+
+```bash
+npm test
+npm run lint
+npm run test:integration:prd02
+npm run test:integration:prd02:geometry
+```
+
+La recette PRD 02 appelle uniquement le frontend local sur
+`http://localhost:3000`. Elle vérifie le HTML serveur de `/chapitres`, les dix
+liens dans l'ordre public, l'absence d'image de galerie dans le HTML initial,
+le refus des paramètres par l'endpoint de proximité et le contrat de son JSON.
+Elle affiche aussi le poids JSON et gzip de l'index ainsi qu'un benchmark local
+du calcul de proximité. La limite compressée est de 500 Ko, avec une cible de
+250 Ko ; le benchmark local sert de garde-fou et ne remplace pas la mesure sur
+le téléphone Android médian de la recette.
+
+`LOCAL_FRONTEND_URL` peut changer le port, mais le script refuse une URL non
+loopback afin d'éviter tout appel involontaire à la production. Le nombre
+d'itérations peut être ajusté de 5 à 200 avec
+`PRD02_BENCHMARK_ITERATIONS` (20 par défaut). Aucun secret n'est nécessaire ou
+affiché par cette recette.
+
+La recette géométrique charge uniquement le Strapi et le frontend locaux. Elle
+compare leurs 20 références GPX, servies par Strapi ou par l’origine de
+stockage objet explicitement approuvée, avec l’index simplifié. Elle refuse
+toute autre origine, impose une tolérance de distance de 25 m, puis vérifie les
+gagnants séparés de plus de 50 m et les cas de jonction ambigus. Elle lit les
+variables de `.env.local` sans afficher le jeton Strapi.
+
+Pour la revue depuis un téléphone, conserver les deux commandes npm actives,
+contrôler la redirection avec `tailscale serve status`, puis ouvrir l'URL HTTPS
+MagicDNS du frontend depuis un appareil du même tailnet. L'HTTPS est nécessaire
+pour tester la géolocalisation. Le smoke test reste lancé sur le Mac contre
+`localhost` ; il ne faut pas lui transmettre l'URL Tailscale.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

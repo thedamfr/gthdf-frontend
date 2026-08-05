@@ -1,0 +1,249 @@
+.finder {
+  border: 3px solid var(--color-charbon);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  background: var(--color-beige);
+  box-shadow: 8px 8px 0 var(--color-charbon);
+}
+
+.finderHeading {
+  margin-bottom: 1.5rem;
+}
+
+.finderHeading h2 {
+  margin: 0;
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--color-bleu);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.searchControl {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.searchControl label {
+  font-weight: 800;
+}
+
+.searchControl input {
+  min-height: 3rem;
+  width: 100%;
+  border: 2px solid var(--color-charbon);
+  border-radius: 0;
+  padding: 0.65rem 0.85rem;
+  background: var(--color-creme);
+  color: var(--color-charbon);
+  font: inherit;
+}
+
+.searchControl input:focus-visible,
+.locationButton:focus-visible,
+.clearButton:focus-visible,
+.chapterLink:focus-visible,
+.proximityLink:focus-visible {
+  outline: 4px solid var(--color-bleu);
+  outline-offset: 3px;
+}
+
+.locationButton,
+.clearButton {
+  min-height: 3rem;
+  border: 2px solid var(--color-charbon);
+  border-radius: 0;
+  padding: 0.65rem 1rem;
+  background: var(--color-jaune);
+  color: var(--color-charbon);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.locationButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.noScript,
+.geolocationStatus,
+.emptyState {
+  margin-top: 1rem;
+  border-left: 4px solid var(--color-rouge);
+  padding: 0.75rem 1rem;
+  background: var(--color-creme);
+}
+
+.geolocationStatus:empty {
+  display: none;
+}
+
+.geolocationLiveStatus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.geolocationStatus p {
+  margin: 0;
+}
+
+.proximityHeading {
+  font-weight: 800;
+}
+
+.proximityList,
+.chapterList {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proximityList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.proximityLink {
+  display: grid;
+  min-height: 44px;
+  gap: 0.3rem;
+  border: 2px solid var(--color-charbon);
+  padding: 0.85rem 1rem;
+  background: var(--color-creme);
+  color: var(--color-charbon);
+  text-decoration: none;
+}
+
+.precisionNote {
+  margin-top: 0.75rem !important;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.resultsStatus {
+  min-height: 1.5rem;
+  margin: 1rem 0 0;
+  font-weight: 700;
+}
+
+.chapterList {
+  display: grid;
+  border-top: 2px solid var(--color-charbon);
+}
+
+.chapterList li {
+  border-bottom: 2px solid var(--color-charbon);
+}
+
+.chapterLink {
+  display: grid;
+  min-height: 4.75rem;
+  grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "number context distance open"
+    "number route distance open"
+    "number title distance open";
+  gap: 0.15rem 1rem;
+  align-items: center;
+  padding: 0.8rem 0.5rem;
+  color: var(--color-charbon);
+  text-decoration: none;
+}
+
+.chapterLink:hover {
+  background: var(--color-creme);
+}
+
+.chapterNumber {
+  grid-area: number;
+  color: var(--color-rouge);
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.matchContext {
+  grid-area: context;
+}
+
+.chapterRoute {
+  grid-area: route;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.chapterTitle {
+  grid-area: title;
+  font-size: 0.9rem;
+  opacity: 0.72;
+}
+
+.chapterDistance {
+  grid-area: distance;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+.openLabel {
+  grid-area: open;
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.emptyState p {
+  margin: 0 0 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .finder {
+    margin-inline: -0.25rem;
+    padding: 1.15rem;
+    box-shadow: 5px 5px 0 var(--color-charbon);
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .locationButton {
+    width: 100%;
+  }
+
+  .chapterLink {
+    min-height: 5.5rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "number distance"
+      "context context"
+      "route route"
+      "title title"
+      "open open";
+    gap: 0.2rem 0.75rem;
+    padding: 0.85rem 0.25rem;
+  }
+
+  .openLabel {
+    margin-top: 0.25rem;
+  }
+}

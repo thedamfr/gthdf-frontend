@@ -122,6 +122,7 @@ export const getChaptersForCity = cache(async (documentId: string): Promise<City
       'fields[3]': 'startStation',
       'fields[4]': 'endStation',
       'fields[5]': 'distance',
+      'fields[6]': 'displayOrder',
       'populate[0]': 'cityPassages.city',
     },
     wrappedByList: true,

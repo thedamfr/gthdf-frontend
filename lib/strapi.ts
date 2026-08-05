@@ -13,6 +13,8 @@ interface StrapiRequestOptions {
   wrappedByKey?: string;
   wrappedByList?: boolean;
   revalidate?: number;
+  forcePublished?: boolean;
+  cacheMode?: RequestCache;
 }
 
 export interface StrapiMedia {
@@ -75,22 +77,36 @@ export interface Author extends ArticleAuthor {
  * Fetch data from Strapi API
  */
 export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
-  const { endpoint, query = {}, wrappedByKey, wrappedByList, revalidate = 60 } = options;
+  const {
+    endpoint,
+    query = {},
+    wrappedByKey,
+    wrappedByList,
+    revalidate = 60,
+    forcePublished = false,
+    cacheMode,
+  } = options;
   
   // draftMode() only works in request scope, fails during static generation
   let isDraftPreview = false;
-  try {
-    const draftStatus = await draftMode();
-    isDraftPreview = draftStatus.isEnabled;
-  } catch {
-    // Not in request scope (e.g., generateStaticParams), continue without draft mode
-    isDraftPreview = false;
+  if (!forcePublished) {
+    try {
+      const draftStatus = await draftMode();
+      isDraftPreview = draftStatus.isEnabled;
+    } catch {
+      // Not in request scope (e.g., generateStaticParams), continue without draft mode
+      isDraftPreview = false;
+    }
   }
 
   const requestQuery = withStrapiStatus(query, isDraftPreview);
 
   const mergedOptions = {
-    ...(isDraftPreview ? { cache: 'no-store' as const } : { next: { revalidate } }),
+    ...(isDraftPreview || cacheMode === 'no-store'
+      ? { cache: 'no-store' as const }
+      : cacheMode
+        ? { cache: cacheMode }
+        : { next: { revalidate } }),
     headers: {
       'Content-Type': 'application/json',
       ...(STRAPI_API_TOKEN && {
