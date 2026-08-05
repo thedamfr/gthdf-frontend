@@ -9,7 +9,7 @@ import { fetchAPI } from './strapi';
 
 export interface CityMedia {
   url: string;
-  alternativeText?: string;
+  alternativeText?: string | null;
   width?: number;
   height?: number;
 }
