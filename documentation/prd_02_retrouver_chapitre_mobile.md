@@ -1,6 +1,6 @@
 # PRD 02 — Retrouver son chapitre sur mobile
 
-**Version :** 0.5\
+**Version :** 0.6\
 **Date :** 5 août 2026\
 **Statut :** prêt pour implémentation — données PRD 01 chargées en brouillon\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -18,7 +18,8 @@ La galerie éditoriale reste disponible sur tablette et bureau.
 
 Le haut de page contient une interface unique « Trouver un chapitre » qui :
 
-1. rend côté serveur une liste compacte de tous les chapitres publiés ;
+1. rend côté serveur une liste compacte de tous les chapitres publiés, visible
+   par défaut sur mobile et seulement après interaction sur desktop ;
 2. enrichit cette liste côté client avec une recherche locale sur les titres,
    numéros et villes normalisées du PRD 01 ;
 3. demande ponctuellement la position seulement après un clic sur « Autour de
@@ -35,7 +36,9 @@ Les décisions structurantes sont les suivantes :
 
 - la recherche textuelle est locale, car le volume actuel est faible ;
 - la liste compacte reste présente dans le HTML initial et utilisable sans
-  JavaScript ;
+  JavaScript sur mobile ;
+- sur desktop, le finder reste compact tant qu’aucune recherche ou
+  géolocalisation n’a été lancée, afin de ne pas doubler la galerie éditoriale ;
 - les GPX bruts ne sont jamais chargés au chargement initial de la page ;
 - l’index de proximité est produit côté serveur, mis en cache et demandé
   seulement après obtention d’une position ;
@@ -359,7 +362,8 @@ Le contenu apparaît dans cet ordre :
 4. champ `Ville ou chapitre` ;
 5. bouton `Autour de moi` ;
 6. zone de résultats contextuelle ;
-7. liste compacte des chapitres ;
+7. liste compacte des chapitres sur mobile, ou résultats contextuels sur
+   tablette et bureau ;
 8. galerie éditoriale actuelle sur tablette et bureau uniquement.
 
 Le champ et le bouton sont visibles sans être cachés derrière une icône ou un
@@ -367,7 +371,9 @@ menu. Aucun carrousel horizontal n’est introduit.
 
 ### 9.2 Liste compacte
 
-La liste est visible par défaut sur tous les viewports. Chaque ligne entière
+La liste est visible par défaut sur mobile. Sur tablette et bureau, elle reste
+dans le HTML initial mais est repliée visuellement tant que le champ est vide ;
+elle apparaît dès qu’une recherche produit des résultats. Chaque ligne entière
 est un lien vers `/chapitres/[slug]` et affiche :
 
 - `Chapitre <displayOrder>` ;
@@ -391,6 +397,10 @@ atteignables par les technologies d’assistance, ni téléchargées.
 Sur tablette et bureau, les cartes illustrées restent sous le finder et
 conservent leur fonction de découverte ainsi que leurs URL actuelles.
 
+Le catalogue contenant durablement dix chapitres, la grille évite trois
+colonnes et sa dernière carte orpheline : deux colonnes de 769 à 1279 px, puis
+cinq colonnes à partir de 1280 px.
+
 - aucune image de carte n’est préchargée ;
 - masquer les cartes uniquement avec une technique qui continuerait à
   télécharger toutes leurs images sur mobile ne satisfait pas ce PRD ;
@@ -398,7 +408,8 @@ conservent leur fonction de découverte ainsi que leurs URL actuelles.
   vérifié visuellement avant livraison ;
 - la liste compacte reste la source des résultats de recherche ; la galerie
   ne reçoit pas un second filtre ou état interactif ;
-- une refonte visuelle de la galerie tablette/bureau sort de ce lot.
+- les cartes conservent leur contenu et leur traitement éditorial existants ;
+  seule leur grille responsive est ajustée.
 
 ## 10. Recherche textuelle
 
@@ -473,7 +484,8 @@ alternatif, mais affiche le nom canonique.
 
 ### 10.5 États
 
-- **initial :** aucune annonce parasite ; liste complète visible ;
+- **initial :** aucune annonce parasite ; liste complète visible sur mobile,
+  finder compact et galerie visible sur tablette et bureau ;
 - **résultats :** compteur textuel, puis résultats cliquables ;
 - **aucun résultat :** `Aucun chapitre ne correspond à cette recherche.` et
   action `Effacer la recherche` ;
@@ -890,10 +902,13 @@ la fonction « Autour de moi » ; la recherche et la liste restent utilisables.
 - à 320 × 568 et 390 × 844, le finder et la liste remplacent entièrement les
   grandes cartes, sans défilement horizontal ;
 - le champ possède un libellé visible et le bouton une cible tactile adaptée ;
-- sans JavaScript, les 10 liens de chapitres restent présents et utilisables ;
+- sans JavaScript, les 10 liens de chapitres restent présents dans le HTML et
+  utilisables sur mobile ;
 - les URL actuelles restent accessibles depuis chaque ligne compacte ;
 - aucune carte ou image de carte n’est rendue ou téléchargée sur mobile ;
-- sur tablette et bureau, les cartes restent accessibles sous le finder.
+- sur tablette et bureau, les cartes restent accessibles sous le finder ;
+- à partir de 1280 px, les dix cartes forment deux rangées de cinq ; entre 769
+  et 1279 px, elles forment cinq rangées de deux.
 
 ### Recherche
 
@@ -906,7 +921,8 @@ la fonction « Autour de moi » ; la recherche et la liste restent utilisables.
 - un nom alternatif affiche le nom canonique ;
 - les résultats suivent le classement défini et sont annoncés sans répéter
   toute la liste au lecteur d’écran ;
-- une recherche vide restaure immédiatement la liste ;
+- une recherche vide restaure immédiatement la liste sur mobile et replie les
+  résultats sur tablette et bureau ;
 - aucune frappe ne déclenche de requête réseau.
 
 ### Géolocalisation
@@ -1073,6 +1089,7 @@ temps, ni extensions et ne convient jamais à l’export.
 ### Décisions prises
 
 - liste compacte remplaçant la galerie sur mobile ;
+- finder replié par défaut et grille de cartes 2/5 colonnes sur desktop ;
 - recherche locale et sans appel réseau ;
 - ordre explicite `displayOrder` ancré à Lille → Arras ;
 - recherche limitée aux `cityPassages` publiés issus du référentiel exhaustif

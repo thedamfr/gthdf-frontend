@@ -318,7 +318,11 @@ export default function ChapterFinder({ chapters }: { chapters: ChapterFinderIte
   }
 
   return (
-    <section className={styles.finder} aria-labelledby="chapter-finder-title">
+    <section
+      className={styles.finder}
+      aria-labelledby="chapter-finder-title"
+      data-search-state={hasQuery ? 'results' : 'idle'}
+    >
       <div className={styles.finderHeading}>
         <p className={styles.eyebrow}>Sur la route ou avant de partir</p>
         <h2 id="chapter-finder-title">Trouver un chapitre</h2>

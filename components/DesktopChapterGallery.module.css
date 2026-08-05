@@ -11,7 +11,7 @@
 
 .gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(21.875rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2rem;
 }
 
@@ -89,6 +89,36 @@
   font-style: italic;
   line-height: 1.6;
   opacity: 0.8;
+}
+
+@media (min-width: 1280px) {
+  .gallery {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .chapterCard {
+    padding: 1.25rem;
+  }
+
+  .chapterContent {
+    margin-bottom: 1rem;
+  }
+
+  .chapterTitle {
+    font-size: 1.15rem;
+  }
+
+  .chapterMeta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .chapterIntro {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

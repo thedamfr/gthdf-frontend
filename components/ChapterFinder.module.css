@@ -247,3 +247,32 @@
     margin-top: 0.25rem;
   }
 }
+
+@media (min-width: 769px) {
+  .finder {
+    border-width: 3px 0;
+    padding: 1.5rem 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .finderHeading {
+    display: flex;
+    margin-bottom: 1rem;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  .finderHeading h2 {
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+  }
+
+  .eyebrow {
+    margin: 0;
+  }
+
+  .finder[data-search-state='idle'] .resultsStatus,
+  .finder[data-search-state='idle'] .chapterList {
+    display: none;
+  }
+}
