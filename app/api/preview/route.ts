@@ -24,6 +24,7 @@ function withPreviewCors(response: NextResponse, request: NextRequest) {
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
   response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   response.headers.set('Cache-Control', 'private, no-store');
+  response.headers.set('Referrer-Policy', 'no-referrer');
   return response;
 }
 

@@ -92,6 +92,11 @@ const previewResponse = await request(`/api/preview?${previewParams}`, {
   redirect: 'manual',
 });
 assert.equal(previewResponse.status, 307);
+assert.equal(
+  previewResponse.headers.get('referrer-policy'),
+  'no-referrer',
+  'La redirection de preview ne doit pas transmettre son URL contenant le secret.'
+);
 
 const previewLocation = previewResponse.headers.get('location');
 assert.ok(previewLocation, 'La preview doit rediriger vers la page demandée.');
