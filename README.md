@@ -110,6 +110,12 @@ toute autre origine, impose une tolérance de distance de 25 m, puis vérifie le
 gagnants séparés de plus de 50 m et les cas de jonction ambigus. Elle lit les
 variables de `.env.local` sans afficher le jeton Strapi.
 
+Le PRD 02 est livré en production depuis le 5 août 2026. Les dix chapitres y
+sont ordonnés de `1` à `10`, la migration des vingt versions brouillon et
+publiée est terminée et l’index de proximité mesuré par la recette pèse
+53,1 Kio gzip. Le document de référence conserve le bilan complet :
+[`documentation/prd_02_retrouver_chapitre_mobile.md`](documentation/prd_02_retrouver_chapitre_mobile.md).
+
 Pour la revue depuis un téléphone, conserver les deux commandes npm actives,
 contrôler la redirection avec `tailscale serve status`, puis ouvrir l'URL HTTPS
 MagicDNS du frontend depuis un appareil du même tailnet. L'HTTPS est nécessaire
@@ -130,13 +136,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 L'application est déployée sur Clever Cloud depuis sa branche de production.
 Le runtime reste sur une instance `nano`, mais le build Next.js utilise une
 instance dédiée `M` afin d'éviter un dépassement mémoire pendant le
-`postinstall`. Vérifier cette configuration avec `clever status --app
-gthdf-frontend` et, si nécessaire, la rétablir avec :
+`postinstall`. Vérifier cette configuration avec :
+
+```bash
+clever status --app gthdf-frontend
+```
+
+Si nécessaire, la rétablir avec :
 
 ```bash
 clever scale --app gthdf-frontend --build-flavor M
 ```
 
-Pour le PRD 01, déployer d'abord le schéma CMS, exécuter et contrôler la
-migration manuelle des données, puis déployer le frontend. La migration n'est
-jamais ajoutée au démarrage automatique de l'application.
+Pour les PRD 01 et 02, déployer d'abord le schéma CMS, exécuter et contrôler
+les migrations manuelles avec les commandes npm documentées dans le README du
+CMS, puis déployer le frontend. Ces migrations ne sont jamais ajoutées au
+démarrage automatique de l'application.
