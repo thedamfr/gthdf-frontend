@@ -342,6 +342,7 @@ export const getCheckpoints = cache(async () => {
       query: {
         'sort[0]': 'number:asc',
         'populate[0]': 'chapter',
+        'pagination[pageSize]': 100,
       },
       wrappedByList: true,
       revalidate: 300,
