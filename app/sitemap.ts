@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getArticles } from '@/lib/strapi';
 import { getChapters } from '@/lib/chapters';
+import { getEligiblePublicCities } from '@/lib/cities';
 
 export const revalidate = 3600; // régénéré au plus toutes les heures
 
@@ -72,5 +73,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // ignore if Strapi unavailable at build time
   }
 
-  return [...staticRoutes, ...chapterRoutes, ...articleRoutes];
+  let cityRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const cities = await getEligiblePublicCities();
+    cityRoutes = cities.map((city) => ({
+      url: `${BASE_URL}/villes/${city.slug}`,
+      lastModified: new Date(city.updatedAt),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    }));
+  } catch {
+    // Keep the sitemap available if Strapi is temporarily unavailable.
+  }
+
+  return [...staticRoutes, ...chapterRoutes, ...articleRoutes, ...cityRoutes];
 }

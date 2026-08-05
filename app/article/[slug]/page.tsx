@@ -1,8 +1,8 @@
-import type { Metadata, ResolvingMetadata } from "next";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { marked } from "marked";
 import { getArticleBySlug, getArticles } from "@/lib/strapi";
+import { renderSafeMarkdown } from "@/lib/safe-markdown";
 import ImageSlider from "@/components/ImageSlider";
 import { notFound } from "next/navigation";
 import styles from "./page.module.css";
@@ -12,13 +12,12 @@ interface ArticlePageProps {
 }
 
 export async function generateMetadata(
-  { params }: ArticlePageProps,
-  _parent: ResolvingMetadata
+  { params }: ArticlePageProps
 ): Promise<Metadata> {
   const { slug } = await params;
   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
-  let article: any = null;
+  let article = null;
   try {
     article = await getArticleBySlug(slug);
   } catch {
@@ -60,7 +59,7 @@ function toAbsoluteMediaUrl(url: string | undefined, strapiUrl: string) {
 // Generate static paths for all articles
 export async function generateStaticParams() {
   try {
-    const articles = await getArticles() as any[];
+    const articles = await getArticles();
     return articles.map((article) => ({
       slug: article.slug,
     }));
@@ -127,14 +126,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           )}
 
           <div className={styles.content}>
-            {article.blocks?.map((block: any, index: number) => {
+            {article.blocks?.map((block, index) => {
               switch (block.__component) {
                 case 'shared.rich-text':
                   return (
                     <div
                       key={index}
                       className={styles.richText}
-                      dangerouslySetInnerHTML={{ __html: marked(block.body || '') as string }}
+                      dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(block.body || '') }}
                     />
                   );
 
@@ -160,19 +159,22 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                     </blockquote>
                   );
 
-                case 'shared.slider':
-                  return block.files?.length > 0 ? (
+                case 'shared.slider': {
+                  const files = block.files || [];
+
+                  return files.length > 0 ? (
                     <ImageSlider
                       key={index}
-                      images={block.files
-                        .map((file: any) => ({
+                      images={files
+                        .map((file) => ({
                           url: toAbsoluteMediaUrl(file.url, strapiUrl) || "",
-                          alternativeText: file.alternativeText,
+                          alternativeText: file.alternativeText || undefined,
                         }))
                         .filter((img: { url: string }) => img.url)
                       }
                     />
                   ) : null;
+                }
 
                 default:
                   return null;

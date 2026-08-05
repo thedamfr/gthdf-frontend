@@ -1,4 +1,4 @@
-import type { Metadata, ResolvingMetadata } from 'next';
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -12,7 +12,7 @@ interface AuthorPageProps {
 
 export async function generateStaticParams() {
   try {
-    const authors = await getAuthors() as any[];
+    const authors = await getAuthors();
     return authors
       .filter((a) => a.slug)
       .map((a) => ({ slug: a.slug }));
@@ -22,11 +22,10 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata(
-  { params }: AuthorPageProps,
-  _parent: ResolvingMetadata
+  { params }: AuthorPageProps
 ): Promise<Metadata> {
   const { slug } = await params;
-  let author: any = null;
+  let author = null;
   try {
     author = await getAuthorBySlug(slug);
   } catch {
@@ -75,7 +74,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
 
   const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
   const avatarUrl = toAbsoluteMediaUrl(author.avatar?.url, strapiUrl);
-  const articles = (author.articles || []).filter((a: any) => a.slug);
+  const articles = (author.articles || []).filter((article) => article.slug);
 
   return (
     <div className={styles.page}>
@@ -124,7 +123,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
               <span className={styles.count}>{articles.length}</span>
             </h2>
             <div className={styles.articlesGrid}>
-              {articles.map((article: any) => (
+              {articles.map((article) => (
                 <BlogCard
                   key={article.id}
                   article={article}

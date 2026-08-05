@@ -1,0 +1,73 @@
+.blocks {
+  display: grid;
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.richText {
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.richText h2,
+.richText h3,
+.richText h4 {
+  margin: 2rem 0 1rem;
+}
+
+.richText p,
+.richText ul,
+.richText ol,
+.richText blockquote,
+.richText pre {
+  margin-bottom: 1rem;
+}
+
+.richText ul,
+.richText ol {
+  padding-left: 1.5rem;
+}
+
+.richText a {
+  color: var(--color-bleu);
+  text-underline-offset: 0.2em;
+}
+
+.richText a:focus-visible {
+  outline: 3px solid var(--color-rouge);
+  outline-offset: 3px;
+}
+
+.media {
+  margin: 0;
+  padding: 0.75rem;
+  border: 3px solid var(--color-bleu);
+  background: var(--color-creme);
+}
+
+.media img {
+  width: 100%;
+  height: auto;
+}
+
+.quote {
+  margin: 0;
+  padding: 2rem;
+  border-left: 8px solid var(--color-vert);
+  background: var(--color-beige);
+}
+
+.quote p {
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1.6;
+}
+
+.quote cite {
+  font-style: normal;
+  font-weight: 700;
+}
+
+.slider {
+  min-width: 0;
+}

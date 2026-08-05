@@ -33,6 +33,10 @@ interface SelectedSegment {
   gpxUrl: string;
 }
 
+interface StrapiCollectionResponse<T> {
+  data?: T[];
+}
+
 export default function GpxBuilderPage() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [selectedSegments, setSelectedSegments] = useState<SelectedSegment[]>([]);
@@ -49,23 +53,29 @@ export default function GpxBuilderPage() {
       const response = await fetch(
         `${strapiUrl}/api/chapters?populate[0]=gpxFileAB&populate[1]=gpxFileBA&populate[2]=nextChapter&populate[3]=previousChapter`
       );
-      const data = await response.json();
-      const chapters = data.data || [];
+      if (!response.ok) {
+        throw new Error(`Strapi returned ${response.status}`);
+      }
+
+      const data = await response.json() as StrapiCollectionResponse<Chapter>;
+      const fetchedChapters = data.data || [];
       
       // Sort chapters following the nextChapter chain
-      if (chapters.length > 0) {
-        const chapterMap = new Map<number, any>(chapters.map((ch: any) => [ch.id, ch]));
+      if (fetchedChapters.length > 0) {
+        const chapterMap = new Map<number, Chapter>(
+          fetchedChapters.map((chapter) => [chapter.id, chapter])
+        );
         const referencedIds = new Set(
-          chapters
-            .filter((ch: any) => ch.nextChapter?.id)
-            .map((ch: any) => ch.nextChapter.id)
+          fetchedChapters.flatMap((chapter) => (
+            chapter.nextChapter?.id ? [chapter.nextChapter.id] : []
+          ))
         );
         
-        let firstChapter = chapters.find((ch: any) => !referencedIds.has(ch.id));
-        if (!firstChapter) firstChapter = chapters[0];
+        let firstChapter = fetchedChapters.find((chapter) => !referencedIds.has(chapter.id));
+        if (!firstChapter) firstChapter = fetchedChapters[0];
         
-        const orderedChapters: any[] = [];
-        let current = firstChapter;
+        const orderedChapters: Chapter[] = [];
+        let current: Chapter | undefined = firstChapter;
         const visited = new Set<number>();
         
         while (current && !visited.has(current.id)) {
@@ -79,30 +89,30 @@ export default function GpxBuilderPage() {
           }
         }
         
-        chapters.forEach((ch: any) => {
-          if (!visited.has(ch.id)) {
-            orderedChapters.push(ch);
+        fetchedChapters.forEach((chapter) => {
+          if (!visited.has(chapter.id)) {
+            orderedChapters.push(chapter);
           }
         });
         
         // Validate the chain integrity
-        const orphanCount = chapters.length - visited.size;
-        const orphanChapters = chapters
-          .filter((ch: any) => !visited.has(ch.id))
-          .map((ch: any) => ch.title);
+        const orphanCount = fetchedChapters.length - visited.size;
+        const orphanChapters = fetchedChapters
+          .filter((chapter) => !visited.has(chapter.id))
+          .map((chapter) => chapter.title);
         
         const bidirectionalErrors: string[] = [];
-        chapters.forEach((ch: any) => {
-          if (ch.nextChapter?.id) {
-            const next = chapterMap.get(ch.nextChapter.id);
-            if (next && next.previousChapter?.id !== ch.id) {
-              bidirectionalErrors.push(`"${ch.title}" → nextChapter → "${next.title}" mais "${next.title}" → previousChapter → "${next.previousChapter ? chapterMap.get(next.previousChapter.id)?.title : 'aucun'}"`);
+        fetchedChapters.forEach((chapter) => {
+          if (chapter.nextChapter?.id) {
+            const next = chapterMap.get(chapter.nextChapter.id);
+            if (next && next.previousChapter?.id !== chapter.id) {
+              bidirectionalErrors.push(`"${chapter.title}" → nextChapter → "${next.title}" mais "${next.title}" → previousChapter → "${next.previousChapter ? chapterMap.get(next.previousChapter.id)?.title : 'aucun'}"`);
             }
           }
-          if (ch.previousChapter?.id) {
-            const prev = chapterMap.get(ch.previousChapter.id);
-            if (prev && prev.nextChapter?.id !== ch.id) {
-              bidirectionalErrors.push(`"${ch.title}" → previousChapter → "${prev.title}" mais "${prev.title}" → nextChapter → "${prev.nextChapter ? chapterMap.get(prev.nextChapter.id)?.title : 'aucun'}"`);
+          if (chapter.previousChapter?.id) {
+            const previous = chapterMap.get(chapter.previousChapter.id);
+            if (previous && previous.nextChapter?.id !== chapter.id) {
+              bidirectionalErrors.push(`"${chapter.title}" → previousChapter → "${previous.title}" mais "${previous.title}" → nextChapter → "${previous.nextChapter ? chapterMap.get(previous.nextChapter.id)?.title : 'aucun'}"`);
             }
           }
         });
@@ -117,7 +127,7 @@ export default function GpxBuilderPage() {
         
         setChapters(orderedChapters);
       } else {
-        setChapters(chapters);
+        setChapters(fetchedChapters);
       }
     } catch (error) {
       console.error('Error fetching chapters:', error);
@@ -159,7 +169,7 @@ export default function GpxBuilderPage() {
     
     const newSegments = orderedChapters
       .filter(chapter => direction === 'AB' ? chapter.gpxFileAB : chapter.gpxFileBA)
-      .map(chapter => {
+      .map((chapter): SelectedSegment => {
         const gpxFile = direction === 'AB' ? chapter.gpxFileAB : chapter.gpxFileBA;
         const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
         const gpxUrl = gpxFile!.url.startsWith('http') 
@@ -251,7 +261,7 @@ export default function GpxBuilderPage() {
       let allTrackPoints = '';
       
       const parser = new DOMParser();
-      gpxContents.forEach(({ segment, content }, index) => {
+      gpxContents.forEach(({ content }) => {
         const doc = parser.parseFromString(content, 'text/xml');
         const trkpts = doc.querySelectorAll('trkpt');
         
@@ -327,7 +337,7 @@ ${allTrackPoints}  </trk>
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <Link href="/" className={styles.backLink}>← Retour à l'accueil</Link>
+        <Link href="/" className={styles.backLink}>← Retour à l’accueil</Link>
         <h1 className={styles.title}>GPX Builder</h1>
         <p className={styles.subtitle}>
           Créez votre itinéraire personnalisé en sélectionnant les segments à parcourir

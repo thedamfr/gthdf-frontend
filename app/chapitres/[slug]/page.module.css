@@ -92,6 +92,37 @@
   margin-bottom: 0;
 }
 
+.citiesSection {
+  min-width: 0;
+}
+
+.citiesSection h2 {
+  margin-bottom: 2rem;
+  padding-left: 1rem;
+  border-left: 6px solid var(--color-vert);
+  color: var(--color-charbon);
+  font-size: 2rem;
+}
+
+.citiesSection p {
+  margin: 0;
+  color: var(--color-charbon);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  opacity: 0.8;
+}
+
+.cityLink {
+  color: var(--color-bleu);
+  font-weight: 700;
+  text-underline-offset: 0.2em;
+}
+
+.cityLink:focus-visible {
+  outline: 3px solid var(--color-rouge);
+  outline-offset: 3px;
+}
+
 /* Section Titles */
 .sectionTitle {
   font-size: 2rem;
@@ -184,10 +215,27 @@
 /* Two-column row: Checkpoints + Horizons */
 .twoColumnRow {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 3rem;
+  grid-template-columns: minmax(520px, 1fr) minmax(0, 1fr);
+  gap: 2rem;
   margin-bottom: 4rem;
   align-items: start;
+}
+
+.routeMarkers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.routeMarkers:only-child {
+  grid-column: 1 / -1;
+  max-width: 720px;
+}
+
+.routeMarkers > :only-child {
+  grid-column: 1 / -1;
 }
 
 .routeNotes {
@@ -268,6 +316,16 @@
   margin: 0;
 }
 
+@media (max-width: 1100px) {
+  .twoColumnRow {
+    grid-template-columns: 1fr;
+  }
+
+  .routeMarkers:only-child {
+    max-width: none;
+  }
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .container {
@@ -296,6 +354,10 @@
   }
 
   .twoColumnRow {
+    grid-template-columns: 1fr;
+  }
+
+  .routeMarkers {
     grid-template-columns: 1fr;
   }
 
@@ -383,8 +445,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  min-width: 280px;
-  max-width: 420px;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
 }
 
 .checkpointsCta {
@@ -406,6 +469,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  width: 100%;
 }
 
 .checkpointItem {

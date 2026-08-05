@@ -25,6 +25,13 @@ manifeste sont décrits dans
 
 ## Getting Started
 
+Le projet requiert Node.js 22.12 ou une version plus récente de Node 22 à 24.
+Cette contrainte est également utilisée par Clever Cloud lors du déploiement.
+
+Create `.env.local` from `.env.example`. `PREVIEW_SECRET` must contain the
+same long random value in the frontend and CMS environments. Keep it
+server-only: do not prefix it with `NEXT_PUBLIC_`.
+
 First, run the development server:
 
 ```bash
@@ -48,11 +55,26 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `/` : Homepage CMS (header, intro, carte, principes, horizons, FAQ, rencontres)
 - `/chapitres` : Liste des chapitres
 - `/chapitres/[slug]` : Détail chapitre
+- `/villes/[slug]` : Hub d'une ville publiée et activée dans Strapi
 - `/checkpoints` : Page checkpoints CMS + accordéon
 - `/blog` : Liste des articles avec filtre par catégorie (`?category=slug`)
 - `/article/[slug]` : Détail article
 - `/a-propos` : Page à propos CMS (title + blocks)
 - `/mentions-legales` : Mentions légales CMS
+
+## Validation PRD 01 en local
+
+Avec Strapi sur `http://localhost:1337` et Next sur
+`http://localhost:3000`, lancer :
+
+```bash
+npm test
+npm run lint
+npm run test:integration:prd01
+```
+
+Le smoke test contrôle une ville publique, les 404 des villes privées, le
+résumé serveur d'un chapitre, le sitemap et une preview Draft Mode protégée.
 
 ## Learn More
 
@@ -63,8 +85,9 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Déploiement
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+L'application est déployée sur Clever Cloud depuis sa branche de production.
+Pour le PRD 01, déployer d'abord le schéma CMS, exécuter et contrôler la
+migration manuelle des données, puis déployer le frontend. La migration n'est
+jamais ajoutée au démarrage automatique de l'application.

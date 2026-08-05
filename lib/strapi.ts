@@ -1,16 +1,74 @@
 // lib/strapi.ts - Strapi API client
 import { cache } from 'react';
 import { draftMode } from 'next/headers';
+import { withStrapiStatus } from './strapi-status';
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
-const STRAPI_API_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
+const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN
+  || process.env.NEXT_PUBLIC_STRAPI_API_TOKEN; // Legacy fallback during env migration.
 
 interface StrapiRequestOptions {
   endpoint: string;
-  query?: Record<string, any>;
+  query?: Record<string, unknown>;
   wrappedByKey?: string;
   wrappedByList?: boolean;
   revalidate?: number;
+}
+
+export interface StrapiMedia {
+  url: string;
+  alternativeText?: string | null;
+  name?: string;
+}
+
+export interface ArticleCategory {
+  id?: number;
+  name?: string;
+  slug?: string;
+}
+
+export interface ArticleAuthor {
+  id?: number;
+  name: string;
+  slug?: string;
+  email?: string;
+  avatar?: StrapiMedia;
+}
+
+export interface ArticleBlock {
+  __component: string;
+  id?: number;
+  body?: string;
+  title?: string;
+  file?: StrapiMedia;
+  files?: StrapiMedia[];
+}
+
+export interface ArticleSeo {
+  metaTitle?: string;
+  metaDescription?: string;
+  shareImage?: StrapiMedia;
+}
+
+export interface Article {
+  id: number;
+  documentId?: string;
+  slug: string;
+  title: string;
+  description?: string;
+  excerpt?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+  cover?: StrapiMedia;
+  category?: ArticleCategory;
+  author?: ArticleAuthor;
+  blocks?: ArticleBlock[];
+  seo?: ArticleSeo;
+}
+
+export interface Author extends ArticleAuthor {
+  bio?: string;
+  articles?: Article[];
 }
 
 /**
@@ -29,10 +87,7 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
     isDraftPreview = false;
   }
 
-  const requestQuery: Record<string, any> = { ...query };
-  if (isDraftPreview && requestQuery.publicationState === undefined) {
-    requestQuery.publicationState = 'preview';
-  }
+  const requestQuery = withStrapiStatus(query, isDraftPreview);
 
   const mergedOptions = {
     ...(isDraftPreview ? { cache: 'no-store' as const } : { next: { revalidate } }),
@@ -50,12 +105,12 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
     if (Array.isArray(value)) {
       // For arrays, add multiple params with same key
       value.forEach((item) => {
-        queryString.append(key, item);
+        queryString.append(key, String(item));
       });
-    } else if (typeof value === 'object') {
+    } else if (value !== null && typeof value === 'object') {
       queryString.append(key, JSON.stringify(value));
-    } else {
-      queryString.append(key, value);
+    } else if (value !== undefined && value !== null) {
+      queryString.append(key, String(value));
     }
   });
 
@@ -90,7 +145,7 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
  * @param category optional category slug to filter by
  */
 export const getArticles = cache(async (category?: string) => {
-  return fetchAPI({
+  return fetchAPI<Article[]>({
     endpoint: '/articles',
     query: {
       ...(category && { 'filters[category][slug][$eq]': category }),
@@ -107,7 +162,7 @@ export const getArticles = cache(async (category?: string) => {
  * Get a single article by slug
  */
 export const getArticleBySlug = cache(async (slug: string) => {
-  const articles = await fetchAPI<any[]>({
+  const articles = await fetchAPI<Article[]>({
     endpoint: '/articles',
     query: {
       'filters[slug][$eq]': slug,
@@ -148,7 +203,7 @@ interface GlobalData {
   siteDescription?: string;
   favicon?: { url: string; alternativeText?: string };
   defaultSeo?: { shareImage?: { url: string } };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export const getGlobal = cache(async () => {
@@ -285,7 +340,7 @@ export const getCheckpoints = cache(async () => {
  * Get all authors (for static params generation)
  */
 export const getAuthors = cache(async () => {
-  return fetchAPI({
+  return fetchAPI<Author[]>({
     endpoint: '/authors',
     query: {
       'populate[0]': 'avatar',
@@ -298,7 +353,7 @@ export const getAuthors = cache(async () => {
  * Get a single author by slug with their articles
  */
 export const getAuthorBySlug = cache(async (slug: string) => {
-  const authors = await fetchAPI<any[]>({
+  const authors = await fetchAPI<Author[]>({
     endpoint: '/authors',
     query: {
       'filters[slug][$eq]': slug,
