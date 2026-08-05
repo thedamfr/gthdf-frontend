@@ -128,6 +128,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 ## Déploiement
 
 L'application est déployée sur Clever Cloud depuis sa branche de production.
+Le runtime reste sur une instance `nano`, mais le build Next.js utilise une
+instance dédiée `M` afin d'éviter un dépassement mémoire pendant le
+`postinstall`. Vérifier cette configuration avec `clever status --app
+gthdf-frontend` et, si nécessaire, la rétablir avec :
+
+```bash
+clever scale --app gthdf-frontend --build-flavor M
+```
+
 Pour le PRD 01, déployer d'abord le schéma CMS, exécuter et contrôler la
 migration manuelle des données, puis déployer le frontend. La migration n'est
 jamais ajoutée au démarrage automatique de l'application.

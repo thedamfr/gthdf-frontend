@@ -150,6 +150,10 @@
   border-top: 2px solid var(--color-charbon);
 }
 
+.noScriptChapterList {
+  display: none;
+}
+
 .chapterList li {
   border-bottom: 2px solid var(--color-charbon);
 }
@@ -265,7 +269,11 @@
   }
 
   .finder[data-search-state='idle'] .resultsStatus,
-  .finder[data-search-state='idle'] .chapterList {
+  .finder[data-search-state='idle'] > .chapterList {
     display: none;
+  }
+
+  .noScriptChapterList {
+    display: grid;
   }
 }

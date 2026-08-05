@@ -169,6 +169,8 @@ describe('ChapterFinder', () => {
     expect(locationButton?.textContent).toBe('Autour de moi');
     expect((locationButton as HTMLButtonElement).disabled).toBe(true);
     expect(markup).toContain('Tous les chapitres restent accessibles dans la liste ci-dessous.');
+    const noScriptMarkup = markup.match(/<noscript>([\s\S]*?)<\/noscript>/)?.[1] ?? '';
+    expect(noScriptMarkup.match(/href="\/chapitres\//g)).toHaveLength(2);
   });
 
   it('does not acquire a position or request the index before an explicit click', async () => {

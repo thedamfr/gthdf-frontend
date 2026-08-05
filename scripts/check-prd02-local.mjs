@@ -195,6 +195,8 @@ function benchmarkCalculation(index, iterations) {
 const chaptersResponse = await responseWithStatus('/chapitres', 200);
 const chaptersHtml = await chaptersResponse.text();
 const chaptersText = visibleText(chaptersHtml);
+const noScriptHtml = chaptersHtml.match(/<noscript>([\s\S]*?)<\/noscript>/i)?.[1] ?? '';
+const interactiveHtml = chaptersHtml.replace(/<noscript>[\s\S]*?<\/noscript>/gi, ' ');
 
 assert.ok(chaptersText.includes('Les chapitres'), 'Le H1 doit être présent dans le HTML initial.');
 assert.ok(
@@ -202,7 +204,8 @@ assert.ok(
   'Le finder doit être présent dans le HTML initial.'
 );
 
-const links = chapterLinks(chaptersHtml);
+const links = chapterLinks(interactiveHtml);
+const noScriptLinks = chapterLinks(noScriptHtml);
 assert.equal(
   links.length,
   EXPECTED_CHAPTER_COUNT,
@@ -217,6 +220,16 @@ assert.equal(
   new Set(links.map(({ href }) => href)).size,
   EXPECTED_CHAPTER_COUNT,
   'Chaque lien de chapitre doit être unique.'
+);
+assert.equal(
+  noScriptLinks.length,
+  EXPECTED_CHAPTER_COUNT,
+  `Le fallback sans JavaScript doit contenir exactement ${EXPECTED_CHAPTER_COUNT} liens de chapitre.`
+);
+assert.deepEqual(
+  noScriptLinks,
+  links,
+  'Le fallback sans JavaScript doit reprendre les mêmes chapitres dans le même ordre.'
 );
 assert.doesNotMatch(
   chaptersHtml,
