@@ -4,6 +4,7 @@ import { Fragment, type ReactNode } from 'react';
 import {
   getCityRoleLabel,
   getCitySummary,
+  getVisibleCityPassages,
   hasPublicCityPage,
   type CityPassage,
   type CityReference,
@@ -58,6 +59,8 @@ export default function ChapterCitiesSummary({
     return null;
   }
 
+  const visiblePassages = getVisibleCityPassages(passages);
+
   return (
     <section className={className} aria-labelledby="chapter-cities-title">
       <h2 id="chapter-cities-title">Villes traversées</h2>
@@ -68,8 +71,8 @@ export default function ChapterCitiesSummary({
           <> en passant notamment par {frenchCityList(summary.featuredIntermediates, linkClassName)}</>
         )}.
       </p>
-      <ol className={styles.cityList} aria-label="Villes dans l’ordre du parcours">
-        {passages.map((passage, index) => (
+      <ol className={styles.cityList} aria-label="Villes mises en avant dans l’ordre du parcours">
+        {visiblePassages.map((passage, index) => (
           <li
             key={`${passage.city.documentId ?? passage.city.name}-${passage.role}-${index}`}
             className={styles.cityItem}
