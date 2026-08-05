@@ -70,7 +70,7 @@ export default function DesktopChapterGallery({
                   width={400}
                   height={400}
                   loading="lazy"
-                  sizes="(min-width: 769px) 33vw, 1px"
+                  sizes="(min-width: 1280px) 18vw, (min-width: 769px) 45vw, 1px"
                   className={styles.chapterImage}
                 />
               </div>

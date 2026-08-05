@@ -155,18 +155,22 @@ describe('ChapterFinder', () => {
     Reflect.deleteProperty(window, 'isSecureContext');
   });
 
-  it('renders the complete server list and a disabled location control before hydration', () => {
+  it('renders the complete server list in an idle finder before hydration', () => {
     const markup = renderToStaticMarkup(<ChapterFinder chapters={chapters} />);
     const container = document.createElement('div');
     container.innerHTML = markup;
 
+    const finder = container.querySelector('section[aria-labelledby="chapter-finder-title"]');
     const chapterLinks = container.querySelectorAll('a[href^="/chapitres/"]');
     const locationButton = container.querySelector('button');
 
+    expect(finder?.getAttribute('data-search-state')).toBe('idle');
     expect(chapterLinks).toHaveLength(2);
     expect(locationButton?.textContent).toBe('Autour de moi');
     expect((locationButton as HTMLButtonElement).disabled).toBe(true);
     expect(markup).toContain('Tous les chapitres restent accessibles dans la liste ci-dessous.');
+    const noScriptMarkup = markup.match(/<noscript>([\s\S]*?)<\/noscript>/)?.[1] ?? '';
+    expect(noScriptMarkup.match(/href="\/chapitres\//g)).toHaveLength(2);
   });
 
   it('does not acquire a position or request the index before an explicit click', async () => {
@@ -364,9 +368,13 @@ describe('ChapterFinder', () => {
 
     const view = render(<ChapterFinder chapters={chapters} />);
     const searchInput = view.getByRole('searchbox', { name: 'Ville ou chapitre' }) as HTMLInputElement;
+    const finder = view.container.querySelector('section[aria-labelledby="chapter-finder-title"]');
+
+    expect(finder?.getAttribute('data-search-state')).toBe('idle');
 
     fireEvent.change(searchInput, { target: { value: 'Atrecht' } });
 
+    expect(finder?.getAttribute('data-search-state')).toBe('results');
     expect(view.getByText('1 résultat')).toBeTruthy();
     expect(view.getByText('Arras · arrivée')).toBeTruthy();
     expect(view.container.querySelectorAll('a[href^="/chapitres/"]')).toHaveLength(1);
@@ -374,6 +382,7 @@ describe('ChapterFinder', () => {
     fireEvent.keyDown(searchInput, { key: 'Escape' });
 
     expect(searchInput.value).toBe('');
+    expect(finder?.getAttribute('data-search-state')).toBe('idle');
     expect(view.container.querySelectorAll('a[href^="/chapitres/"]')).toHaveLength(2);
   });
 });

@@ -150,6 +150,10 @@
   border-top: 2px solid var(--color-charbon);
 }
 
+.noScriptChapterList {
+  display: none;
+}
+
 .chapterList li {
   border-bottom: 2px solid var(--color-charbon);
 }
@@ -245,5 +249,31 @@
 
   .openLabel {
     margin-top: 0.25rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .finder {
+    border-width: 3px 0;
+    padding: 1.5rem 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .finderHeading {
+    margin-bottom: 1rem;
+  }
+
+  .finderHeading h2 {
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+  }
+
+  .finder[data-search-state='idle'] .resultsStatus,
+  .finder[data-search-state='idle'] > .chapterList {
+    display: none;
+  }
+
+  .noScriptChapterList {
+    display: grid;
   }
 }

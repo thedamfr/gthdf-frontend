@@ -318,7 +318,11 @@ export default function ChapterFinder({ chapters }: { chapters: ChapterFinderIte
   }
 
   return (
-    <section className={styles.finder} aria-labelledby="chapter-finder-title">
+    <section
+      className={styles.finder}
+      aria-labelledby="chapter-finder-title"
+      data-search-state={hasQuery ? 'results' : 'idle'}
+    >
       <div className={styles.finderHeading}>
         <p className={styles.eyebrow}>Sur la route ou avant de partir</p>
         <h2 id="chapter-finder-title">Trouver un chapitre</h2>
@@ -359,6 +363,13 @@ export default function ChapterFinder({ chapters }: { chapters: ChapterFinderIte
         <p className={styles.noScript}>
           La recherche instantanée et la localisation nécessitent JavaScript. Tous les chapitres restent accessibles dans la liste ci-dessous.
         </p>
+        <ul className={`${styles.chapterList} ${styles.noScriptChapterList}`}>
+          {searchResults.map((result) => (
+            <li key={`noscript-${result.resultId}`}>
+              <ChapterResultLink result={result} />
+            </li>
+          ))}
+        </ul>
       </noscript>
 
       <p className={styles.geolocationLiveStatus} role="status" aria-live="polite">
