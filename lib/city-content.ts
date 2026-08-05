@@ -22,6 +22,10 @@ export interface CitySummary {
   featuredIntermediates: CityPassage[];
 }
 
+export function hasPublicCityPage(city: CityReference): boolean {
+  return Boolean(city.slug && city.hasPublicPage && city.publishedAt);
+}
+
 export function getCityRoleLabel(role: CityRole): string {
   const labels: Record<CityRole, string> = {
     start: 'Départ du chapitre',

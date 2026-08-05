@@ -5,8 +5,30 @@ import {
   formatCitySummaryText,
   filterEligibleCityReferences,
   getCityRoleLabel,
+  hasPublicCityPage,
   sortCityChapters,
 } from '../lib/city-content.ts';
+
+test('hasPublicCityPage requires a slug, the editorial flag and a published version', () => {
+  assert.equal(hasPublicCityPage({
+    name: 'Calais',
+    slug: 'calais',
+    hasPublicPage: true,
+    publishedAt: '2026-08-05T06:57:00.879Z',
+  }), true);
+  assert.equal(hasPublicCityPage({
+    name: 'Calais',
+    slug: 'calais',
+    hasPublicPage: true,
+    publishedAt: null,
+  }), false);
+  assert.equal(hasPublicCityPage({
+    name: 'Calais',
+    slug: 'calais',
+    hasPublicPage: false,
+    publishedAt: '2026-08-05T06:57:00.879Z',
+  }), false);
+});
 
 test('formatCitySummaryText renders a chapter without featured intermediates', () => {
   assert.equal(

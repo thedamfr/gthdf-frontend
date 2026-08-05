@@ -2,10 +2,13 @@ import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 
 import {
+  getCityRoleLabel,
   getCitySummary,
+  hasPublicCityPage,
   type CityPassage,
   type CityReference,
 } from '@/lib/city-content';
+import styles from './ChapterCitiesSummary.module.css';
 
 interface ChapterCitiesSummaryProps {
   passages?: CityPassage[];
@@ -14,7 +17,7 @@ interface ChapterCitiesSummaryProps {
 }
 
 function cityName(city: CityReference, className?: string): ReactNode {
-  if (!city.hasPublicPage || !city.slug) {
+  if (!hasPublicCityPage(city)) {
     return city.name;
   }
 
@@ -65,6 +68,20 @@ export default function ChapterCitiesSummary({
           <> en passant notamment par {frenchCityList(summary.featuredIntermediates, linkClassName)}</>
         )}.
       </p>
+      <ol className={styles.cityList} aria-label="Villes dans l’ordre du parcours">
+        {passages.map((passage, index) => (
+          <li
+            key={`${passage.city.documentId ?? passage.city.name}-${passage.role}-${index}`}
+            className={styles.cityItem}
+          >
+            <span className={styles.cityName}>
+              {cityName(passage.city, linkClassName)}
+            </span>
+            <span className={styles.cityRole}>{getCityRoleLabel(passage.role)}</span>
+            {passage.note && <span className={styles.cityNote}>{passage.note}</span>}
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
