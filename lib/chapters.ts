@@ -172,9 +172,7 @@ export const getChapters = cache(async (): Promise<Chapter[]> => {
   }
 });
 
-/**
- * Get chapters in sequential order following the nextChapter chain.
- */
+/** Get published chapters in stable display order with a transitional fallback. */
 export const getChaptersInOrder = cache(async (): Promise<Chapter[]> => {
   const chapters = await fetchAPI<Chapter[]>({
     endpoint: '/chapters',

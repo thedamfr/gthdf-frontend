@@ -35,8 +35,9 @@ export function sortChaptersByDisplayOrder<T extends DisplayOrderChapter>(chapte
 
 /**
  * Return a stable, contiguous public order during a partial CMS deployment.
- * Valid CMS values are preserved; invalid sets fall back to deterministic
- * title/slug ordering and temporary 1..N values.
+ * Complete CMS values are preserved. Otherwise, individually valid values
+ * stay first in numeric order, invalid values use title/slug as a stable
+ * fallback, and the result receives temporary contiguous 1..N values.
  */
 export function assignStableDisplayOrder<T extends DisplayOrderChapter>(
   chapters: T[]
