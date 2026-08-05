@@ -1,8 +1,8 @@
 # PRD 02 — Retrouver son chapitre sur mobile
 
-**Version :** 0.3\
-**Date :** 4 août 2026\
-**Statut :** prêt pour revue produit et technique\
+**Version :** 0.4\
+**Date :** 5 août 2026\
+**Statut :** amendé après extension du PRD 01\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendance bloquante pour la recherche complète :** PRD 01 — Référentiel
 des villes et pages hubs\
@@ -281,6 +281,11 @@ route `/villes/[slug]`, pas la visibilité factuelle d’une ville dans un
 chapitre. Le résultat de ce lot ouvre toujours `/chapitres/[slug]` et ne crée
 pas de lien vers une page ville non éligible.
 
+Le booléen `cityPassages.featured` ne filtre pas davantage la recherche. Il
+borne uniquement la liste de villes visible sur une page chapitre au titre du
+PRD 01. Le DTO de recherche consomme tous les passages publiés, y compris les
+intermédiaires `featured=false`.
+
 Une relation brouillon, manquante ou non peuplée est ignorée. Aucun libellé
 n’est reconstruit depuis un identifiant ou un GPX.
 
@@ -411,6 +416,9 @@ Il n’existe donc :
 - fallback `startStation` et `endStation` pendant la migration ;
 - chaque `cityPassages.city.name` publié ;
 - chaque valeur valide de `city.alternativeNames`.
+
+La valeur de `cityPassages.featured` est sans effet sur l’indexation de ces
+champs.
 
 Un nom alternatif sert uniquement à la correspondance. Le résultat affiche
 toujours le nom canonique de la ville.
@@ -860,6 +868,8 @@ la fonction « Autour de moi » ; la recherche et la liste restent utilisables.
   `cityPassages` publié, n’est ni exposée ni cherchable ;
 - une ville publiée avec `hasPublicPage=false` reste cherchable et ouvre le
   chapitre, jamais une page ville inexistante ;
+- une ville reliée par un passage publié reste cherchable lorsque
+  `featured=false` ;
 - aucun dénivelé n’est inventé ou affiché.
 
 ### Page et absence de JavaScript
@@ -1049,6 +1059,8 @@ temps, ni extensions et ne convient jamais à l’export.
 - ordre explicite `displayOrder` ancré à Lille → Arras ;
 - recherche limitée aux `cityPassages` publiés, indépendamment de l’import
   exhaustif du PRD 04 ;
+- recherche portant sur tous ces passages, indépendamment de leur valeur
+  `featured` ;
 - ordre d’interface distinct du chaînage géographique du PRD 04 ;
 - villes non dotées d’une page hub néanmoins cherchables ;
 - absence de dénivelé dans le MVP ;

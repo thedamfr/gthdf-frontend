@@ -1,8 +1,8 @@
 # PRD 01 — Référentiel des villes et pages hubs
 
-**Version :** 0.4\
+**Version :** 0.5\
 **Date :** 5 août 2026\
-**Statut :** amendé après recette locale\
+**Statut :** amendé après recette et sélection éditoriale\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Marque publique :** GTHF
 
@@ -210,7 +210,7 @@ Composant proposé : `chapter.city-passage`
 |---|---|---:|---|
 | `city` | relation vers `api::city.city` | oui | Une ville normalisée |
 | `role` | enum | oui | `start`, `intermediate` ou `end` |
-| `featured` | boolean | oui | Défaut `false` ; sélectionne un intermédiaire pour le résumé |
+| `featured` | boolean | oui | Défaut `false` ; sélectionne un intermédiaire pour le résumé et la liste compacte |
 | `note` | string ou text court | non | Information éditoriale factuelle, jamais générée automatiquement |
 
 Le type `Chapter` reçoit un composant répétable `cityPassages`.
@@ -232,6 +232,7 @@ le travail progressif d’un éditeur.
 - le dernier passage est `end` ;
 - tous les passages entre les deux sont `intermediate` ;
 - `featured` n’a d’effet public que pour un passage `intermediate` ;
+- au maximum six passages `intermediate` possèdent `featured=true` ;
 - le sens des rôles correspond à `startStation → endStation` ;
 - une même ville peut appartenir à plusieurs chapitres ;
 - aucune contrainte d’unicité de ville dans un chapitre n’est imposée afin de
@@ -307,12 +308,13 @@ Le bloc respecte les règles suivantes :
   de section, phrase courte puis cartes bordées compactes ;
 - les cartes de villes sont statiques et ne reprennent pas le bouton ou le
   comportement dépliant d’un checkpoint ;
-- la liste ordonnée complète reste visible dans le HTML initial, sans
-  accordéon ni troncature ;
-- il utilise la ville `start`, la ville `end` et les intermédiaires
-  `featured=true` ;
-- toutes les villes sont affichées dans l’ordre de `cityPassages` ;
+- la liste visible utilise la ville `start`, jusqu’à six intermédiaires
+  `featured=true`, puis la ville `end` ;
+- les villes visibles conservent leur ordre relatif dans `cityPassages` ;
 - les extrémités sont affichées même si `featured=false` ;
+- les passages non mis en avant restent dans `cityPassages` pour les usages de
+  données, notamment la recherche du PRD 02, mais ne sont pas rendus dans ce
+  bloc ;
 - une ville ne devient un lien que si sa page publique remplit les conditions
   de la section 8 ;
 - une ville sans page publique reste du texte, elle n’est pas masquée ;
@@ -525,8 +527,27 @@ Pour chaque chapitre existant, le script prépare :
 3. les intermédiaires à partir du tableau JSON `cities` lorsqu’il est valide ;
 4. l’ordre proposé à partir du tableau existant, après suppression des
    doublons évidents des extrémités ;
-5. `featured=true` pour les intermédiaires legacy explicitement conservés dans
-   le résumé initial.
+5. `featured=true` uniquement pour les intermédiaires de la sélection
+   éditoriale ci-dessous.
+
+La sélection initiale est assistée par les données du CSV (population,
+commerces, proximité de la trace et répartition le long du parcours), puis
+validée éditorialement. Elle ne remplace pas la liste exhaustive des passages.
+Un chapitre peut comporter moins de six intermédiaires mis en avant lorsqu’un
+sixième choix n’est pas suffisamment pertinent.
+
+| Chapitre | Intermédiaires `featured`, dans l’ordre du parcours |
+|---|---|
+| Hirson → Soissons | Étréaupont, Guise, La Fère, Laon, Urcel, Crouy |
+| Soissons → Beauvais | Ambleny, Pierrefonds, Pont-Sainte-Maxence, Senlis, Creil, Hermes |
+| Beauvais → Amiens | Goincourt, Crèvecœur-le-Grand, Ailly-sur-Noye, Villers-Bretonneux, Camon |
+| Amiens → Étaples | Ailly-sur-Somme, Abbeville, Friville-Escarbotin, Saint-Valery-sur-Somme, Quend, Berck |
+| Étaples → Calais | Camiers, Outreau, Boulogne-sur-Mer, Ambleteuse, Sangatte |
+| Calais → Saint-Omer | Oye-Plage, Gravelines, Dunkerque, Coudekerque-Branche, Watten, Saint-Martin-lez-Tatinghem |
+| Saint-Omer → Lille | Arques, Steenvoorde, Boeschepe, Bailleul, Armentières, Lambersart |
+| Lille → Arras | Villeneuve-d’Ascq, Libercourt, Carvin, Lens, Aix-Noulette, Achicourt |
+| Arras → Condé-sur-l’Escaut | Saint-Laurent-Blangy, Arleux, Aniche, Somain, Raismes, Fresnes-sur-Escaut |
+| Condé-sur-l’Escaut → Hirson | Quiévrechain, Bavay, Landrecies, Avesnes-sur-Helpe, Eppe-Sauvage, Momignies |
 
 La reprise par nom normalisé peut ignorer casse, accents, espaces et tirets pour
 proposer une correspondance. Elle ne fusionne jamais automatiquement deux
@@ -624,6 +645,8 @@ Le retour arrière repose sur les propriétés suivantes :
 - les coordonnées sont absentes par paire ou valides par paire ;
 - l’ordre d’un composant répétable est l’ordre renvoyé au frontend ;
 - un chapitre invalide peut être sauvegardé en brouillon, mais pas publié ;
+- un chapitre comportant plus de six intermédiaires `featured` ne peut pas être
+  publié ;
 - les messages de validation identifient la règle et le chapitre concernés ;
 - le composant SEO et sa validation d’image sont réutilisés pour `City`.
 
@@ -634,7 +657,10 @@ Le retour arrière repose sur les propriétés suivantes :
   non dans une carte pleine largeur en haut de page ;
 - villes et checkpoints sont adjacents sur écran large et empilés sans
   débordement sur écran étroit ;
-- les extrémités et intermédiaires mis en avant suivent l’ordre Strapi ;
+- les extrémités et au maximum six intermédiaires mis en avant suivent l’ordre
+  Strapi ;
+- les passages non mis en avant ne sont pas affichés mais restent disponibles
+  pour la recherche du PRD 02 ;
 - les formulations avec zéro, un ou plusieurs intermédiaires sont
   grammaticales ;
 - une ville éligible est liée, une ville non éligible reste du texte ;
