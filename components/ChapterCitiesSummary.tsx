@@ -74,11 +74,16 @@ export default function ChapterCitiesSummary({
             key={`${passage.city.documentId ?? passage.city.name}-${passage.role}-${index}`}
             className={styles.cityItem}
           >
-            <span className={styles.cityName}>
-              {cityName(passage.city, linkClassName)}
+            <span className={styles.cityNumber} aria-hidden="true">
+              #{index + 1}
             </span>
-            <span className={styles.cityRole}>{getCityRoleLabel(passage.role)}</span>
-            {passage.note && <span className={styles.cityNote}>{passage.note}</span>}
+            <span className={styles.cityDetails}>
+              <span className={styles.cityName}>
+                {cityName(passage.city, linkClassName)}
+              </span>
+              <span className={styles.cityRole}>{getCityRoleLabel(passage.role)}</span>
+              {passage.note && <span className={styles.cityNote}>{passage.note}</span>}
+            </span>
           </li>
         ))}
       </ol>

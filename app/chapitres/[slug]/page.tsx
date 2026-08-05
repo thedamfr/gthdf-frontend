@@ -161,12 +161,6 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
         )}
       </header>
 
-      <ChapterCitiesSummary
-        passages={chapter.cityPassages}
-        className={styles.citiesSection}
-        linkClassName={styles.cityLink}
-      />
-
       {/* Navigation (Komoot + GPX) */}
       {(komootAB || komootBA) && (
         <section className={styles.navigationSection}>
@@ -237,23 +231,31 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
 
       {/* Checkpoints + Horizons */}
       <div className={styles.twoColumnRow}>
-        <section className={styles.checkpointsSection}>
-          <h2 className={styles.sectionTitle}>Checkpoints</h2>
-          <Link href="/checkpoints" className={styles.checkpointsCta}>
-            Découvrir les checkpoints
-          </Link>
-          {checkpoints.length === 0 ? (
-            <p className={styles.emptyState}>Aucun checkpoint visible pour ce chapitre pour le moment.</p>
-          ) : (
-            <div className={styles.checkpointsList}>
-              {[...checkpoints]
-                .sort((checkpointA, checkpointB) => checkpointA.number - checkpointB.number)
-                .map((checkpoint) => (
-                  <CheckpointCard key={checkpoint.id} checkpoint={checkpoint} />
-                ))}
-            </div>
-          )}
-        </section>
+        <div className={styles.routeMarkers}>
+          <section className={styles.checkpointsSection}>
+            <h2 className={styles.sectionTitle}>Checkpoints</h2>
+            <Link href="/checkpoints" className={styles.checkpointsCta}>
+              Découvrir les checkpoints
+            </Link>
+            {checkpoints.length === 0 ? (
+              <p className={styles.emptyState}>Aucun checkpoint visible pour ce chapitre pour le moment.</p>
+            ) : (
+              <div className={styles.checkpointsList}>
+                {[...checkpoints]
+                  .sort((checkpointA, checkpointB) => checkpointA.number - checkpointB.number)
+                  .map((checkpoint) => (
+                    <CheckpointCard key={checkpoint.id} checkpoint={checkpoint} />
+                  ))}
+              </div>
+            )}
+          </section>
+
+          <ChapterCitiesSummary
+            passages={chapter.cityPassages}
+            className={styles.citiesSection}
+            linkClassName={styles.cityLink}
+          />
+        </div>
 
         {chapter.horizons && chapter.horizons.length > 0 && (
           <section className={styles.horizonsSection}>

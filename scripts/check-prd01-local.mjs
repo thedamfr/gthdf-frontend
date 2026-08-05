@@ -58,6 +58,13 @@ assert.ok(
   ),
   'Le résumé des villes doit être présent dans le HTML initial.'
 );
+const checkpointHeadingIndex = chapterHtml.search(/<h2[^>]*>Checkpoints<\/h2>/);
+const citiesHeadingIndex = chapterHtml.search(/<h2[^>]*>Villes traversées<\/h2>/);
+assert.ok(checkpointHeadingIndex >= 0, 'Le titre Checkpoints doit être présent.');
+assert.ok(
+  citiesHeadingIndex > checkpointHeadingIndex,
+  'Les villes traversées doivent être regroupées après les checkpoints, hors du haut de page.'
+);
 assert.match(chapterHtml, /href="\/villes\/calais"/);
 assert.match(chapterHtml, /href="\/villes\/saint-omer"/);
 assert.doesNotMatch(chapterHtml, /href="\/villes\/(?:lille|bailleul|cassel)"/);
