@@ -1,7 +1,7 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.2\
-**Date :** 4 août 2026\
+**Version :** 0.3\
+**Date :** 5 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendance fonctionnelle :** PRD 01 — Référentiel des villes et pages hubs\
@@ -145,23 +145,26 @@ GPX valide ; elle ne dépend pas d’une carte hydratée pour avoir du sens.
 
 ### 6.1 CMS Strapi
 
-- `gthdf-cms` utilise Strapi `5.43.0`, Node 20 à 24 et PostgreSQL ;
+- `gthdf-cms` utilise Strapi `5.51.1`, Node 20 à 24 et PostgreSQL ;
 - les médias sont stockés par le provider S3 dans MinIO en développement et
   Cellar en production ;
 - le provider accepte déjà `application/gpx+xml`, `application/xml` et
   `text/xml`, avec une limite globale de 10 Mio ;
 - les GPX actuellement importés sont néanmoins déclarés
   `application/octet-stream` ; les nouveaux exports doivent corriger ce MIME ;
-- `Chapter` possède `gpxFileAB`, `gpxFileBA`, `nextChapter` et
-  `previousChapter`, mais aucun type `Route`, `Anchor` ou `Itinerary` ;
+- `Chapter` possède notamment `gpxFileAB`, `gpxFileBA`, `nextChapter`,
+  `previousChapter`, `displayOrder` et `cityPassages`, mais aucun type
+  `Route`, `Anchor` ou `Itinerary` ;
 - la chaîne de chapitres publiée est une boucle ;
 - le dépôt n’active aucun cron et n’intègre aucune queue ;
-- `src/index.ts` contient seulement une validation transversale des images
-  SEO ;
+- `src/index.ts` porte les validations de publication des villes et chapitres,
+  les gardes de documents et le verrou PostgreSQL du PRD 02, en plus des
+  validations transversales existantes ;
 - les contrôleurs et services `Chapter` sont les factories Strapi standard ;
 - le script de seed existant montre comment charger Strapi depuis une commande
   Node autonome ;
-- `database/migrations/` existe mais ne contient aucune migration métier ;
+- les reprises PRD 01/02 sont des scripts npm explicites et idempotents ; elles
+  ne sont jamais lancées au démarrage de Strapi ;
 - la base de production est PostgreSQL et le pool configuré est limité à trois
   connexions ; le job ne doit donc pas monopoliser de nombreuses connexions ;
 - Strapi documente ses transactions comme expérimentales : seules de petites
@@ -177,7 +180,8 @@ Références officielles vérifiées le 4 août 2026 :
 
 ### 6.2 Frontend Next
 
-- `gthdf-frontend` utilise Next.js `16.0.10`, React `19.2.1` et App Router ;
+- `gthdf-frontend` utilise Next.js `16.3.0`, React `19.2.1`, Node.js 22.12 à
+  24 et App Router ;
 - les pages dynamiques actuelles utilisent `generateStaticParams()`, des
   Server Components et `notFound()` ;
 - les requêtes Strapi sont revalidées en général après 60 ou 300 secondes ;
@@ -188,15 +192,15 @@ Références officielles vérifiées le 4 août 2026 :
 - aucun webhook ou endpoint de revalidation à la demande n’existe ;
 - aucun registre de redirections dynamique n’existe ;
 - aucune bibliothèque cartographique ou de profil altimétrique n’est installée ;
-- le Draft Mode existe, mais l’endpoint `/api/preview` n’authentifie pas sa
-  requête et le helper emploie encore `publicationState` au lieu du paramètre
-  Strapi 5 `status` ; le catalogue ne doit pas étendre cette preview avant sa
-  sécurisation ;
+- le Draft Mode est protégé par `PREVIEW_SECRET` et le helper emploie le
+  paramètre Strapi 5 `status` ; une éventuelle route catalogue doit réutiliser
+  cette garde ;
 - le token Strapi éventuel porte actuellement un nom `NEXT_PUBLIC_*` ; le
   catalogue introduit une variable serveur distincte et ne transmet jamais ce
   secret au navigateur ;
-- la plateforme réelle de déploiement Next et la persistance de son cache ISR
-  ne sont pas confirmées dans le dépôt.
+- le frontend est déployé sur Clever Cloud, avec un runtime `nano` et une
+  instance de build `M` ; le partage du cache ISR entre plusieurs instances
+  autoscalées reste à qualifier avant le catalogue.
 
 ### 6.3 Conséquence sur la livraison
 
@@ -1042,7 +1046,7 @@ une coordonnée ou une version d’algorithme a changé depuis le dry run.
 - aucune transaction ne couvre les 3 891 produits.
 
 L’usage éventuel de `strapi.db.transaction` est isolé derrière un adapter et
-testé avec Strapi `5.43.0`, son statut officiel étant expérimental.
+testé avec Strapi `5.51.1`, son statut officiel étant expérimental.
 
 ### 18.5 Idempotence
 
@@ -1695,7 +1699,7 @@ emploient des fixtures textuelles minimales et lisibles.
 - extension des pages `app/villes/[slug]` du PRD 01 ;
 - `app/sitemap.ts` ;
 - registre/lookup de redirections ;
-- sécurisation de `app/api/preview/route.ts` ;
+- extension éventuelle de la preview sécurisée aux routes du catalogue ;
 - metadata et garde de publication partagée ;
 - dépendances de carte seulement si le PRD 03 ne les fournit pas ;
 - tests.
@@ -1718,6 +1722,9 @@ Pas de dépendance d’exécution. `displayOrder` commence à Lille, alors que l
 chaînage du catalogue commence à Hirson. La recherche du PRD 02 continue à
 utiliser uniquement `cityPassages`, jamais les 223 communes importées sans
 relation éditoriale.
+
+Le PRD 02 est livré en production : le contrat `displayOrder` et les dix
+chapitres ordonnés sont disponibles pour l’implémentation du catalogue.
 
 L’index simplifié de proximité ne sert ni aux ancres, ni aux métriques, ni aux
 exports.
@@ -1774,14 +1781,15 @@ transverse ultérieur. Ils ne conditionnent ni le calcul, ni la publication.
   les 225 m de fermeture à Hirson ;
 - choisir où versionner le XLSX original, son manifeste normalisé et les
   snapshots de limites administratives ;
-- confirmer le moyen opérationnel de lancer une tâche one-shot sur
-  l’hébergement Clever Cloud ;
+- confirmer la forme finale de la tâche serveur one-shot du catalogue sur
+  Clever Cloud ; les migrations PRD 01/02 ont déjà validé l’accès ponctuel à
+  PostgreSQL via la CLI Clever depuis une commande npm locale ;
 - qualifier le comportement exact du provider Strapi pour les clés d’objet,
   MIME, Content-Disposition et déduplication ;
 - sélectionner l’implémentation WGS84 compatible Node et navigateur ;
 - valider la méthode D+/D− sur des références connues ;
 - mesurer temps, mémoire et volume S3 d’un run complet ;
-- confirmer la plateforme Next et son cache ISR partagé ;
+- qualifier le cache ISR partagé en cas d’autoscaling sur Clever Cloud ;
 - décider du premier lot éditorial et si les candidats `direct seulement` de
   plus de 100 km doivent rester durablement non indexables ;
 - définir l’opérateur habilité à appliquer un run et à valider une jonction.

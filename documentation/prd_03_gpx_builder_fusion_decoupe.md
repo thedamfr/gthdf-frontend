@@ -1,7 +1,7 @@
 # PRD 03 — GPX Builder v2 : fusionner et découper ses étapes
 
-**Version :** 0.3\
-**Date :** 4 août 2026\
+**Version :** 0.4\
+**Date :** 5 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôt concerné par l’implémentation :** `gthdf-frontend`\
 **Dépôt explicitement inchangé :** `gthdf-cms`\
@@ -146,16 +146,15 @@ créées, déplacées et supprimées depuis une liste structurée.
 
 ### 6.1 Architecture actuelle
 
-- le frontend utilise Next.js `16.0.10` et React `19.2.1` ;
+- le frontend utilise Next.js `16.3.0`, React `19.2.1` et Node.js 22.12 à 24 ;
 - `/gpx-builder` est un unique Client Component de plus de 500 lignes ;
 - il récupère directement les chapitres depuis l’API Strapi publique au
   montage ;
 - il sélectionne `gpxFileAB` ou `gpxFileBA` par chapitre ;
 - il trie la chaîne avec `nextChapter`, vérifie partiellement sa cohérence avec
   `previousChapter` et permet un ordre manuel ;
-- les chapitres publiés forment actuellement une boucle, donc le premier
-  élément dépend de l’ordre de retour Strapi lorsque `displayOrder` du PRD 02
-  n’est pas encore disponible ;
+- les chapitres publiés forment une boucle et possèdent désormais un
+  `displayOrder` stable de `1` à `10`, livré par le PRD 02 ;
 - le mode fusion télécharge les GPX seulement au moment de l’export ;
 - aucune API Next n’est appelée pour fusionner.
 
@@ -181,12 +180,17 @@ GPX doit être sécurisé par le noyau introduit pour la découpe.
 
 ### 6.3 Carte, ZIP et tests
 
-- aucune bibliothèque de carte, géométrie ou ZIP n’est installée ;
+- aucune bibliothèque de carte ou ZIP n’est installée ;
+- `fast-xml-parser` et les modules de proximité du PRD 02 fournissent déjà un
+  parsing GPX serveur et des fonctions géodésiques testées, sans remplacer le
+  noyau GPX client complet prévu ici ;
 - la carte d’accueil est un iframe différé et ne fournit aucune primitive de
   ligne, de snapping ou de repère déplaçable ;
 - cet iframe se précharge actuellement en tâche de fond et ne doit pas être
   réutilisé pour un fichier personnel ;
-- aucun test applicatif, fixture GPX ou script `test` n’existe dans le dépôt ;
+- le dépôt possède désormais un script `npm test`, des tests de composants et
+  des recettes d’intégration PRD 01/02, dont une recette géométrique sur les
+  vingt GPX officiels ;
 - la CSS actuelle passe de trois colonnes à une seule sous 1 200 px, mais ne
   contient aucun agencement carte/panneau ;
 - les petits boutons actuels font 32 à 40 pixels et devront être agrandis pour
@@ -267,9 +271,9 @@ possède un état indépendant dans un composant parent :
 - avertissement de discontinuité ;
 - export d’un GPX combiné.
 
-Le mode utilise `displayOrder` du PRD 02 lorsqu’il est disponible. En son
-absence, il conserve un fallback déterministe documenté, mais ne dépend plus
-de l’ordre brut de l’API.
+Le mode utilise `displayOrder` du PRD 02 comme ordre primaire. Un fallback
+déterministe reste défensif pour une donnée transitoire ou mal formée, sans
+dépendre de l’ordre brut de l’API.
 
 ### 8.2 Durcissements inclus
 
@@ -1179,8 +1183,8 @@ Le calcul géodésique point–segment peut être partagé. Le Builder ne consom
 pas l’index simplifié de proximité pour exporter et le PRD 02 ne devient pas
 un prérequis au mode découpe.
 
-`displayOrder` peut stabiliser le mode fusion lorsqu’il existe, avec fallback
-tant que le PRD 02 n’est pas déployé.
+Le PRD 02 est livré : `displayOrder` stabilise le mode fusion. Le fallback ne
+sert plus qu’à tolérer une donnée transitoire ou mal formée.
 
 ### PRD 04 — Catalogue d’itinéraires ville à ville
 

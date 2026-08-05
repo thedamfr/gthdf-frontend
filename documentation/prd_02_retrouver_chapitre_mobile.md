@@ -1,11 +1,10 @@
 # PRD 02 — Retrouver son chapitre sur mobile
 
-**Version :** 0.6\
+**Version :** 0.7\
 **Date :** 5 août 2026\
-**Statut :** prêt pour implémentation — données PRD 01 chargées en brouillon\
+**Statut :** livré et validé en production\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
-**Dépendance bloquante pour la recherche complète :** PRD 01 — Référentiel
-des villes et pages hubs\
+**Dépendance satisfaite :** PRD 01 — Référentiel des villes et pages hubs\
 **Marque publique :** GTHF
 
 ---
@@ -134,7 +133,11 @@ Le titre, les extrémités, la distance et le lien de chaque chapitre sont déj�
 présents dans le HTML. La géolocalisation et le filtrage instantané ne sont pas
 disponibles, mais la navigation essentielle reste fonctionnelle.
 
-## 6. État du dépôt confirmé par inspection
+## 6. État avant implémentation
+
+Cette section conserve le snapshot inspecté avant la réalisation du PRD. Elle
+explique les choix d’architecture, mais ne décrit plus l’état courant des deux
+dépôts.
 
 ### 6.1 Frontend
 
@@ -807,6 +810,11 @@ Le script cible les `documentId` ou slugs explicites, jamais l’ordre de retour
 de l’API. Une seconde exécution ne change rien. Aucun chapitre n’est republié
 silencieusement.
 
+La migration a été appliquée en production le 5 août 2026 sur les dix
+documents, soit leurs vingt versions brouillon et publiée. Les ordres `1` à
+`10` ont été écrits sans erreur. Le dry-run de contrôle après application a
+classé les dix documents comme inchangés.
+
 ### 17.2 Villes
 
 La reprise des villes appartient au PRD 01. Elle a déjà chargé en production,
@@ -846,6 +854,10 @@ frontend. Les GPX et relations historiques ne sont ni modifiés ni supprimés.
 
 Si l’index devient indisponible après déploiement, la page dégrade uniquement
 la fonction « Autour de moi » ; la recherche et la liste restent utilisables.
+
+Le déploiement de production a été validé sur Clever Cloud. Le runtime
+frontend reste en taille `nano` ; son build utilise une instance dédiée `M`
+pour éviter l’épuisement mémoire observé pendant le `postinstall` Next.js.
 
 ## 19. Cas limites et règles de repli
 
@@ -1084,7 +1096,7 @@ Il peut réutiliser des fonctions de parsing testées si leurs contrats sont
 compatibles. Le fichier simplifié du présent lot ne conserve ni altitude, ni
 temps, ni extensions et ne convient jamais à l’export.
 
-## 24. Décisions prises et validations restantes
+## 24. Décisions prises et bilan de validation
 
 ### Décisions prises
 
@@ -1108,24 +1120,28 @@ temps, ni extensions et ne convient jamais à l’export.
 - trois alternatives au maximum ;
 - aucune carte, analytics ou nouvelle collecte.
 
-### Validations obligatoires avant mise en production
+### Validation de production du 5 août 2026
 
-- confirmer éditorialement l’ancre et la numérotation 1 à 10 ;
-- mesurer le poids réel de l’index produit ;
-- vérifier le mécanisme de cache dans l’hébergement Next cible ;
-- comparer l’index simplifié aux 20 GPX de production ;
-- identifier les croisements ou chevauchements nécessitant plusieurs
-  résultats ;
-- valider les seuils et formulations avec des positions terrain ;
-- choisir les appareils médians de référence pour les budgets ;
-- relire puis publier les 223 documents `City` avec `hasPublicPage=false` et
-  les dix versions de chapitre contenant les 233 passages du PRD 01.
+- l’ancre Lille → Arras et la numérotation publique `1` à `10` sont validées ;
+- l’index mesure 53,1 Kio compressé, sous la cible de 250 Kio ;
+- les vingt GPX officiels ont été comparés à la géométrie simplifiée par la
+  recette d’intégration ;
+- le cache et le déploiement ont été contrôlés sur Clever Cloud ;
+- les ruptures responsive à 768, 769, 1 279, 1 280 et 1 440 pixels ont été
+  revues, avec deux colonnes sur tablette et cinq sur grand écran ;
+- le HTML sans JavaScript conserve les dix liens dans l’ordre public ;
+- la recherche, la géolocalisation ponctuelle, les cas ambigus et la
+  confidentialité de la position sont couverts par les tests ciblés ;
+- la page de production et sa présentation sur téléphone ont été validées.
 
-Une modification issue de cette recette est consignée dans la PR de production
-avec sa mesure ou son cas de test. Elle ne doit pas rester une constante
-inexpliquée.
+Les essais terrain des seuils et une mesure sur un téléphone Android médian
+restent des contrôles d’amélioration possibles. Ils ne bloquent plus la
+livraison validée et toute évolution de constante devra rester documentée et
+testée.
 
 ## 25. Définition de terminé
+
+Cette définition de terminé est atteinte depuis le 5 août 2026.
 
 Le lot est terminé lorsqu’un voyageur peut ouvrir `/chapitres` sur mobile et
 accéder au bon chapitre depuis une liste compacte, une ville enregistrée ou
