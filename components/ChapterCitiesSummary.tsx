@@ -54,11 +54,12 @@ export default function ChapterCitiesSummary({
   linkClassName,
 }: ChapterCitiesSummaryProps) {
   const summary = getCitySummary(passages);
-  const visiblePassages = getVisibleCityPassages(passages);
 
   if (!summary) {
     return null;
   }
+
+  const visiblePassages = getVisibleCityPassages(passages);
 
   return (
     <section className={className} aria-labelledby="chapter-cities-title">
