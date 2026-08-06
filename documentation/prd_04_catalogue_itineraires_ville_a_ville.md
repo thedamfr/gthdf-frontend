@@ -1,10 +1,12 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.3\
-**Date :** 5 août 2026\
+**Version :** 0.4\
+**Date :** 6 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
-**Dépendance fonctionnelle :** PRD 01 — Référentiel des villes et pages hubs\
+**Dépendances fonctionnelles :**\
+PRD 01 — Référentiel des villes et pages hubs ;\
+[`PRD 03`](prd_03_gpx_builder_ville_a_ville.md) — ancrages primaires et noyau de découpe GPX\
 **Marque publique :** GTHF
 
 ---
@@ -16,6 +18,12 @@ villes. Un calcul serveur part des dix GPX canoniques `gpxFileAB`, de villes
 qualifiées et d’ancres validées. Il produit des candidats reproductibles, mais
 aucune page n’est rendue publique ou indexable sans décisions éditoriales
 explicites.
+
+Le PRD 03 fournit en amont un outil interactif ville à ville, un ancrage
+primaire AB et BA par `cityPassage` et le contrat commun de découpe. Le
+présent lot réutilise ce socle, mais conserve son propre modèle exhaustif :
+les arrêts éditoriaux du Builder ne représentent pas toutes les occurrences
+géographiques nécessaires au catalogue.
 
 Les décisions structurantes sont les suivantes :
 
@@ -50,6 +58,9 @@ Les décisions structurantes sont les suivantes :
     révision et un coupe-circuit global désactivé par défaut ;
 12. toutes les nouvelles lectures Strapi de ce catalogue utilisent un token
     serveur. Aucun secret n’est ajouté à une variable `NEXT_PUBLIC_*`.
+13. les ancrages AB primaires validés par le PRD 03 amorcent les occurrences
+    correspondantes avec une provenance explicite ; ils ne remplacent ni le
+    calcul, ni la revue des 449 occurrences attendues.
 
 ## 2. Contexte et problème
 
@@ -88,6 +99,9 @@ processus administrable, versionné et sûr.
   respectent tous les garde-fous de publication ;
 - réutiliser le classeur pour accélérer la saisie des villes sans transformer
   ses données OSM en contenu éditorial public.
+- réutiliser le contrat de découpe, de métriques et de sérialisation du
+  PRD 03, ainsi que ses ancrages AB primaires lorsqu’ils correspondent à une
+  occurrence qualifiée.
 
 ## 4. Non-objectifs
 
@@ -101,7 +115,8 @@ Ce lot ne doit pas :
 - créer une page pour les 3 891 candidats sans revue ;
 - créer une variante indexable par direction, query string ou facette ;
 - importer ou exploiter un GPX personnel ;
-- modifier le GPX Builder du PRD 03 ;
+- modifier l’expérience publique du GPX Builder ou dépendre de sa route HTTP
+  de génération à la demande ;
 - utiliser l’index simplifié de proximité du PRD 02 comme source exportable ;
 - synchroniser Google My Maps ou des services tiers ;
 - mettre en place une navigation GPS ;
@@ -213,6 +228,11 @@ L’implémentation nécessite deux PR de production coordonnées :
 
 Le CMS est déployé en premier avec tous les flags publics désactivés. Le
 frontend doit rester compatible avec un catalogue vide.
+
+Ces PR partent du schéma d’ancrage directionnel et du contrat de découpe
+livrés par le PRD 03. Si les deux lots sont développés en parallèle, les
+fixtures et champs partagés sont figés et cross-linkés avant la mise en œuvre
+des modèles catalogue ; aucun second format d’ancrage primaire n’est créé.
 
 ## 7. Audit du classeur fourni
 
@@ -331,8 +351,9 @@ Le corpus représente :
 - environ 1 406,42 km selon la méthode WGS84 du classeur.
 
 Les fichiers sont administrativement distincts des dix sens BA. Le catalogue
-utilise exclusivement AB comme géométrie canonique. Un futur export inverse
-fondé sur BA nécessitera son propre contrat d’ancres et reste hors MVP.
+utilise exclusivement AB comme géométrie canonique. Le PRD 03 qualifie aussi
+BA pour son sélecteur interactif, mais cette disponibilité n’ajoute ni produit
+inverse, ni seconde URL au catalogue MVP.
 
 ### 8.2 Ordre canonique du catalogue
 
@@ -561,11 +582,18 @@ Option : `draftAndPublish=false`
 | `sourceHash` | string | route/segment utilisé |
 | `algorithmVersion` | string | méthode de projection |
 | `validationStatus` | enum | `proposed`, `validated`, `ambiguous`, `stale`, `rejected` |
+| `origin` | enum | `computed` ou `prd03_primary` |
+| `sourceDirection` | enum | `ab` pour un ancrage primaire importé dans le MVP |
 | `calculationReport` | JSON privé | candidats et ambiguïtés |
 
 Contrainte : une seule ancre active pour
 `routeCity + occurrenceIndex + sourceHash`. Une nouvelle trace produit une
 proposition ; elle n’écrase pas une ancre validée avant application du diff.
+
+Un ancrage `origin=prd03_primary` est recopié avec son empreinte, son chapitre,
+sa position et sa provenance de passage. Il doit encore être rapproché d’une
+occurrence administrative du catalogue. Cette provenance évite un second
+choix manuel contradictoire sans déclarer l’ancrage primaire exhaustif.
 
 ## 13. Modèle Strapi des itinéraires
 
@@ -774,8 +802,13 @@ et porte une version explicite.
 
 ### 15.3 Projection des ancres
 
-La coordonnée communale est projetée sur les segments originaux situés dans
-la commune concernée. Le moteur :
+Le moteur commence par importer les ancrages AB primaires validés par le
+PRD 03 lorsque leur empreinte correspond au média courant. Il les rapproche
+d’une occurrence administrative et les classe en divergence si ce
+rapprochement n’est pas univoque.
+
+La coordonnée communale est ensuite projetée sur les segments originaux situés
+dans la commune concernée pour compléter toutes les occurrences. Le moteur :
 
 1. intersecte la trace et le polygone administratif versionné ;
 2. sépare chaque passage continu ;
@@ -789,6 +822,10 @@ la commune concernée. Le moteur :
 La projection porte sur les segments, jamais sur le seul `trkpt` le plus
 proche. Le rééchantillonnage à 10 m peut servir à la présélection et à la
 comparaison historique, pas à l’export.
+
+Le nombre d’ancrages PRD 03 peut être inférieur au nombre d’occurrences du
+catalogue. Il ne modifie donc jamais `expectedOccurrences` et n’autorise pas
+à ignorer les passages restants.
 
 ### 15.4 Paires non ordonnées et occurrences
 
@@ -863,9 +900,9 @@ La portion est extraite depuis les points originaux et les fractions d’ancres.
 - une portion passant par l’origine concatène fin puis début de boucle ;
 - les coupures ne portent jamais sur la géométrie simplifiée.
 
-Les mêmes fixtures et règles de point synthétique que le PRD 03 sont
-réutilisées comme contrat. Le partage de code entre dépôts reste optionnel ;
-le partage des résultats de test ne l’est pas.
+Le noyau et les fixtures de point synthétique, découpe cyclique, jonction et
+sérialisation du PRD 03 constituent le contrat de référence. Le partage de code
+entre dépôts reste optionnel ; le partage des résultats de test ne l’est pas.
 
 ### 16.2 Temps et extensions
 
@@ -881,8 +918,9 @@ inventoriée :
 - extension inconnue : candidat en avertissement ou erreur selon l’emplacement ;
 - aucune extension supprimée sans trace dans le rapport.
 
-Cette règle diffère volontairement du Builder personnel, qui doit préserver
-les temps de son fichier source.
+Cette règle est désormais identique au PRD 03 : les deux lots dérivent des
+portions officielles à partir d’enregistrements distincts et omettent leurs
+horodatages.
 
 ### 16.3 Distance et dénivelé
 
@@ -1290,8 +1328,8 @@ La page reste utile si JavaScript ou la carte échoue.
 ### 22.2 Carte et profil
 
 - carte en Client Component chargé après le contenu essentiel ;
-- Leaflet et les primitives du PRD 03 sont réutilisés s’ils existent ;
-- sinon, une intégration équivalente respecte le même contrat ;
+- le PRD 03 n’introduit pas de carte : le présent lot choisit et qualifie sa
+  propre dépendance cartographique ;
 - artefact simplifié seulement ;
 - aucune ligne au-dessus d’une rupture ;
 - numéro, texte et motif en plus de la couleur ;
@@ -1407,7 +1445,8 @@ existantes.
 - aucune URL contenue dans un GPX n’est appelée ;
 - rapports privés exempts de secrets et de dumps de configuration ;
 - aucun fichier ou position visiteur ;
-- aucune donnée du Builder personnel ;
+- aucune dépendance aux sélections ou à la disponibilité du Builder
+  interactif ;
 - OSM reste une source datée avec attribution dans le manifeste ;
 - commerces et identifiants OSM non rendus publiquement dans ce lot ;
 - licences des géométries administratives et dépendances conservées avec leur
@@ -1469,10 +1508,12 @@ générique sans coordonnées ni contenu GPX utilisateur.
 3. résoudre les conflits avec les villes du PRD 01 ;
 4. appliquer les villes en brouillon ;
 5. figer les snapshots administratifs ;
-6. calculer les 449 ancres proposées ;
-7. comparer occurrences et chaînages au XLSX ;
-8. valider les ancres et les cinq jonctions non exactes ;
-9. publier le `ReferenceRoute` seulement après revue.
+6. importer les ancrages AB primaires validés du PRD 03 avec leur provenance ;
+7. calculer les autres ancres nécessaires pour atteindre les 449 occurrences
+   proposées ;
+8. comparer occurrences et chaînages au XLSX ;
+9. valider les ancres et les cinq jonctions non exactes ;
+10. publier le `ReferenceRoute` seulement après revue.
 
 ### 27.3 Catalogue
 
@@ -1701,7 +1742,7 @@ emploient des fixtures textuelles minimales et lisibles.
 - registre/lookup de redirections ;
 - extension éventuelle de la preview sécurisée aux routes du catalogue ;
 - metadata et garde de publication partagée ;
-- dépendances de carte seulement si le PRD 03 ne les fournit pas ;
+- dépendances de carte et de profil propres au catalogue ;
 - tests.
 
 ## 31. Dépendances avec les autres PRD
@@ -1731,17 +1772,32 @@ exports.
 
 ### PRD 03 — GPX Builder v2
 
-Les contrats de parsing, point synthétique, distance, dénivelé et
-sérialisation doivent partager des fixtures. Les deux dépôts ne disposent pas
-d’un mécanisme de package commun : le MVP n’introduit pas une publication de
-package uniquement pour ce partage.
+Le PRD 03 remplace le fusionneur par un sélecteur interactif ville à ville. Il
+qualifie un ancrage primaire AB et BA par `cityPassage`, puis génère une
+portion officielle à la demande sans la persister.
+
+Le présent lot dépend de son contrat de parsing, empreinte, point synthétique,
+découpe cyclique, jonction, distance, dénivelé et sérialisation. Les deux
+dépôts ne disposent pas d’un mécanisme de package commun : le MVP n’introduit
+pas une publication de package uniquement pour ce partage.
 
 Différences intentionnelles :
 
-- le Builder traite un fichier privé dans le navigateur ;
-- le catalogue traite des sources officielles au serveur ;
-- le Builder préserve les temps ; le catalogue les omet ;
-- le Builder ne publie rien ; le catalogue ne consomme aucun fichier visiteur.
+- le Builder sert une paire ordonnée dans le sens AB ou BA choisi ;
+- le catalogue conserve une paire métier non ordonnée et un arc AB canonique ;
+- le Builder retient un arrêt primaire éditorial par passage ;
+- le catalogue qualifie toutes les occurrences nécessaires à son choix
+  d’arc ;
+- le Builder calcule à la demande sans persistance ;
+- le catalogue crée des révisions et médias immuables ;
+- les deux lots utilisent uniquement des sources officielles et omettent les
+  horodatages dérivés.
+
+Les ancrages AB primaires peuvent être importés comme
+`RouteAnchor.origin=prd03_primary` s’ils correspondent au média et à
+l’occurrence courants. Ils ne remplacent pas les 449 occurrences attendues.
+Le job ne doit pas appeler l’endpoint public du Builder : fermer le Builder ne
+ferme pas le catalogue.
 
 ### Synchronisations cartographiques
 
@@ -1761,6 +1817,8 @@ transverse ultérieur. Ils ne conditionnent ni le calcul, ni la publication.
 - tous les extrêmes restent candidats mais exigent une revue ;
 - XLSX comme baseline vérifiée, pas comme base directement publiée ;
 - snapshots administratifs nécessaires pour les 449 ancres ;
+- ancrages AB primaires du PRD 03 réutilisés avec provenance, sans réduire le
+  nombre d’occurrences attendu ;
 - jonctions explicites, aucune ligne inventée ;
 - séparation itinéraire/révision ;
 - commande serveur, pas de cron ou route longue ;
@@ -1809,4 +1867,4 @@ actuelles qui passent toutes les gardes.
 Un cyclotouriste arrive alors sur une URL canonique unique, comprend la vraie
 distance sur le GTHF, consulte une géométrie fidèle, voit les chapitres et
 villes utiles et télécharge un GPX valide. Aucun produit inverse, brouillon,
-trace privée ou combinaison SEO vide n’apparaît par accident.
+fichier visiteur ou combinaison SEO vide n’apparaît par accident.

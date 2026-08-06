@@ -1,7 +1,7 @@
 # PRD 02 — Retrouver son chapitre sur mobile
 
-**Version :** 0.7\
-**Date :** 5 août 2026\
+**Version :** 0.8\
+**Date :** 6 août 2026\
 **Statut :** livré et validé en production\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendance satisfaite :** PRD 01 — Référentiel des villes et pages hubs\
@@ -1092,9 +1092,14 @@ officielle avec les dix GPX AB seulement.
 
 ### PRD 03 — GPX Builder v2
 
-Il peut réutiliser des fonctions de parsing testées si leurs contrats sont
-compatibles. Le fichier simplifié du présent lot ne conserve ni altitude, ni
-temps, ni extensions et ne convient jamais à l’export.
+Il remplace le fusionneur par une sélection ville à ville dans le sens AB ou
+BA. Il réutilise `displayOrder` comme ordre cyclique d’interface et les
+`cityPassages` publiés comme arrêts éditoriaux.
+
+Le fichier simplifié du présent lot ne conserve ni altitude, ni temps, ni
+extensions et ne convient jamais à l’export. PRD 03 repart donc des GPX
+officiels complets et d’ancrages directionnels validés ; il ne consomme pas
+l’index de proximité.
 
 ## 24. Décisions prises et bilan de validation
 

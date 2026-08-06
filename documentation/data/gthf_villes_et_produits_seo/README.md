@@ -93,8 +93,21 @@ ne doit pas apparaître dans les résultats.
 
 ### PRD 03 — GPX Builder v2
 
-Ce catalogue officiel ne doit pas être mélangé aux GPX privés importés dans le
-Builder. Le PRD 03 n’a pas besoin de charger ce jeu de données pour son MVP.
+Le Builder n’importe plus de GPX privé. Il extrait à la demande une portion des
+GPX officiels entre deux `cityPassages` validés.
+
+`villes.csv`, les chaînages et le nombre de passages servent à contrôler les
+propositions d’ancrages primaires AB et BA. Ils ne sont pas une table runtime
+et ne permettent pas de choisir automatiquement une occurrence :
+
+- `Chaînage premier passage` ne décrit pas tous les passages ;
+- un passage éditorial peut retenir une autre occurrence qualifiée ;
+- AB et BA possèdent des géométries et des ancrages distincts ;
+- le Builder consomme les ancrages publiés dans Strapi et liés au SHA-256
+  exact de chaque GPX.
+
+Le scénario Boulogne-sur-Mer → Gravelines utilise les valeurs du classeur
+comme contrôle de recette, jamais comme constantes applicatives.
 
 ### PRD 04 — Itinéraires ville → ville
 
@@ -108,6 +121,10 @@ son propre rapport de dry run, résoudre les ambiguïtés de passages et créer 
 produits avec `publicationNext=false` et `statutSEO=noindex`. Un écart avec cet
 inventaire doit être expliqué ; il ne doit pas être masqué pour reproduire
 artificiellement les totaux historiques.
+
+Les ancrages AB primaires validés par le PRD 03 peuvent amorcer les occurrences
+correspondantes avec une provenance explicite. Ils ne remplacent pas le calcul
+des 449 occurrences attendues par le catalogue.
 
 ## Régénérer ou vérifier les CSV
 
