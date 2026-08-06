@@ -58,6 +58,11 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
     communs à AB et BA ; le serveur compare les deux chaînages officiels et
     retient la portion la plus courte. Une égalité exacte est départagée en
     faveur de AB afin de garder un résultat déterministe.
+12. Pour chaque passage intermédiaire, l’arrêt primaire utilise le premier
+    chaînage AB du jeu contrôlé lorsque son empreinte correspond au média. Le
+    point est interpolé sur le segment original ; sa coordonnée AB sert ensuite
+    à rapprocher l’occurrence du média BA sous contrainte d’ordre. Les passages
+    de frontière reprennent les extrémités exactes des médias.
 
 ## Conséquences
 
@@ -67,6 +72,7 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 - le téléchargement échoue de façon sûre si une source change ;
 - les cas multi-chapitres restent déterministes ;
 - la sélection publique reste simple ;
+- aucun opérateur ne ressaisit les coordonnées des 466 ancrages ;
 - la complexité AB/BA reste côté serveur tout en étant visible dans le résumé ;
 - une frontière ne demande qu’une décision éditoriale, même si sa validité
   technique reste contrôlée séparément dans chaque sens ;
@@ -79,6 +85,8 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 - le CMS et le frontend sont tous deux modifiés ;
 - les 233 passages doivent être qualifiés dans deux sens ;
 - les cas ambigus demandent une revue humaine ;
+- l’arrêt primaire ne qualifie pas les autres occurrences d’une
+  commune attendues par le PRD 04 ;
 - une modification de GPX impose de recalculer les ancrages concernés ;
 - les contrats partagés doivent être validés dans deux dépôts qui ne publient
   pas encore de package commun.

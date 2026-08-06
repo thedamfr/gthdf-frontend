@@ -96,9 +96,12 @@ ne doit pas apparaître dans les résultats.
 Le Builder n’importe plus de GPX privé. Il extrait à la demande une portion des
 GPX officiels entre deux `cityPassages` validés.
 
-`villes.csv`, les chaînages et le nombre de passages servent à contrôler les
-propositions d’ancrages primaires AB et BA. Ils ne sont pas une table runtime
-et ne permettent pas de choisir automatiquement une occurrence :
+`villes.csv`, les chaînages et le nombre de passages servent à préparer et
+contrôler les propositions d’ancrages primaires AB et BA. Lorsque l’empreinte
+AB du chapitre correspond exactement au jeu contrôlé, le premier chaînage
+peut amorcer l’arrêt primaire AB ; la résolution versionnée reste obligatoire
+avant publication. Ces fichiers ne sont pas une table runtime et ne suffisent
+pas à qualifier automatiquement les autres occurrences :
 
 - `Chaînage premier passage` ne décrit pas tous les passages ;
 - un passage éditorial peut retenir une autre occurrence qualifiée ;
