@@ -12,6 +12,7 @@ import {
 } from './manifest.ts';
 
 const STRAPI_RESPONSE_LIMIT_BYTES = 3 * 1024 * 1024;
+const STRAPI_REQUEST_TIMEOUT_MILLISECONDS = 10_000;
 
 function strapiConfiguration(): { baseUrl: string; token: string } {
   const token = process.env.STRAPI_API_TOKEN;
@@ -38,6 +39,8 @@ async function requestStrapiJson<T>(pathname: string, query: URLSearchParams): P
       Authorization: `Bearer ${token}`,
     },
     next: { revalidate: 60 },
+    redirect: 'error',
+    signal: AbortSignal.timeout(STRAPI_REQUEST_TIMEOUT_MILLISECONDS),
   });
   if (!response.ok) {
     throw new Error(`strapi_${response.status}`);

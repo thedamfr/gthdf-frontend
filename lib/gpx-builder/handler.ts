@@ -35,7 +35,9 @@ function errorResponse(error: unknown): Response {
     return jsonResponse({ error: { code: error.code, message: error.message } }, status);
   }
 
-  const reason = error instanceof Error ? error.name : 'unknown';
+  const reason = error instanceof Error
+    ? `${error.name}: ${error.message}`
+    : 'unknown';
   console.error(`[gpx-builder] Generation failed (${reason}).`);
   return jsonResponse({
     error: {
