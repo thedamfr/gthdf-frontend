@@ -4,10 +4,9 @@
 **Date :** 6 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
-**Dépendances fonctionnelles :** PRD 01 — Référentiel des villes et pages
-hubs ;
-[`PRD 03`](prd_03_gpx_builder_ville_a_ville.md) — ancrages primaires et
-noyau de découpe GPX\
+**Dépendances fonctionnelles :**\
+PRD 01 — Référentiel des villes et pages hubs ;\
+[`PRD 03`](prd_03_gpx_builder_ville_a_ville.md) — ancrages primaires et noyau de découpe GPX\
 **Marque publique :** GTHF
 
 ---
