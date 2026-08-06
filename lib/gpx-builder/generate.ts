@@ -165,12 +165,12 @@ export async function generateGpxSelection(
     throw new GpxBuilderError('invalid_manifest', 'Une ville ne possède pas d’ancrage utilisable.');
   }
 
-  const crossesOrigin = arrivalStopIndex <= departureStopIndex;
+  const selectionCrossesLoopOrigin = arrivalStopIndex <= departureStopIndex;
   const selectedVisitIndexes = visitIndexes(
     direction.chapters.length,
     departureMember.chapterIndex,
     arrivalMember.chapterIndex,
-    crossesOrigin
+    selectionCrossesLoopOrigin
   );
   const sourceIndexes = [...new Set(selectedVisitIndexes)];
   const documents = await loadWithConcurrency(
@@ -231,7 +231,9 @@ export async function generateGpxSelection(
         direction.chapters.find((chapter) => chapter.slug === slug)?.title ?? slug
       )),
       sequenceCount: portion.sequences.length,
-      usesLoopOrigin: crossesOrigin,
+      // routeChapters is already reordered into visit order, so portion.usesLoopOrigin
+      // cannot represent a crossing of the original manifest loop boundary.
+      usesLoopOrigin: selectionCrossesLoopOrigin,
       warnings: portion.warnings,
     },
     filename: safeGpxFilename(departure.name, arrival.name, selection.direction),

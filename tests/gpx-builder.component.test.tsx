@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import GpxBuilderForm from '../components/gpx-builder/GpxBuilderForm';
@@ -29,6 +29,8 @@ const manifest: PublicGpxBuilderManifest = {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -93,6 +95,76 @@ describe('GpxBuilderForm', () => {
       arrivalId: manifest.directions.AB.stops[2].id,
       revision: manifest.revision,
     });
+  });
+
+  it('keeps the object URL alive until the browser can start the download', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          summary: {
+            departureName: 'Lille',
+            arrivalName: 'Arras',
+            direction: 'AB',
+            distanceMetres: 42_600,
+            elevationAvailable: true,
+            elevationGainMetres: 310,
+            elevationLossMetres: 280,
+            chapterCount: 1,
+            chapterTitles: ['Lille → Arras'],
+            sequenceCount: 1,
+            usesLoopOrigin: false,
+            warnings: [],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        blob: vi.fn().mockResolvedValue(new Blob(['gpx'])),
+        headers: new Headers({
+          'content-disposition': 'attachment; filename="gthf-lille-vers-arras-ab.gpx"',
+        }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectUrl = vi.fn().mockReturnValue('blob:gpx-download');
+    const revokeObjectUrl = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectUrl,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectUrl,
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const view = render(<GpxBuilderForm manifest={manifest} />);
+
+    fireEvent.change(view.getByRole('combobox', { name: 'Ville de départ' }), {
+      target: { value: manifest.directions.AB.stops[0].id },
+    });
+    fireEvent.change(view.getByRole('combobox', { name: 'Ville d’arrivée' }), {
+      target: { value: manifest.directions.AB.stops[2].id },
+    });
+    fireEvent.click(view.getByRole('button', { name: 'Prévisualiser mon parcours' }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    fireEvent.click(view.getByRole('button', { name: 'Télécharger mon GPX' }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(createObjectUrl).toHaveBeenCalledOnce();
+    expect(revokeObjectUrl).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.runOnlyPendingTimers();
+    });
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:gpx-download');
   });
 
   it('resets both cities when the direction changes', () => {
