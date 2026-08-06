@@ -1,6 +1,6 @@
 # PRD 03 — GPX Builder v2 : créer une portion officielle ville à ville
 
-**Version :** 1.2\
+**Version :** 1.3\
 **Date :** 6 août 2026\
 **Statut :** implémenté localement — qualification éditoriale et activation en attente\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -19,14 +19,14 @@ villes.
 
 Un cyclotouriste choisit :
 
-1. le sens dans lequel il parcourt le GTHF ;
-2. la ville où il rejoint ou reprend la trace ;
-3. la ville jusqu’à laquelle il veut avancer.
+1. la ville où il rejoint ou reprend la trace ;
+2. la ville jusqu’à laquelle il veut avancer.
 
-Le Builder extrait alors les fragments nécessaires depuis les GPX officiels
-du sens choisi. Si la portion traverse plusieurs chapitres, il assemble
-automatiquement la fin du premier, les éventuels chapitres intermédiaires et
-le début du dernier.
+Le Builder compare alors les deux portions directionnelles possibles à partir
+des chaînages validés et retient la plus courte. Il extrait les fragments
+nécessaires depuis les GPX officiels de ce sens. Si la portion traverse
+plusieurs chapitres, il assemble automatiquement la fin du premier, les
+éventuels chapitres intermédiaires et le début du dernier.
 
 Les décisions structurantes sont les suivantes :
 
@@ -34,6 +34,8 @@ Les décisions structurantes sont les suivantes :
 - aucun fichier utilisateur n’est envoyé au site ;
 - le panier de fusion par chapitres est remplacé par deux sélecteurs de
   villes ;
+- le sens n’est pas demandé : le serveur retient la portion officielle la plus
+  courte entre AB et BA ; une égalité exacte est départagée en faveur de AB ;
 - les GPX AB et BA restent deux sources officielles distinctes ; le Builder ne
   fabrique jamais un sens en inversant l’autre ;
 - une portion peut représenter une journée sportive, plusieurs jours de
@@ -70,8 +72,9 @@ Le besoin réel est plus direct :
 
 Boulogne-sur-Mer appartient au chapitre Étaples → Calais et Gravelines au
 chapitre Calais → Saint-Omer. L’utilisateur ne doit pas devoir sélectionner
-ces deux chapitres, les ordonner puis modifier le résultat. Le Builder connaît
-la boucle, les villes, les frontières de chapitre et le sens choisi.
+ces deux chapitres, les ordonner, choisir AB ou BA puis modifier le résultat.
+Le Builder connaît la boucle, les villes, les frontières de chapitre et les
+deux variantes officielles.
 
 Le mot « étape » décrit ici une portion choisie par le voyageur. Il ne
 présuppose ni performance, ni nombre de jours :
@@ -90,7 +93,7 @@ dénivelé propres à chaque sens.
 
 ## 3. Objectifs
 
-- rendre le parcours « sens, départ, arrivée, téléchargement » évident ;
+- rendre le parcours « départ, arrivée, téléchargement » évident ;
 - proposer toutes les villes éditorialement ordonnées sur le GTHF ;
 - utiliser le GPX officiel correspondant au sens réellement choisi ;
 - préserver les variantes de parcours AB et BA, notamment lorsqu’elles
@@ -131,21 +134,22 @@ Ce lot ne doit pas :
 
 ### Cyclotouriste qui reprend le parcours
 
-Il sélectionne le sens de son voyage, Boulogne-sur-Mer comme départ et
-Gravelines comme arrivée. Il voit que la portion traverse deux chapitres,
-contrôle sa distance et son dénivelé, puis télécharge un GPX unique.
+Il sélectionne Boulogne-sur-Mer comme départ et Gravelines comme arrivée. Le
+Builder retient automatiquement la plus courte des deux portions officielles.
+Le voyageur voit les chapitres traversés, contrôle sa distance et son
+dénivelé, puis télécharge un GPX unique.
 
 ### Voyageur qui prépare une portion courte
 
 Il sélectionne deux villes du même chapitre. Le Builder extrait uniquement les
 points compris entre leurs ancrages, sans télécharger le chapitre entier.
 
-### Voyageur qui suit le GTHF dans l’autre sens
+### Voyageur dont la portion la plus courte utilise BA
 
-Il choisit le sens BA. Les villes sont présentées dans cet ordre et la portion
-est extraite des médias `gpxFileBA`. Le Builder n’inverse jamais le GPX AB :
-les deux sens peuvent suivre des voiries différentes et présenter des pentes
-très différentes.
+L’ordre départ → arrivée conduit le serveur à retenir BA. La portion est
+extraite des médias `gpxFileBA` sans demander de décision technique au
+voyageur. Le Builder n’inverse jamais le GPX AB : les deux sens peuvent suivre
+des voiries différentes et présenter des pentes très différentes.
 
 ### Utilisateur au clavier ou sur téléphone
 
@@ -221,38 +225,36 @@ La page affiche, dans cet ordre :
 
 1. un retour vers le GTHF ;
 2. le H1 `Créer mon GPX sur le GTHF` ;
-3. une explication courte : choisir son sens, son départ et son arrivée ;
-4. le choix du sens ;
-5. la ville de départ ;
-6. la ville d’arrivée ;
-7. le résumé de la portion ;
-8. l’action `Télécharger mon GPX`.
+3. une explication courte : choisir son départ et son arrivée ;
+4. la combobox de départ ;
+5. la combobox d’arrivée ;
+6. le résumé de la portion, sans vocabulaire AB/BA ;
+7. l’action `Télécharger mon GPX`.
 
 Le formulaire et son résultat restent compréhensibles sans carte.
 
-### 7.2 Choix du sens
+### 7.2 Sens inféré
 
-Les identifiants techniques `AB` et `BA` ne sont pas les seuls libellés
-publics. Chaque option décrit les premières étapes du sens, par exemple :
+Le sens n’est jamais un champ du formulaire public. À partir des deux
+occurrences choisies, le serveur calcule la longueur de la portion AB et de la
+portion BA avec les chaînages qualifiés. Il retient la plus courte ; une
+égalité exacte est départagée par AB pour garantir un résultat déterministe.
 
-- `Sens Lille → Arras` ;
-- `Sens Lille → Saint-Omer`.
-
-Le texte rappelle que les deux sens peuvent emprunter des routes différentes.
-Changer de sens conserve une ville seulement si une occurrence qualifiée
-existe dans ce sens ; sinon le champ concerné est réinitialisé avec une
-explication.
+Une seule direction est ensuite chargée et générée. Cette décision reste
+interne : le voyageur voit son départ, son arrivée et les métriques de la
+trace officielle retenue, sans vocabulaire AB/BA.
 
 ### 7.3 Choix des villes
 
-- le départ et l’arrivée sont des contrôles recherchables au clavier ;
+- le départ et l’arrivée sont deux comboboxes uniques, utilisables au clavier
+  et à la souris ;
 - la recherche porte sur `name` et `alternativeNames` ;
-- l’ordre des résultats suit le sens choisi, pas l’alphabet ;
+- chaque combobox propose toutes les occurrences qualifiées, dans l’ordre
+  alphabétique ;
 - une ville n’a pas besoin de `hasPublicPage=true` pour être sélectionnable ;
 - elle doit être publiée, référencée par un chapitre publié et disposer d’un
-  ancrage validé pour le sens ;
+  ancrage validé dans les deux sens ;
 - le départ ne peut pas être identique à l’arrivée ;
-- après le départ, l’arrivée affiche la progression dans le sens choisi ;
 - lorsque la boucle revient à son origine, le résumé le signale explicitement.
 
 Une ville réellement rencontrée plusieurs fois reste représentée par plusieurs
@@ -280,7 +282,6 @@ savoir quel fichier terminer ou commencer lors de l’extraction.
 Après une sélection valide, afficher :
 
 - `De {départ} à {arrivée}` ;
-- le sens choisi ;
 - la distance à 0,1 km ;
 - le dénivelé positif et négatif disponibles, préfixés par `~` ;
 - les chapitres traversés dans l’ordre ;
@@ -428,7 +429,7 @@ produit un diagnostic générique côté public, détaillé côté serveur sans 
 ### 10.2 Même chapitre
 
 Le moteur conserve les points compris entre les deux ancrages dans l’ordre du
-GPX du sens choisi.
+GPX du sens retenu automatiquement.
 
 ### 10.3 Plusieurs chapitres
 
@@ -529,7 +530,8 @@ n’est utilisé.
 
 ### 12.2 Dénivelé
 
-Le calcul porte sur le GPX du sens choisi, jamais sur le GPX opposé retourné.
+Le calcul porte sur le GPX du sens retenu automatiquement, jamais sur le GPX
+opposé retourné.
 Il adopte le contrat partagé avec le PRD 04 :
 
 1. au moins 95 % de couverture altimétrique par distance ;
@@ -599,7 +601,7 @@ La page est un Server Component qui charge un DTO minimal :
 
 - révision du manifeste ;
 - sens disponibles et libellés publics ;
-- arrêts ordonnés par sens ;
+- tous les arrêts qualifiés, avec des identifiants stables communs à AB et BA ;
 - identifiant opaque d’arrêt ;
 - nom et variantes de recherche ;
 - contexte de désambiguïsation ;
@@ -612,13 +614,13 @@ complètes.
 
 Une route serveur reçoit uniquement :
 
-- la direction `AB` ou `BA` ;
 - l’identifiant opaque du départ ;
 - l’identifiant opaque de l’arrivée ;
 - la révision du manifeste.
 
-Elle valide ces valeurs contre le manifeste courant puis renvoie le résumé.
-Elle n’accepte ni URL, ni XML, ni coordonnées.
+Elle valide ces valeurs contre le manifeste courant, calcule la longueur des
+deux portions possibles, retient la plus courte puis renvoie le résumé. Elle
+n’accepte ni direction, ni URL, ni XML, ni coordonnées venant du navigateur.
 
 ### 14.3 Téléchargement
 
@@ -835,7 +837,10 @@ Les deux PR d’implémentation sont distinctes et liées entre elles.
 ### Produit
 
 - le panier de fusion n’est plus présenté ;
-- le parcours public tient en trois choix : sens, départ, arrivée ;
+- le parcours public tient en deux comboboxes : départ et arrivée ;
+- chaque combobox recherche et affiche toutes les villes qualifiées du
+  parcours, y compris par nom alternatif ;
+- le sens n’est jamais demandé à l’utilisateur ;
 - aucune importation de fichier n’existe ;
 - aucune durée ou découpe journalière n’est suggérée ;
 - une portion peut représenter librement un à plusieurs jours ;
@@ -845,7 +850,9 @@ Les deux PR d’implémentation sont distinctes et liées entre elles.
 
 - AB utilise exclusivement les médias AB ;
 - BA utilise exclusivement les médias BA ;
-- les villes suivent le sens choisi ;
+- le serveur compare les deux longueurs directionnelles et retient la plus
+  courte, avec AB comme départage d’une égalité exacte ;
+- les mêmes identifiants de ville sont utilisables pour AB et BA ;
 - un cas de divergence AB/BA produit deux géométries et métriques conformes
   aux sources ;
 - aucune pente évitée par un sens officiel n’est réintroduite en inversant
@@ -874,7 +881,7 @@ Les deux PR d’implémentation sont distinctes et liées entre elles.
 
 ### Qualité
 
-- distance et dénivelé utilisent le sens sélectionné ;
+- distance et dénivelé utilisent le sens inféré ;
 - le cas Boulogne-sur-Mer → Gravelines passe ;
 - tous les paramètres non autorisés sont refusés ;
 - aucune URL de média ou donnée d’ancrage brute n’est exposée au client ;
@@ -914,8 +921,8 @@ deux besoins différents :
 | PRD 03 | PRD 04 |
 |---|---|
 | outil interactif non indexé | catalogue de pages canoniques |
-| paire ordonnée par le sens choisi | paire métier non ordonnée |
-| AB et BA disponibles | AB canonique dans le MVP |
+| paire saisie départ-arrivée, sens interne le plus court | paire métier non ordonnée |
+| AB et BA comparés automatiquement | AB canonique dans le MVP |
 | un ancrage primaire par `cityPassage` et direction | toutes les occurrences géographiques qualifiées |
 | génération à la demande, sans persistance | révisions et médias immuables persistés |
 | aucune décision SEO | publication et indexation éditoriales |
@@ -948,6 +955,7 @@ dépendance d’exécution : fermer le Builder ne ferme pas les pages catalogue.
 - remplacement complet du fusionneur par la sélection ville à ville ;
 - aucune importation de GPX ;
 - prise en charge des deux sens officiels ;
+- sens masqué au public et inféré par la longueur officielle la plus courte ;
 - AB et BA jamais dérivés l’un de l’autre ;
 - aucune notion de durée ou de journée recommandée ;
 - un seul fichier par sélection ;
@@ -977,20 +985,20 @@ personnel.
 
 ## 25. Définition de terminé
 
-Le lot est terminé lorsqu’un voyageur choisit un sens, une ville de départ et
-une ville d’arrivée, comprend la portion obtenue puis télécharge un GPX fidèle
-aux sources officielles de ce sens.
+Le lot est terminé lorsqu’un voyageur choisit une ville de départ et une ville
+d’arrivée dans deux comboboxes, comprend la portion obtenue puis télécharge un
+GPX fidèle aux sources officielles du sens automatiquement retenu.
 
 Le cas peut rester dans un chapitre, en traverser plusieurs ou passer par
 l’origine de la boucle. Les ancrages sont validés et liés aux empreintes
 exactes, les ruptures ne sont jamais masquées, les métriques correspondent au
-sens choisi et aucune hypothèse de durée n’est imposée.
+sens inféré et aucune hypothèse de durée n’est imposée.
 
 Le même contrat de découpe peut alors alimenter le catalogue du PRD 04 sans
 transformer le Builder en générateur de pages SEO ni réduire les occurrences
 exhaustives du catalogue à ses seuls arrêts éditoriaux.
 
-## 26. Bilan d’implémentation de la version 1.2
+## 26. Bilan d’implémentation de la version 1.3
 
 Le 6 août 2026, l’implémentation locale couvre :
 
@@ -1005,10 +1013,20 @@ Le 6 août 2026, l’implémentation locale couvre :
   découpe, interpolation, jonctions, dénivelé, sérialisation et relecture ;
 - le manifeste serveur expurgé, les endpoints de prévisualisation et de
   téléchargement, puis le formulaire public ville à ville ;
+- les deux comboboxes de villes, l’identifiant d’arrêt partagé entre AB et BA
+  et l’inférence serveur du sens officiel le plus court ;
 - les occurrences répétées désambiguïsées et les villes de frontière
   consécutives regroupées sans perdre leurs deux côtés techniques.
 
-Vérifications exécutées sur ce snapshot : 97 tests CMS, build Strapi, 86 tests
+La première version fonctionnelle exposait à tort un choix AB/BA. Cette
+interprétation venait d’une ambiguïté du PRD entre la nécessité technique de
+préserver deux traces directionnelles et le besoin produit. La revue humaine
+du 6 août a confirmé que l’utilisateur ne choisit que son départ et son
+arrivée : le sens est une complexité interne, inférée par le serveur. La
+version 1.3 corrige le formulaire, le contrat HTTP, les critères d’acceptation
+et l’impact documenté sur le PRD 04.
+
+Vérifications exécutées sur ce snapshot : 97 tests CMS, build Strapi, 88 tests
 unitaires Frontend, 17 tests composants, lint et build Next complets. La
 requête Strapi imbriquée du manifeste a également été vérifiée sur l’API
 locale : dix chapitres et leurs passages sont retournés sans erreur.

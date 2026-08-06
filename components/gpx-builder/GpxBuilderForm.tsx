@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent,
 } from 'react';
 
 import type { GpxBuilderSummary } from '@/lib/gpx-builder/generate';
@@ -12,7 +13,6 @@ import type {
   PublicGpxBuilderManifest,
   PublicGpxBuilderStop,
 } from '@/lib/gpx-builder/manifest';
-import type { GpxDirection } from '@/lib/gpx/types';
 
 import styles from './GpxBuilderForm.module.css';
 
@@ -21,6 +21,16 @@ interface GpxBuilderFormProps {
 }
 
 type RequestStatus = 'idle' | 'previewing' | 'downloading';
+
+interface CityComboboxProps {
+  id: string;
+  label: string;
+  stops: readonly PublicGpxBuilderStop[];
+  value: string;
+  excludedId: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}
 
 function normalizeSearch(value: string): string {
   return value
@@ -40,6 +50,112 @@ function filterStops(
   return stops.filter((stop) => normalizeSearch(
     [stop.name, ...stop.alternativeNames].join(' ')
   ).includes(normalizedQuery));
+}
+
+function stopLabel(stop: PublicGpxBuilderStop): string {
+  return stop.context ? stop.name + ' — ' + stop.context : stop.name;
+}
+
+function CityCombobox({
+  id,
+  label,
+  stops,
+  value,
+  excludedId,
+  disabled,
+  onChange,
+}: CityComboboxProps) {
+  const [inputValue, setInputValue] = useState('');
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const listboxId = id + '-listbox';
+  const availableStops = useMemo(
+    () => filterStops(
+      stops.filter((stop) => stop.id !== excludedId),
+      inputValue
+    ),
+    [excludedId, inputValue, stops]
+  );
+
+  function selectStop(stop: PublicGpxBuilderStop): void {
+    onChange(stop.id);
+    setInputValue(stopLabel(stop));
+    setOpen(false);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setOpen(true);
+      setActiveIndex((index) => Math.min(index + 1, availableStops.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setOpen(true);
+      setActiveIndex((index) => Math.max(index - 1, 0));
+    } else if (event.key === 'Enter' && open && availableStops[activeIndex]) {
+      event.preventDefault();
+      selectStop(availableStops[activeIndex]);
+    } else if (event.key === 'Escape') {
+      setOpen(false);
+    }
+  }
+
+  return (
+    <div className={styles.cityControl}>
+      <label htmlFor={id}>{label}</label>
+      <div className={styles.combobox}>
+        <input
+          id={id}
+          type="text"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-activedescendant={
+            open && availableStops[activeIndex]
+              ? id + '-option-' + availableStops[activeIndex].id
+              : undefined
+          }
+          autoComplete="off"
+          value={inputValue}
+          onFocus={() => {
+            setOpen(true);
+            setActiveIndex(-1);
+          }}
+          onBlur={() => setOpen(false)}
+          onChange={(event) => {
+            setInputValue(event.target.value);
+            setActiveIndex(0);
+            setOpen(true);
+            onChange('');
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Saisir une ville"
+          disabled={disabled}
+        />
+        {open && (
+          <ul id={listboxId} className={styles.options} role="listbox">
+            {availableStops.map((stop, index) => (
+              <li
+                id={id + '-option-' + stop.id}
+                key={stop.id}
+                className={index === activeIndex ? styles.activeOption : undefined}
+                role="option"
+                aria-selected={stop.id === value}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => selectStop(stop)}
+              >
+                {stopLabel(stop)}
+              </li>
+            ))}
+            {availableStops.length === 0 && (
+              <li className={styles.noResult}>Aucune ville trouvée</li>
+            )}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function formatDistance(distanceMetres: number): string {
@@ -73,24 +189,18 @@ async function responsePayload(response: Response): Promise<unknown> {
 }
 
 export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
-  const [direction, setDirection] = useState<GpxDirection>('AB');
   const [departureId, setDepartureId] = useState('');
   const [arrivalId, setArrivalId] = useState('');
-  const [departureQuery, setDepartureQuery] = useState('');
-  const [arrivalQuery, setArrivalQuery] = useState('');
   const [summary, setSummary] = useState<GpxBuilderSummary | null>(null);
   const [status, setStatus] = useState<RequestStatus>('idle');
   const [announcement, setAnnouncement] = useState('');
   const [hasError, setHasError] = useState(false);
   const statusRef = useRef<HTMLDivElement>(null);
-  const directionManifest = manifest.directions[direction];
-  const departureStops = useMemo(
-    () => filterStops(directionManifest.stops, departureQuery),
-    [departureQuery, directionManifest.stops]
-  );
-  const arrivalStops = useMemo(
-    () => filterStops(directionManifest.stops, arrivalQuery),
-    [arrivalQuery, directionManifest.stops]
+  const allStops = useMemo(
+    () => [...manifest.directions.AB.stops].sort((first, second) => (
+      stopLabel(first).localeCompare(stopLabel(second), 'fr')
+    )),
+    [manifest.directions.AB.stops]
   );
   const canSubmit = Boolean(
     departureId
@@ -109,24 +219,8 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
     setHasError(false);
   }
 
-  function selectDirection(nextDirection: GpxDirection): void {
-    if (nextDirection === direction) {
-      return;
-    }
-    setDirection(nextDirection);
-    setDepartureId('');
-    setArrivalId('');
-    setDepartureQuery('');
-    setArrivalQuery('');
-    setSummary(null);
-    setAnnouncement('Le sens a changé : les villes ont été réinitialisées.');
-    setHasError(false);
-    focusStatus();
-  }
-
   function selectionBody(): string {
     return JSON.stringify({
-      direction,
       departureId,
       arrivalId,
       revision: manifest.revision,
@@ -226,85 +320,36 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
 
   return (
     <form className={styles.form} onSubmit={preview}>
-      <fieldset className={styles.directionFieldset}>
-        <legend>1. Choisissez le sens du parcours</legend>
-        <div className={styles.directionOptions}>
-          {(['AB', 'BA'] as const).map((value) => (
-            <label key={value} className={styles.directionOption}>
-              <input
-                type="radio"
-                name="direction"
-                value={value}
-                checked={direction === value}
-                onChange={() => selectDirection(value)}
-                disabled={status !== 'idle'}
-              />
-              <span>{manifest.directions[value].label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
       <fieldset className={styles.cityFieldset}>
-        <legend>2. Choisissez votre portion</legend>
+        <legend>1. Choisissez votre portion</legend>
+        <p className={styles.directionHint}>
+          Nous choisissons automatiquement la portion officielle la plus courte.
+        </p>
         <div className={styles.cityGrid}>
-          <div className={styles.cityControl}>
-            <label htmlFor="departure-search">Rechercher une ville de départ</label>
-            <input
-              id="departure-search"
-              type="search"
-              value={departureQuery}
-              onChange={(event) => setDepartureQuery(event.target.value)}
-              placeholder="Nom ou autre appellation"
-              disabled={status !== 'idle'}
-            />
-            <label htmlFor="departure-city">Ville de départ</label>
-            <select
-              id="departure-city"
-              value={departureId}
-              onChange={(event) => {
-                setDepartureId(event.target.value);
-                resetResult();
-              }}
-              disabled={status !== 'idle'}
-            >
-              <option value="">Sélectionner une ville</option>
-              {departureStops.map((stop) => (
-                <option key={stop.id} value={stop.id}>
-                  {stop.name}{stop.context ? ` — ${stop.context}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.cityControl}>
-            <label htmlFor="arrival-search">Rechercher une ville d’arrivée</label>
-            <input
-              id="arrival-search"
-              type="search"
-              value={arrivalQuery}
-              onChange={(event) => setArrivalQuery(event.target.value)}
-              placeholder="Nom ou autre appellation"
-              disabled={status !== 'idle'}
-            />
-            <label htmlFor="arrival-city">Ville d’arrivée</label>
-            <select
-              id="arrival-city"
-              value={arrivalId}
-              onChange={(event) => {
-                setArrivalId(event.target.value);
-                resetResult();
-              }}
-              disabled={status !== 'idle'}
-            >
-              <option value="">Sélectionner une ville</option>
-              {arrivalStops.map((stop) => (
-                <option key={stop.id} value={stop.id}>
-                  {stop.name}{stop.context ? ` — ${stop.context}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CityCombobox
+            id="departure-city"
+            label="Ville de départ"
+            stops={allStops}
+            value={departureId}
+            excludedId={arrivalId}
+            disabled={status !== 'idle'}
+            onChange={(value) => {
+              setDepartureId(value);
+              resetResult();
+            }}
+          />
+          <CityCombobox
+            id="arrival-city"
+            label="Ville d’arrivée"
+            stops={allStops}
+            value={arrivalId}
+            excludedId={departureId}
+            disabled={status !== 'idle'}
+            onChange={(value) => {
+              setArrivalId(value);
+              resetResult();
+            }}
+          />
         </div>
       </fieldset>
 
@@ -329,10 +374,6 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
             {summary.departureName} → {summary.arrivalName}
           </h2>
           <dl className={styles.metrics}>
-            <div>
-              <dt>Sens</dt>
-              <dd>{directionManifest.label}</dd>
-            </div>
             <div>
               <dt>Distance</dt>
               <dd>{formatDistance(summary.distanceMetres)}</dd>

@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import GpxBuilderForm from '../components/gpx-builder/GpxBuilderForm';
@@ -27,6 +27,17 @@ const manifest: PublicGpxBuilderManifest = {
   },
 };
 
+function chooseCity(
+  view: ReturnType<typeof render>,
+  label: string,
+  cityName: string
+): void {
+  const combobox = view.getByRole('combobox', { name: label });
+  fireEvent.focus(combobox);
+  fireEvent.change(combobox, { target: { value: cityName } });
+  fireEvent.click(view.getByRole('option', { name: cityName }));
+}
+
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
@@ -35,21 +46,25 @@ afterEach(() => {
 });
 
 describe('GpxBuilderForm', () => {
-  it('offers direction and searchable city-to-city selection without upload', () => {
+  it('offers two city comboboxes without exposing direction or upload', () => {
     const view = render(<GpxBuilderForm manifest={manifest} />);
 
-    expect((view.getByRole('radio', { name: 'Sens Lille → Arras' }) as HTMLInputElement).checked).toBe(true);
+    expect(view.queryByRole('radio')).toBeNull();
     expect(view.queryByLabelText(/fichier|upload/i)).toBeNull();
     expect(view.queryByText(/fusion/i)).toBeNull();
     expect(view.getByRole('combobox', { name: 'Ville de départ' })).toBeTruthy();
     expect(view.getByRole('combobox', { name: 'Ville d’arrivée' })).toBeTruthy();
+    expect(view.getByText(/portion officielle la plus courte/i)).toBeTruthy();
 
-    fireEvent.change(view.getByRole('searchbox', { name: 'Rechercher une ville de départ' }), {
+    const departure = view.getByRole('combobox', { name: 'Ville de départ' });
+    fireEvent.focus(departure);
+    fireEvent.change(departure, {
       target: { value: 'rijsel' },
     });
-    const departureOptions = within(view.getByRole('combobox', { name: 'Ville de départ' }));
-    expect(departureOptions.getByRole('option', { name: 'Lille' })).toBeTruthy();
-    expect(departureOptions.queryByRole('option', { name: 'Arras' })).toBeNull();
+    expect(view.getByRole('option', { name: 'Lille' })).toBeTruthy();
+    expect(view.queryByRole('option', { name: 'Arras' })).toBeNull();
+    fireEvent.keyDown(departure, { key: 'Enter' });
+    expect((departure as HTMLInputElement).value).toBe('Lille');
   });
 
   it('previews the selection, then enables the official GPX download', async () => {
@@ -75,12 +90,8 @@ describe('GpxBuilderForm', () => {
     vi.stubGlobal('fetch', fetchMock);
     const view = render(<GpxBuilderForm manifest={manifest} />);
 
-    fireEvent.change(view.getByRole('combobox', { name: 'Ville de départ' }), {
-      target: { value: manifest.directions.AB.stops[0].id },
-    });
-    fireEvent.change(view.getByRole('combobox', { name: 'Ville d’arrivée' }), {
-      target: { value: manifest.directions.AB.stops[2].id },
-    });
+    chooseCity(view, 'Ville de départ', 'Lille');
+    chooseCity(view, 'Ville d’arrivée', 'Arras');
     fireEvent.click(view.getByRole('button', { name: 'Prévisualiser mon parcours' }));
 
     await waitFor(() => expect(view.getByText('42,6 km')).toBeTruthy());
@@ -90,7 +101,6 @@ describe('GpxBuilderForm', () => {
       method: 'POST',
     }));
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
-      direction: 'AB',
       departureId: manifest.directions.AB.stops[0].id,
       arrivalId: manifest.directions.AB.stops[2].id,
       revision: manifest.revision,
@@ -106,12 +116,8 @@ describe('GpxBuilderForm', () => {
     }));
     const view = render(<GpxBuilderForm manifest={manifest} />);
 
-    fireEvent.change(view.getByRole('combobox', { name: 'Ville de départ' }), {
-      target: { value: manifest.directions.AB.stops[0].id },
-    });
-    fireEvent.change(view.getByRole('combobox', { name: 'Ville d’arrivée' }), {
-      target: { value: manifest.directions.AB.stops[2].id },
-    });
+    chooseCity(view, 'Ville de départ', 'Lille');
+    chooseCity(view, 'Ville d’arrivée', 'Arras');
     fireEvent.click(view.getByRole('button', { name: 'Prévisualiser mon parcours' }));
 
     const alert = await view.findByRole('alert');
@@ -162,12 +168,8 @@ describe('GpxBuilderForm', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const view = render(<GpxBuilderForm manifest={manifest} />);
 
-    fireEvent.change(view.getByRole('combobox', { name: 'Ville de départ' }), {
-      target: { value: manifest.directions.AB.stops[0].id },
-    });
-    fireEvent.change(view.getByRole('combobox', { name: 'Ville d’arrivée' }), {
-      target: { value: manifest.directions.AB.stops[2].id },
-    });
+    chooseCity(view, 'Ville de départ', 'Lille');
+    chooseCity(view, 'Ville d’arrivée', 'Arras');
     fireEvent.click(view.getByRole('button', { name: 'Prévisualiser mon parcours' }));
     await act(async () => {
       await Promise.resolve();
@@ -189,17 +191,23 @@ describe('GpxBuilderForm', () => {
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:gpx-download');
   });
 
-  it('resets both cities when the direction changes', () => {
+  it('keeps every qualified city available from either combobox', () => {
     const view = render(<GpxBuilderForm manifest={manifest} />);
     const departure = view.getByRole('combobox', { name: 'Ville de départ' });
-    fireEvent.change(departure, {
-      target: { value: manifest.directions.AB.stops[0].id },
-    });
+    const arrival = view.getByRole('combobox', { name: 'Ville d’arrivée' });
 
-    fireEvent.click(view.getByRole('radio', { name: 'Sens Arras → Lille' }));
-
-    expect((view.getByRole('combobox', { name: 'Ville de départ' }) as HTMLSelectElement).value).toBe('');
-    expect((view.getByRole('combobox', { name: 'Ville d’arrivée' }) as HTMLSelectElement).value).toBe('');
-    expect(view.getByText(/villes ont été réinitialisées/i)).toBeTruthy();
+    fireEvent.focus(departure);
+    expect(view.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Arras',
+      'Le Portel',
+      'Lille',
+    ]);
+    fireEvent.blur(departure);
+    fireEvent.focus(arrival);
+    expect(view.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Arras',
+      'Le Portel',
+      'Lille',
+    ]);
   });
 });

@@ -8,7 +8,7 @@ import type { GpxBuilderSelection } from './generate.ts';
 const MAXIMUM_REQUEST_BYTES = 1024;
 const STOP_ID = /^stop_[a-f0-9]{16}$/;
 const REVISION = /^[a-f0-9]{24}$/;
-const EXPECTED_KEYS = ['arrivalId', 'departureId', 'direction', 'revision'];
+const EXPECTED_KEYS = ['arrivalId', 'departureId', 'revision'];
 
 export class GpxBuilderRequestError extends Error {
   constructor(message: string) {
@@ -62,7 +62,6 @@ export async function readGpxBuilderRequest(
   if (
     keys.length !== EXPECTED_KEYS.length
     || keys.some((key, index) => key !== EXPECTED_KEYS[index])
-    || (record.direction !== 'AB' && record.direction !== 'BA')
     || typeof record.departureId !== 'string'
     || !STOP_ID.test(record.departureId)
     || typeof record.arrivalId !== 'string'
@@ -74,7 +73,6 @@ export async function readGpxBuilderRequest(
   }
 
   return {
-    direction: record.direction,
     departureId: record.departureId,
     arrivalId: record.arrivalId,
     revision: record.revision,

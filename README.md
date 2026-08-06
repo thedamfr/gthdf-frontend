@@ -130,7 +130,9 @@ pour tester la géolocalisation. Le smoke test reste lancé sur le Mac contre
 
 ## Validation PRD 03 du GPX Builder
 
-Le Builder remplace le fusionneur par un parcours `sens → départ → arrivée`.
+Le Builder remplace le fusionneur par deux comboboxes `départ → arrivée`. Le
+serveur compare les portions AB et BA et retient automatiquement la plus
+courte ; le navigateur n’envoie aucun choix de sens.
 Le navigateur ne reçoit ni URL de média, ni coordonnées d’ancrage, ni
 empreinte de source. Les endpoints serveur sont :
 

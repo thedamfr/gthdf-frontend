@@ -54,6 +54,10 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
    géométries ni métriques.
 10. Un coupe-circuit CMS désactivé par défaut ne peut être activé que si toute
    la boucle publiée satisfait ces invariants.
+11. L’interface publique ne demande pas le sens. Les identifiants d’arrêt sont
+    communs à AB et BA ; le serveur compare les deux chaînages officiels et
+    retient la portion la plus courte. Une égalité exacte est départagée en
+    faveur de AB afin de garder un résultat déterministe.
 
 ## Conséquences
 
@@ -63,6 +67,7 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 - le téléchargement échoue de façon sûre si une source change ;
 - les cas multi-chapitres restent déterministes ;
 - la sélection publique reste simple ;
+- la complexité AB/BA reste côté serveur tout en étant visible dans le résumé ;
 - une frontière ne demande qu’une décision éditoriale, même si sa validité
   technique reste contrôlée séparément dans chaque sens ;
 - PRD 03 amorce une partie du travail d’ancrage de PRD 04 sans remplacer son
@@ -99,6 +104,13 @@ différente du parcours officiel prévu pour le sens choisi.
 
 Le Builder n’a besoin ni de pages, ni de médias persistés par paire. Cette
 responsabilité appartient au PRD 04.
+
+### Demander le sens avant les villes
+
+Le sens est une propriété technique des traces officielles, pas une décision
+que le voyageur doit traduire en AB ou BA. Les villes suffisent à déterminer
+la portion la plus courte ; le résumé conserve l’information du sens retenu
+pour rendre le résultat explicable.
 
 ### Implémenter immédiatement tout le modèle `RouteAnchor` du PRD 04
 

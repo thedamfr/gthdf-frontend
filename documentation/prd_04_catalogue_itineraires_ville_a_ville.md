@@ -1,6 +1,6 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.6\
+**Version :** 0.7\
 **Date :** 6 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -361,8 +361,9 @@ Le corpus représente :
 
 Les fichiers sont administrativement distincts des dix sens BA. Le catalogue
 utilise exclusivement AB comme géométrie canonique. Le PRD 03 qualifie aussi
-BA pour son sélecteur interactif, mais cette disponibilité n’ajoute ni produit
-inverse, ni seconde URL au catalogue MVP.
+BA et compare automatiquement AB/BA après la saisie des deux villes, mais
+cette disponibilité n’ajoute ni produit inverse, ni seconde URL au catalogue
+MVP.
 
 ### 8.2 Ordre canonique du catalogue
 
@@ -1788,9 +1789,9 @@ exports.
 
 ### PRD 03 — GPX Builder v2
 
-Le PRD 03 remplace le fusionneur par un sélecteur interactif ville à ville. Il
-qualifie un ancrage primaire AB et BA par `cityPassage`, puis génère une
-portion officielle à la demande sans la persister.
+Le PRD 03 remplace le fusionneur par deux comboboxes ville à ville. Il qualifie
+un ancrage primaire AB et BA par `cityPassage`, compare les longueurs des deux
+portions possibles, puis génère la plus courte à la demande sans la persister.
 
 Le présent lot dépend de son contrat de parsing, empreinte, point synthétique,
 découpe cyclique, jonction, distance, dénivelé et sérialisation. Les deux
@@ -1799,7 +1800,8 @@ pas une publication de package uniquement pour ce partage.
 
 Différences intentionnelles :
 
-- le Builder sert une paire ordonnée dans le sens AB ou BA choisi ;
+- le Builder reçoit une paire ordonnée et infère le sens AB ou BA le plus
+  court, sans exposer ce choix dans le formulaire ;
 - le catalogue conserve une paire métier non ordonnée et un arc AB canonique ;
 - le Builder retient un arrêt primaire éditorial par passage ;
 - le catalogue qualifie toutes les occurrences nécessaires à son choix

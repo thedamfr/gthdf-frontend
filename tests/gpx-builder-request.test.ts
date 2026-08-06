@@ -4,7 +4,6 @@ import test from 'node:test';
 import { readGpxBuilderRequest } from '../lib/gpx-builder/request.ts';
 
 const VALID = {
-  direction: 'AB',
   departureId: `stop_${'a'.repeat(16)}`,
   arrivalId: `stop_${'b'.repeat(16)}`,
   revision: 'c'.repeat(24),
@@ -25,7 +24,8 @@ test('readGpxBuilderRequest accepts only the opaque selection contract', async (
   );
 
   for (const payload of [
-    { ...VALID, direction: 'BA', sourceUrl: 'https://attacker.test/trace.gpx' },
+    { ...VALID, direction: 'BA' },
+    { ...VALID, sourceUrl: 'https://attacker.test/trace.gpx' },
     { ...VALID, departureId: 'Lille' },
     { ...VALID, revision: 'stale' },
   ]) {

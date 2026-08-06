@@ -61,6 +61,7 @@ export interface GpxBuilderChapter {
   title: string;
   media: GpxBuilderMedia;
   sourceSha256: string;
+  distanceMetres: number;
   junctionAfter: GpxJunction;
 }
 
@@ -156,13 +157,11 @@ function normalizeAnchor(value: unknown, label: string): GpxAnchor {
 }
 
 function stableStopId(
-  direction: GpxDirection,
   cityDocumentId: string,
-  chapterDocumentId: string,
-  passageId: number
+  passageIds: readonly number[]
 ): string {
   return `stop_${digest(
-    `${direction}:${cityDocumentId}:${chapterDocumentId}:${passageId}`
+    `${cityDocumentId}:${[...passageIds].sort((first, second) => first - second).join(',')}`
   ).slice(0, 16)}`;
 }
 
@@ -251,12 +250,7 @@ function buildDirection(
         previous.members.push(member);
       } else {
         stops.push({
-          id: stableStopId(
-            direction,
-            passage.city.documentId,
-            chapter.documentId,
-            passage.id
-          ),
+          id: '',
           cityDocumentId: passage.city.documentId,
           name: passage.city.name.trim(),
           alternativeNames: Array.isArray(passage.city.alternativeNames)
@@ -310,6 +304,7 @@ function buildDirection(
       title: chapter.title,
       media,
       sourceSha256: hash,
+      distanceMetres: previousChainage,
       junctionAfter,
     });
   });
@@ -317,6 +312,12 @@ function buildDirection(
   const firstChapter = sourceChapters[0];
   if (!firstChapter || stops.length < 2) {
     throw new Error(`Le sens ${direction} ne contient pas assez de villes qualifiées.`);
+  }
+  for (const stop of stops) {
+    stop.id = stableStopId(
+      stop.cityDocumentId,
+      stop.members.map((member) => member.passageId)
+    );
   }
   chapters.forEach((chapter, index) => {
     const next = chapters[(index + 1) % chapters.length];
@@ -369,6 +370,7 @@ function revisionPayload(
             mediaDocumentId: chapter.media.documentId,
             mediaUpdatedAt: chapter.media.updatedAt,
             sourceSha256: chapter.sourceSha256,
+            distanceMetres: chapter.distanceMetres,
             junctionAfter: chapter.junctionAfter,
           })),
           stops: directions[direction].stops.map((stop) => ({
@@ -409,6 +411,11 @@ export function buildGpxBuilderManifest(
     AB: buildDirection('AB', ordered),
     BA: buildDirection('BA', ordered),
   };
+  const abStopIds = directions.AB.stops.map((stop) => stop.id).sort();
+  const baStopIds = directions.BA.stops.map((stop) => stop.id).sort();
+  if (JSON.stringify(abStopIds) !== JSON.stringify(baStopIds)) {
+    throw new Error('Les villes qualifiées ne correspondent pas dans les deux sens.');
+  }
 
   return {
     enabled,

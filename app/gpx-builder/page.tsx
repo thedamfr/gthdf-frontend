@@ -24,8 +24,9 @@ export default async function GpxBuilderPage() {
         <p className={styles.eyebrow}>GPX officiel à la carte</p>
         <h1>Créer mon GPX sur le GTHF</h1>
         <p className={styles.intro}>
-          Choisissez votre sens, votre ville de départ et votre ville d’arrivée.
-          Le fichier suit les traces officielles prévues dans ce sens, y compris leur dénivelé.
+          Choisissez votre ville de départ et votre ville d’arrivée.
+          Le Builder retient automatiquement la portion officielle la plus courte,
+          avec sa géométrie et son dénivelé propres.
         </p>
       </header>
 
@@ -35,7 +36,7 @@ export default async function GpxBuilderPage() {
         <section className={styles.unavailable} aria-labelledby="builder-unavailable-title">
           <h2 id="builder-unavailable-title">Le générateur arrive bientôt</h2>
           <p>
-            Les villes et les deux sens du parcours sont encore en cours de vérification.
+            Les villes et les traces du parcours sont encore en cours de vérification.
             Les fichiers GPX complets restent disponibles sur chaque chapitre.
           </p>
           <Link href="/chapitres">Voir les chapitres</Link>

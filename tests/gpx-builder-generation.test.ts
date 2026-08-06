@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  generateDirectionalGpxSelection,
   generateGpxSelection,
   GpxBuilderError,
+  inferGpxDirection,
 } from '../lib/gpx-builder/generate.ts';
 import { buildGpxBuilderManifest } from '../lib/gpx-builder/manifest.ts';
 import { GpxSourceError } from '../lib/gpx-builder/source-loader-core.ts';
@@ -85,6 +87,89 @@ function fixture() {
   return buildGpxBuilderManifest(true, [chapter]);
 }
 
+function directionInferenceFixture() {
+  const stop = (id: string, name: string, chapterIndex: number, chainageMetres: number) => ({
+    id,
+    cityDocumentId: `city-${name.toLowerCase()}`,
+    name,
+    alternativeNames: [],
+    context: null,
+    members: [{
+      chapterIndex,
+      passageId: id.charCodeAt(id.length - 1),
+      anchor: anchor(HASH_AB, 0, chainageMetres, 2),
+    }],
+  });
+  const chapter = (slug: string) => ({
+    documentId: slug,
+    slug,
+    title: slug,
+    media: { url: `/${slug}.gpx` },
+    sourceSha256: HASH_AB,
+    distanceMetres: 100,
+    junctionAfter: {
+      status: 'exact' as const,
+      sourceSha256: HASH_AB,
+      nextSourceSha256: HASH_AB,
+      gapMetres: 0,
+    },
+  });
+  const idA = `stop_${'1'.repeat(16)}`;
+  const idB = `stop_${'2'.repeat(16)}`;
+  const idC = `stop_${'3'.repeat(16)}`;
+  return {
+    enabled: true,
+    revision: 'f'.repeat(24),
+    directions: {
+      AB: {
+        label: 'Sens A → B',
+        chapters: [chapter('one-ab'), chapter('two-ab')],
+        stops: [stop(idA, 'A', 0, 0), stop(idB, 'B', 0, 30), stop(idC, 'C', 1, 100)],
+      },
+      BA: {
+        label: 'Sens C → B',
+        chapters: [chapter('two-ba'), chapter('one-ba')],
+        stops: [stop(idC, 'C', 0, 0), stop(idB, 'B', 1, 0), stop(idA, 'A', 1, 70)],
+      },
+    },
+  };
+}
+
+test('inferGpxDirection chooses the shortest official portion from the two cities', () => {
+  const manifest = directionInferenceFixture();
+  const [a, b] = manifest.directions.AB.stops;
+
+  assert.equal(inferGpxDirection(manifest, a.id, b.id), 'AB');
+  assert.equal(inferGpxDirection(manifest, b.id, a.id), 'BA');
+
+  manifest.directions.BA.chapters[0].distanceMetres = 0;
+  assert.equal(inferGpxDirection(manifest, a.id, b.id), 'AB');
+});
+
+test('generateGpxSelection loads only the automatically inferred direction', async () => {
+  const manifest = directionInferenceFixture();
+  const [a, b] = manifest.directions.AB.stops;
+  const loadedUrls: string[] = [];
+
+  await assert.rejects(
+    generateGpxSelection({
+      manifest,
+      selection: {
+        departureId: a.id,
+        arrivalId: b.id,
+        revision: manifest.revision,
+      },
+      generatedAt: new Date(),
+      loadSource: async (media) => {
+        loadedUrls.push(media.url);
+        throw new GpxSourceError('source_unavailable', 'Source volontairement arrêtée.');
+      },
+    }),
+    /volontairement arrêtée/
+  );
+  assert.deepEqual(loadedUrls, ['/one-ab.gpx']);
+});
+
 test('generateGpxSelection uses each direction official geometry and elevation', async () => {
   const manifest = fixture();
   const loadedUrls: string[] = [];
@@ -95,7 +180,7 @@ test('generateGpxSelection uses each direction official geometry and elevation',
       : gpx([0, 40, 80]);
   };
 
-  const ab = await generateGpxSelection({
+  const ab = await generateDirectionalGpxSelection({
     manifest,
     selection: {
       direction: 'AB',
@@ -106,7 +191,7 @@ test('generateGpxSelection uses each direction official geometry and elevation',
     generatedAt: new Date('2026-08-06T10:00:00Z'),
     loadSource,
   });
-  const ba = await generateGpxSelection({
+  const ba = await generateDirectionalGpxSelection({
     manifest,
     selection: {
       direction: 'BA',
@@ -136,7 +221,6 @@ test('generateGpxSelection rejects stale, identical and unknown selections', asy
     generateGpxSelection({
       manifest,
       selection: {
-        direction: 'AB',
         departureId: stopId,
         arrivalId: stopId,
         revision: manifest.revision,
@@ -150,7 +234,6 @@ test('generateGpxSelection rejects stale, identical and unknown selections', asy
     generateGpxSelection({
       manifest,
       selection: {
-        direction: 'AB',
         departureId: stopId,
         arrivalId: 'stop_unknown',
         revision: 'stale',
@@ -165,7 +248,6 @@ test('generateGpxSelection rejects stale, identical and unknown selections', asy
 test('generateGpxSelection exposes only typed source failures', async () => {
   const manifest = fixture();
   const selection = {
-    direction: 'AB' as const,
     departureId: manifest.directions.AB.stops[0].id,
     arrivalId: manifest.directions.AB.stops[1].id,
     revision: manifest.revision,
@@ -215,7 +297,7 @@ test('generateGpxSelection crosses the loop origin without loading one source tw
     reviewNote: 'Rupture synthétique relue pour le test.',
   };
   let loadCount = 0;
-  const generated = await generateGpxSelection({
+  const generated = await generateDirectionalGpxSelection({
     manifest,
     selection: {
       direction: 'AB',

@@ -3,7 +3,6 @@
   gap: 1.5rem;
 }
 
-.directionFieldset,
 .cityFieldset {
   min-width: 0;
   border: 3px solid var(--color-charbon);
@@ -11,7 +10,6 @@
   background: var(--color-beige);
 }
 
-.directionFieldset legend,
 .cityFieldset legend {
   padding: 0 0.6rem;
   font-family: var(--font-brand);
@@ -19,32 +17,10 @@
   font-weight: 800;
 }
 
-.directionOptions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.directionOption {
-  display: flex;
-  min-height: 3.5rem;
-  align-items: center;
-  gap: 0.75rem;
-  border: 2px solid var(--color-charbon);
-  padding: 0.75rem 1rem;
-  background: var(--color-creme);
-  cursor: pointer;
-  font-weight: 800;
-}
-
-.directionOption:has(input:checked) {
-  background: var(--color-jaune);
-}
-
-.directionOption input {
-  width: 1.25rem;
-  height: 1.25rem;
-  accent-color: var(--color-charbon);
+.directionHint {
+  margin: 0 0 1.25rem;
+  max-width: 48rem;
+  font-weight: 700;
 }
 
 .cityGrid {
@@ -62,20 +38,64 @@
   font-weight: 800;
 }
 
-.cityControl label:nth-of-type(2) {
-  margin-top: 0.5rem;
-}
-
-.cityControl input,
-.cityControl select {
+.cityControl input {
   min-height: 3rem;
   width: 100%;
   border: 2px solid var(--color-charbon);
   border-radius: 0;
-  padding: 0.65rem 0.85rem;
+  padding: 0.65rem 2.5rem 0.65rem 0.85rem;
   background: var(--color-creme);
   color: var(--color-charbon);
   font: inherit;
+}
+
+.combobox {
+  position: relative;
+}
+
+.combobox::after {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.85rem;
+  content: '⌄';
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.options {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% - 2px);
+  right: 0;
+  left: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+  margin: 0;
+  border: 2px solid var(--color-charbon);
+  padding: 0;
+  background: var(--color-creme);
+  box-shadow: 5px 5px 0 var(--color-charbon);
+  list-style: none;
+}
+
+.options [role='option'],
+.noResult {
+  padding: 0.7rem 0.85rem;
+}
+
+.options [role='option'] {
+  cursor: pointer;
+}
+
+.options [role='option']:hover,
+.activeOption {
+  background: var(--color-jaune);
+}
+
+.noResult {
+  font-style: italic;
 }
 
 .previewButton,
@@ -107,9 +127,7 @@
   opacity: 0.55;
 }
 
-.directionOption:focus-within,
 .cityControl input:focus-visible,
-.cityControl select:focus-visible,
 .previewButton:focus-visible,
 .downloadButton:focus-visible,
 .liveStatus:focus-visible {
@@ -149,7 +167,7 @@
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -189,7 +207,6 @@
 }
 
 @media (max-width: 700px) {
-  .directionOptions,
   .cityGrid,
   .metrics {
     grid-template-columns: 1fr;

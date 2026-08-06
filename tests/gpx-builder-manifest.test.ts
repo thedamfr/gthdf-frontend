@@ -100,6 +100,12 @@ test('buildGpxBuilderManifest orders AB and BA stops without exposing source dat
     publicManifest.directions.BA.stops.map((stop) => stop.name),
     ['Amiens', 'Arras', 'Lille']
   );
+  for (const abStop of publicManifest.directions.AB.stops) {
+    const baStop = publicManifest.directions.BA.stops.find(
+      (stop) => stop.name === abStop.name
+    );
+    assert.equal(baStop?.id, abStop.id);
+  }
   assert.equal(publicManifest.directions.AB.label, 'Sens Lille → Arras');
   assert.equal(publicManifest.directions.BA.label, 'Sens Amiens → Arras');
   assert.deepEqual(publicManifest.directions.AB.stops[0].alternativeNames, ['Rijsel', 'Lillois']);
