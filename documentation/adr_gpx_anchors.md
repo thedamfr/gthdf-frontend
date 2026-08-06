@@ -1,7 +1,7 @@
 # ADR — Ancrages directionnels pour les portions GPX officielles
 
 **Date :** 6 août 2026\
-**Statut :** proposé pour revue technique\
+**Statut :** accepté et implémenté\
 **Décision liée :**
 [`prd_03_gpx_builder_ville_a_ville.md`](prd_03_gpx_builder_ville_a_ville.md)
 
@@ -44,6 +44,20 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
    validation de toutes les autres occurrences.
 7. Le noyau de découpe et ses fixtures constituent le contrat partagé. Le job
    du PRD 04 ne dépend pas de la disponibilité de la route HTTP du Builder.
+8. Chaque chapitre porte aussi une jonction qualifiée par sens, liée aux
+   empreintes des deux médias adjacents. Une jonction exacte est réunie ; un
+   écart accepté reste deux séquences ; une jonction bloquée ferme la portion.
+9. Une frontière de chapitre possède un seul lieu de jonction éditorial,
+   commun à AB et BA : la gare SNCF voyageurs par défaut, ou un repère stable
+   et nommé en exception. La décision est saisie une fois puis développée en
+   deux qualifications directionnelles, sans partager leurs empreintes,
+   géométries ni métriques.
+10. Un coupe-circuit CMS désactivé par défaut ne peut être activé que si toute
+   la boucle publiée satisfait ces invariants.
+11. L’interface publique ne demande pas le sens. Les identifiants d’arrêt sont
+    communs à AB et BA ; le serveur compare les deux chaînages officiels et
+    retient la portion la plus courte. Une égalité exacte est départagée en
+    faveur de AB afin de garder un résultat déterministe.
 
 ## Conséquences
 
@@ -53,6 +67,9 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 - le téléchargement échoue de façon sûre si une source change ;
 - les cas multi-chapitres restent déterministes ;
 - la sélection publique reste simple ;
+- la complexité AB/BA reste côté serveur tout en étant visible dans le résumé ;
+- une frontière ne demande qu’une décision éditoriale, même si sa validité
+  technique reste contrôlée séparément dans chaque sens ;
 - PRD 03 amorce une partie du travail d’ancrage de PRD 04 sans remplacer son
   modèle exhaustif ;
 - aucune paire de villes n’est pré-générée ou stockée pour le Builder.
@@ -87,6 +104,13 @@ différente du parcours officiel prévu pour le sens choisi.
 
 Le Builder n’a besoin ni de pages, ni de médias persistés par paire. Cette
 responsabilité appartient au PRD 04.
+
+### Demander le sens avant les villes
+
+Le sens est une propriété technique des traces officielles, pas une décision
+que le voyageur doit traduire en AB ou BA. Les villes suffisent à déterminer
+la portion la plus courte ; le résumé conserve l’information du sens retenu
+pour rendre le résultat explicable.
 
 ### Implémenter immédiatement tout le modèle `RouteAnchor` du PRD 04
 

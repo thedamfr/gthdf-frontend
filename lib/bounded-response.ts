@@ -5,6 +5,10 @@ export class ResponseSizeLimitError extends Error {
   }
 }
 
+export function decodeUtf8(bytes: Uint8Array): string {
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+}
+
 /** Read a response incrementally so an untrusted body cannot exceed the limit in memory. */
 export async function readResponseBytesWithLimit(
   response: Response,

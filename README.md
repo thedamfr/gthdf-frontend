@@ -32,6 +32,11 @@ Create `.env.local` from `.env.example`. `PREVIEW_SECRET` must contain the
 same long random value in the frontend and CMS environments. Keep it
 server-only: do not prefix it with `NEXT_PUBLIC_`.
 
+Le GPX Builder utilise également `STRAPI_API_TOKEN`, strictement serveur. Le
+token legacy `NEXT_PUBLIC_STRAPI_API_TOKEN` utilisé par d’anciens écrans ne
+doit pas être repris pour cette fonctionnalité. Les origines objet autorisées
+se configurent avec `STRAPI_MEDIA_ORIGINS`.
+
 First, run the development server:
 
 ```bash
@@ -57,6 +62,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `/chapitres/[slug]` : Détail chapitre
 - `/villes/[slug]` : Hub d'une ville publiée et activée dans Strapi
 - `/checkpoints` : Page checkpoints CMS + accordéon
+- `/gpx-builder` : Générateur d’une portion officielle entre deux villes
 - `/blog` : Liste des articles avec filtre par catégorie (`?category=slug`)
 - `/article/[slug]` : Détail article
 - `/a-propos` : Page à propos CMS (title + blocks)
@@ -122,6 +128,37 @@ MagicDNS du frontend depuis un appareil du même tailnet. L'HTTPS est nécessair
 pour tester la géolocalisation. Le smoke test reste lancé sur le Mac contre
 `localhost` ; il ne faut pas lui transmettre l'URL Tailscale.
 
+## Validation PRD 03 du GPX Builder
+
+Le Builder remplace le fusionneur par deux comboboxes `départ → arrivée`. Le
+serveur compare les portions AB et BA et retient automatiquement la plus
+courte ; le navigateur n’envoie aucun choix de sens.
+Le navigateur ne reçoit ni URL de média, ni coordonnées d’ancrage, ni
+empreinte de source. Les endpoints serveur sont :
+
+- `POST /api/gpx-builder/preview` pour le résumé ;
+- `POST /api/gpx-builder/download` pour le GPX 1.1.
+
+Avant une recette locale, déployer ou démarrer le schéma CMS, préparer et
+publier les ancrages et jonctions relus, puis activer
+`Global.gpxBuilderEnabled`. Tant que cette valeur reste à `false`, la page
+affiche volontairement un état indisponible.
+
+Depuis le frontend :
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+La recette manuelle minimale couvre une portion dans un chapitre, le cas
+Boulogne-sur-Mer → Gravelines sur deux chapitres, le passage par l’origine et
+un cas BA dont le profil diffère d’AB. Réimporter les exports dans deux
+applications de navigation et vérifier qu’aucune ligne ne relie une rupture
+qualifiée. Le contrat complet et le bilan local sont conservés dans
+[`documentation/prd_03_gpx_builder_ville_a_ville.md`](documentation/prd_03_gpx_builder_ville_a_ville.md).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
@@ -148,7 +185,7 @@ Si nécessaire, la rétablir avec :
 clever scale --app gthdf-frontend --build-flavor M
 ```
 
-Pour les PRD 01 et 02, déployer d'abord le schéma CMS, exécuter et contrôler
+Pour les PRD 01 à 03, déployer d'abord le schéma CMS, exécuter et contrôler
 les migrations manuelles avec les commandes npm documentées dans le README du
 CMS, puis déployer le frontend. Ces migrations ne sont jamais ajoutées au
 démarrage automatique de l'application.
