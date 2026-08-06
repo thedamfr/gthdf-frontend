@@ -1,6 +1,6 @@
 # PRD 03 — GPX Builder v2 : créer une portion officielle ville à ville
 
-**Version :** 1.4\
+**Version :** 1.5\
 **Date :** 6 août 2026\
 **Statut :** implémenté — qualification des ancrages prête, activation en attente\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -45,6 +45,8 @@ Les décisions structurantes sont les suivantes :
   ordonnés des chapitres ;
 - chaque passage possède un ancrage précis et validé sur chacun des GPX AB et
   BA du chapitre ;
+- les valeurs géométriques d’ancrage et de jonction sont conservées en double
+  précision, sans arrondi éditorial à deux décimales ;
 - l’arrêt primaire intermédiaire reprend le premier chaînage AB du jeu
   contrôlé, puis le même lieu est rapproché sur le GPX BA ;
 - chaque frontière de chapitre utilise un seul lieu de jonction éditorial,
@@ -371,16 +373,21 @@ Contrat implémenté pour `chapter.gpx-anchor` :
 | `trackIndex` | integer | index du `trk` source |
 | `segmentIndex` | integer | index du `trkseg` source |
 | `pointIndex` | integer | point précédant la projection |
-| `fraction` | decimal | fraction comprise entre ce point et le suivant |
-| `chainageMetres` | decimal | distance depuis le début du GPX du chapitre |
-| `projectedLatitude` | decimal | latitude exacte sur la trace |
-| `projectedLongitude` | decimal | longitude exacte sur la trace |
-| `distanceToCityMetres` | decimal | métrique de QA depuis l’ancre communale |
+| `fraction` | float | fraction en double précision entre ce point et le suivant |
+| `chainageMetres` | float | distance en double précision depuis le début du GPX du chapitre |
+| `projectedLatitude` | float | latitude en double précision sur la trace |
+| `projectedLongitude` | float | longitude en double précision sur la trace |
+| `distanceToCityMetres` | float | métrique de QA en double précision depuis l’ancre communale |
 | `algorithmVersion` | string | version de proposition et de calcul |
 | `reviewNote` | text court | justification d’une ambiguïté résolue |
 
 Le schéma conserve ainsi au plus un ancrage primaire validé par passage et par
 direction, lié à une empreinte exacte.
+
+Dans Strapi 5, `decimal` crée par défaut une colonne PostgreSQL
+`numeric(10,2)`. Ce stockage arrondit une coordonnée ou une fraction de segment
+et ne satisfait donc pas ce contrat. Les champs ci-dessus et `gapMetres`
+utilisent `float`, qui crée une colonne `double precision`.
 
 ### 9.3 Invariants
 
@@ -837,8 +844,9 @@ Strapi.
 ### 20.3 Ordre de production
 
 1. sauvegarde PostgreSQL ;
-2. déploiement CMS compatible avec les anciens chapitres ;
-3. préparation et publication des ancrages ;
+2. déploiement CMS compatible avec les anciens chapitres et contrôle du type
+   `double precision` des mesures géométriques ;
+3. préparation des ancrages, second passage idempotent, puis publication ;
 4. déploiement frontend ;
 5. recette AB/BA ;
 6. activation du Builder v2.
@@ -983,6 +991,8 @@ dépendance d’exécution : fermer le Builder ne ferme pas les pages catalogue.
 - aucune notion de durée ou de journée recommandée ;
 - un seul fichier par sélection ;
 - ancrages primaires stockés par passage et direction ;
+- stockage en double précision des fractions, coordonnées, chaînages et écarts
+  de jonction ;
 - premier chaînage AB contrôlé retenu comme arrêt primaire intermédiaire, puis
   rapproché sur le média BA ;
 - un lieu de jonction éditorial partagé par frontière, décliné en deux
@@ -996,9 +1006,9 @@ dépendance d’exécution : fermer le Builder ne ferme pas les pages catalogue.
 
 ### Validations techniques restantes
 
-- qualifier les 233 passages dans les deux sens et recenser les ambiguïtés ;
-- appliquer aux brouillons les cinq décisions de jonction partagées déjà
-  préparées, après la revue des ancrages ;
+- déployer la correction de précision CMS, réappliquer les 466 ancrages aux
+  brouillons et confirmer qu’un second passage ne modifie aucun chapitre ;
+- publier ensemble les dix chapitres qualifiés ;
 - mesurer le coût froid et chaud sur Clever Cloud `nano` ;
 - confirmer la stratégie de cache et d’invalidation par hash ;
 - tester les GPX générés dans les applications de navigation retenues ;
@@ -1067,9 +1077,26 @@ Lille-Flandres, ainsi que le point près des fortifications de
 Condé-sur-l’Escaut. Un second dry run développe ces cinq décisions partagées
 en dix qualifications `accepted_gap`, sans blocage, erreur ni écriture.
 
-Le lot n’est pas activable publiquement à ce stade : les 233 passages × deux
+Le lot n’était pas activable publiquement à ce stade : les 233 passages × deux
 directions doivent encore être relus ; leurs ancrages et les vingt jonctions
 doivent ensuite être appliqués aux brouillons puis publiés. La recette réelle
 Boulogne-sur-Mer → Gravelines, les deux applications de navigation et les
 mesures Clever Cloud restent les conditions de mise en service. Le
-coupe-circuit demeure donc à `false`.
+coupe-circuit demeurait donc à `false`.
+
+## 27. Correction de précision avant activation de la version 1.5
+
+La première application distante aux brouillons, le 6 août 2026, a révélé que
+les champs Strapi déclarés `decimal` étaient persistés par défaut en
+`numeric(10,2)`. La base relisait par exemple une latitude projetée arrondie à
+deux décimales au lieu de la valeur issue du GPX. Le second passage réécrivait
+donc les dix chapitres et le point matérialisé pouvait s’écarter de son segment
+source.
+
+Le coupe-circuit est resté désactivé et aucun de ces brouillons n’a été publié.
+La version 1.5 remplace les six mesures géométriques concernées par le type
+Strapi `float`, vérifié localement comme une migration PostgreSQL de
+`numeric(10,2)` vers `double precision`. Après son déploiement, les résolutions
+contrôlées doivent être réappliquées pour restaurer les valeurs précises. La
+publication est interdite tant que le passage suivant ne classe pas les dix
+chapitres comme inchangés.

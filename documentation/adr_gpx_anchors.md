@@ -63,6 +63,10 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
     point est interpolé sur le segment original ; sa coordonnée AB sert ensuite
     à rapprocher l’occurrence du média BA sous contrainte d’ordre. Les passages
     de frontière reprennent les extrémités exactes des médias.
+13. Les fractions, coordonnées, chaînages, distances de contrôle et écarts de
+    jonction utilisent le type Strapi `float`, donc `double precision` dans
+    PostgreSQL. Le type `decimal` par défaut de Strapi produit ici un
+    `numeric(10,2)` trop imprécis pour reproduire un point de coupe.
 
 ## Conséquences
 
@@ -79,6 +83,8 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 - PRD 03 amorce une partie du travail d’ancrage de PRD 04 sans remplacer son
   modèle exhaustif ;
 - aucune paire de villes n’est pré-générée ou stockée pour le Builder.
+- les valeurs géométriques relues après persistance conservent la précision
+  nécessaire à l’interpolation et à l’idempotence de la migration.
 
 ### Coûts
 
@@ -90,6 +96,9 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 - une modification de GPX impose de recalculer les ancrages concernés ;
 - les contrats partagés doivent être validés dans deux dépôts qui ne publient
   pas encore de package commun.
+- une ancienne base créée avec les champs `decimal` doit être convertie en
+  double précision puis réhydratée depuis les résolutions contrôlées avant
+  publication.
 
 ## Alternatives écartées
 

@@ -1,6 +1,6 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.7\
+**Version :** 0.8\
 **Date :** 6 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -70,6 +70,9 @@ Les décisions structurantes sont les suivantes :
     calcul, ni la revue des 449 occurrences attendues.
 14. le catalogue reprend aussi la qualification AB des lieux de jonction du
     PRD 03 ; il ne crée pas une seconde décision éditoriale pour le même lieu.
+15. les coordonnées, fractions, chaînages et métriques calculées sont stockés
+    avec le type Strapi `float` afin de conserver la double précision et de
+    rendre les reprises de job idempotentes.
 
 ## 2. Contexte et problème
 
@@ -546,7 +549,7 @@ Composant `route.reference-segment` :
 | `chapter` | relation `Chapter` | chapitre source |
 | `direction` | enum `ab`, `ba` | `ab` pour les dix segments initiaux |
 | `junctionAfterStatus` | enum | statuts définis en section 8.3 |
-| `junctionAfterGapMetres` | decimal | calculé, non saisi comme distance produit |
+| `junctionAfterGapMetres` | float | double précision, calculé et non saisi comme distance produit |
 | `junctionNote` | text court | justification de la validation |
 
 L’ordre natif du composant est la source de vérité. Publier le parcours exige
@@ -592,10 +595,10 @@ Option : `draftAndPublish=false`
 | `chapter` | relation | chapitre contenant la projection |
 | `sourceSegmentIndex` | integer | séquence continue du parcours |
 | `sourcePointIndex` | integer | point précédent dans la source |
-| `sourceFraction` | decimal | fraction sur le segment |
-| `chainageMetres` | decimal | distance cumulée depuis l’origine Hirson |
-| `projectedLatitude`, `projectedLongitude` | decimal | coordonnée exacte sur la trace |
-| `distanceToTraceMetres` | decimal | distance depuis l’ancre communale |
+| `sourceFraction` | float | fraction en double précision sur le segment |
+| `chainageMetres` | float | distance cumulée en double précision depuis l’origine Hirson |
+| `projectedLatitude`, `projectedLongitude` | float | coordonnée en double précision sur la trace |
+| `distanceToTraceMetres` | float | distance en double précision depuis l’ancre communale |
 | `sourceHash` | string | route/segment utilisé |
 | `algorithmVersion` | string | méthode de projection |
 | `validationStatus` | enum | `proposed`, `validated`, `ambiguous`, `stale`, `rejected` |
@@ -611,6 +614,11 @@ Un ancrage `origin=prd03_primary` est recopié avec son empreinte, son chapitre,
 sa position et sa provenance de passage. Il doit encore être rapproché d’une
 occurrence administrative du catalogue. Cette provenance évite un second
 choix manuel contradictoire sans déclarer l’ancrage primaire exhaustif.
+
+Ces mesures calculées ne doivent pas utiliser le type Strapi `decimal` par
+défaut, qui devient `numeric(10,2)` dans PostgreSQL. Le type `float` est requis
+pour conserver les coordonnées et fractions, reproduire les points de coupe
+et rendre les reprises de job idempotentes.
 
 ## 13. Modèle Strapi des itinéraires
 
@@ -656,12 +664,12 @@ Option : `draftAndPublish=false`
 | `run` | relation | exécution créatrice |
 | `departure`, `arrival` | relations `City` | direction AB de l’arc retenu |
 | `departureAnchor`, `arrivalAnchor` | relations | occurrences exactes |
-| `distanceMetres` | decimal | distance WGS84 sur les séquences |
-| `asTheCrowFliesMetres` | decimal | distance WGS84 entre coordonnées City |
-| `elevationGainMetres`, `elevationLossMetres` | decimal nullable | méthode versionnée |
+| `distanceMetres` | float | distance WGS84 en double précision sur les séquences |
+| `asTheCrowFliesMetres` | float | distance WGS84 en double précision entre coordonnées City |
+| `elevationGainMetres`, `elevationLossMetres` | float nullable | méthode versionnée |
 | `elevationAvailable` | boolean | aucune valeur inventée |
 | `eligibleByRoute`, `eligibleByDirect` | booleans | preuve des seuils |
-| `detourRatio` | decimal | qualité, pas nouveau seuil d’éligibilité |
+| `detourRatio` | float | qualité en double précision, pas nouveau seuil d’éligibilité |
 | `usesLoopOrigin` | boolean | arc passant par l’origine |
 | `junctionWarnings` | JSON | jonctions et ruptures rencontrées |
 | `chaptersOnRoute` | composant répétable | chapitres et ordre de traversée |
@@ -1839,6 +1847,7 @@ transverse ultérieur. Ils ne conditionnent ni le calcul, ni la publication.
 - snapshots administratifs nécessaires pour les 449 ancres ;
 - ancrages AB primaires du PRD 03 réutilisés avec provenance, sans réduire le
   nombre d’occurrences attendu ;
+- stockage `float` des mesures géométriques calculées, jamais `decimal(10,2)` ;
 - jonctions explicites, aucune ligne inventée ;
 - lieux de jonction PRD 03 réutilisés sans seconde décision éditoriale ;
 - séparation itinéraire/révision ;
