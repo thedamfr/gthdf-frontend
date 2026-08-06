@@ -67,6 +67,18 @@ describe('GpxBuilderForm', () => {
     expect((departure as HTMLInputElement).value).toBe('Lille');
   });
 
+  it('announces an empty combobox result as a disabled option', () => {
+    const view = render(<GpxBuilderForm manifest={manifest} />);
+    const departure = view.getByRole('combobox', { name: 'Ville de départ' });
+
+    fireEvent.change(departure, { target: { value: 'ville absente' } });
+
+    const noResult = view.getByText('Aucune ville trouvée');
+    expect(noResult.getAttribute('role')).toBe('option');
+    expect(noResult.getAttribute('aria-disabled')).toBe('true');
+    expect(view.getByRole('listbox')).toBeTruthy();
+  });
+
   it('previews the selection, then enables the official GPX download', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

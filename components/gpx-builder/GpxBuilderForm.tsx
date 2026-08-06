@@ -78,6 +78,9 @@ function CityCombobox({
   );
 
   function selectStop(stop: PublicGpxBuilderStop): void {
+    if (disabled) {
+      return;
+    }
     onChange(stop.id);
     setInputValue(stopLabel(stop));
     setOpen(false);
@@ -133,7 +136,7 @@ function CityCombobox({
           placeholder="Saisir une ville"
           disabled={disabled}
         />
-        {open && (
+        {open && !disabled && (
           <ul id={listboxId} className={styles.options} role="listbox">
             {availableStops.map((stop, index) => (
               <li
@@ -149,7 +152,14 @@ function CityCombobox({
               </li>
             ))}
             {availableStops.length === 0 && (
-              <li className={styles.noResult}>Aucune ville trouvée</li>
+              <li
+                className={styles.noResult}
+                role="option"
+                aria-disabled="true"
+                aria-selected="false"
+              >
+                Aucune ville trouvée
+              </li>
             )}
           </ul>
         )}

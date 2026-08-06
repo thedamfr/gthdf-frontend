@@ -1028,7 +1028,7 @@ version 1.3 corrige le formulaire, le contrat HTTP, les critères d’acceptatio
 et l’impact documenté sur le PRD 04.
 
 Vérifications exécutées sur ce snapshot : 97 tests CMS, build Strapi, 88 tests
-unitaires Frontend, 17 tests composants, lint et build Next complets. La
+unitaires Frontend, 18 tests composants, lint et build Next complets. La
 requête Strapi imbriquée du manifeste a également été vérifiée sur l’API
 locale : dix chapitres et leurs passages sont retournés sans erreur.
 
