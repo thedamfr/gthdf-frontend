@@ -313,6 +313,17 @@ function buildDirection(
   if (!firstChapter || stops.length < 2) {
     throw new Error(`Le sens ${direction} ne contient pas assez de villes qualifiées.`);
   }
+  const firstStop = stops[0];
+  const lastStop = stops.at(-1);
+  if (
+    firstStop
+    && lastStop
+    && firstStop !== lastStop
+    && firstStop.cityDocumentId === lastStop.cityDocumentId
+  ) {
+    firstStop.members = [...lastStop.members, ...firstStop.members];
+    stops.pop();
+  }
   for (const stop of stops) {
     stop.id = stableStopId(
       stop.cityDocumentId,

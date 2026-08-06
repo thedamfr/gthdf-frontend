@@ -115,7 +115,7 @@ test('buildGpxBuilderManifest orders AB and BA stops without exposing source dat
   assert.doesNotMatch(serialized, /one-ab\.gpx|projectedLatitude|sourceSha256|media-one-ab/);
 });
 
-test('buildGpxBuilderManifest keeps repeated non-boundary city occurrences distinct', () => {
+test('buildGpxBuilderManifest groups the loop origin but keeps other repeated occurrences distinct', () => {
   const hashAB = 'a'.repeat(64);
   const hashBA = 'b'.repeat(64);
   const manifest = buildGpxBuilderManifest(true, [{
@@ -129,21 +129,33 @@ test('buildGpxBuilderManifest keeps repeated non-boundary city occurrences disti
     gpxFileBA: { url: '/loop-ba.gpx' },
     cityPassages: [
       {
+        id: 9,
+        city: { documentId: 'city-tourcoing', name: 'Tourcoing', publishedAt: '2026-08-06' },
+        gpxAnchorAB: anchor(hashAB, 0),
+        gpxAnchorBA: anchor(hashBA, 40),
+      },
+      {
         id: 10,
         city: { documentId: 'city-lille', name: 'Lille', publishedAt: '2026-08-06' },
-        gpxAnchorAB: anchor(hashAB, 0),
-        gpxAnchorBA: anchor(hashBA, 10),
+        gpxAnchorAB: anchor(hashAB, 10),
+        gpxAnchorBA: anchor(hashBA, 30),
       },
       {
         id: 11,
         city: { documentId: 'city-roubaix', name: 'Roubaix', publishedAt: '2026-08-06' },
-        gpxAnchorAB: anchor(hashAB, 5),
-        gpxAnchorBA: anchor(hashBA, 5),
+        gpxAnchorAB: anchor(hashAB, 20),
+        gpxAnchorBA: anchor(hashBA, 20),
       },
       {
         id: 12,
         city: { documentId: 'city-lille', name: 'Lille', publishedAt: '2026-08-06' },
-        gpxAnchorAB: anchor(hashAB, 10),
+        gpxAnchorAB: anchor(hashAB, 30),
+        gpxAnchorBA: anchor(hashBA, 10),
+      },
+      {
+        id: 13,
+        city: { documentId: 'city-tourcoing', name: 'Tourcoing', publishedAt: '2026-08-06' },
+        gpxAnchorAB: anchor(hashAB, 40),
         gpxAnchorBA: anchor(hashBA, 0),
       },
     ],
@@ -156,8 +168,13 @@ test('buildGpxBuilderManifest keeps repeated non-boundary city occurrences disti
   }]);
   const publicManifest = toPublicGpxBuilderManifest(manifest);
   const lilleStops = publicManifest.directions.AB.stops.filter((stop) => stop.name === 'Lille');
+  const tourcoingStops = publicManifest.directions.AB.stops.filter(
+    (stop) => stop.name === 'Tourcoing'
+  );
 
   assert.equal(lilleStops.length, 2);
   assert.notEqual(lilleStops[0].id, lilleStops[1].id);
   assert.ok(lilleStops.every((stop) => stop.context));
+  assert.equal(tourcoingStops.length, 1);
+  assert.equal(tourcoingStops[0].context, null);
 });

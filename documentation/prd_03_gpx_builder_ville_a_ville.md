@@ -265,7 +265,8 @@ Le Builder ne choisit jamais silencieusement une occurrence.
 
 Une même ville peut être le dernier passage d’un chapitre et le premier du
 suivant. Si les deux ancrages décrivent la même jonction validée, l’interface
-affiche un seul arrêt public.
+affiche un seul arrêt public, y compris lorsque cette frontière ferme la
+boucle entre le dernier et le premier chapitre.
 
 Le lieu de jonction éditorial est choisi une seule fois pour les deux sens.
 Par défaut, il s’agit de la gare SNCF voyageurs de la ville lorsqu’elle existe
