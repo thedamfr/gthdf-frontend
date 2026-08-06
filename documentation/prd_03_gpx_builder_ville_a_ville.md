@@ -694,6 +694,8 @@ est transitoire et n’est pas stocké comme projet utilisateur.
 - téléchargements bornés et parallélisme limité ;
 - sources officielles chargées sans cache partagé tant que la stratégie
   d’invalidation par empreinte n’a pas été mesurée sur Clever Cloud ;
+- page et manifeste Strapi revalidés au plus toutes les 60 secondes afin qu’une
+  activation ou désactivation éditoriale soit visible sans redéploiement ;
 - manifeste Strapi revalidé sans rendre un ancien ancrage compatible avec un
   nouveau média ;
 - résumé visé en moins de 2 s à chaud et 5 s à froid ;
