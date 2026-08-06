@@ -97,6 +97,28 @@ describe('GpxBuilderForm', () => {
     });
   });
 
+  it('announces preview errors assertively', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({
+        error: { message: 'La trace officielle est indisponible.' },
+      }),
+    }));
+    const view = render(<GpxBuilderForm manifest={manifest} />);
+
+    fireEvent.change(view.getByRole('combobox', { name: 'Ville de départ' }), {
+      target: { value: manifest.directions.AB.stops[0].id },
+    });
+    fireEvent.change(view.getByRole('combobox', { name: 'Ville d’arrivée' }), {
+      target: { value: manifest.directions.AB.stops[2].id },
+    });
+    fireEvent.click(view.getByRole('button', { name: 'Prévisualiser mon parcours' }));
+
+    const alert = await view.findByRole('alert');
+    expect(alert.textContent).toContain('La trace officielle est indisponible.');
+    expect(alert.getAttribute('aria-live')).toBe('assertive');
+  });
+
   it('keeps the object URL alive until the browser can start the download', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn()

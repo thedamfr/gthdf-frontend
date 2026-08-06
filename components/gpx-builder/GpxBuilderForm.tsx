@@ -316,7 +316,7 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
         ref={statusRef}
         className={styles.liveStatus}
         role={hasError ? 'alert' : 'status'}
-        aria-live="polite"
+        aria-live={hasError ? 'assertive' : 'polite'}
         tabIndex={-1}
       >
         {announcement}
