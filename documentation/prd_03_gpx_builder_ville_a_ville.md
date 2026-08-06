@@ -1,8 +1,8 @@
 # PRD 03 — GPX Builder v2 : créer une portion officielle ville à ville
 
-**Version :** 1.3\
+**Version :** 1.4\
 **Date :** 6 août 2026\
-**Statut :** implémenté localement — qualification éditoriale et activation en attente\
+**Statut :** implémenté — qualification des ancrages prête, activation en attente\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendances fonctionnelles :** PRD 01 — Référentiel des villes ; PRD 02 —
 ordre public des chapitres\
@@ -45,6 +45,8 @@ Les décisions structurantes sont les suivantes :
   ordonnés des chapitres ;
 - chaque passage possède un ancrage précis et validé sur chacun des GPX AB et
   BA du chapitre ;
+- l’arrêt primaire intermédiaire reprend le premier passage AB du jeu
+  contrôlé, puis le même lieu est rapproché sur le GPX BA ;
 - chaque frontière de chapitre utilise un seul lieu de jonction éditorial,
   commun aux sens AB et BA, sans rendre leurs géométries interchangeables ;
 - la génération utilise seulement les points des GPX officiels, jamais la
@@ -217,6 +219,26 @@ pas des constantes applicatives.
 Le parcours public et le pipeline de génération sont remplacés. Le panier
 n’est pas conservé comme mode secondaire.
 
+### 6.5 Qualification des ancrages
+
+Le dry run de production du 6 août 2026 contrôle les 20 médias et les 10
+empreintes AB du jeu du 19 juillet 2026. Il prépare 466 ancrages :
+
+- les 40 frontières correspondent exactement aux extrémités des GPX ;
+- les 213 arrêts intermédiaires AB utilisent leur premier chaînage contrôlé,
+  interpolé sur le segment source original ;
+- les 213 arrêts BA sont rapprochés du même arrêt primaire AB, dans l’ordre
+  directionnel ; l’écart maximal observé est inférieur à 362 m ;
+- Marœuil, Avesnes-sur-Helpe et Cayeux-sur-Mer sont les trois seuls
+  rapprochements BA concurrents restant après ce contrôle ; leur occurrence
+  est qualifiée par proximité avec l’arrêt AB et cohérence de chaînage ;
+- les 466 décisions, 10 jonctions exactes et 10 jonctions acceptées sont
+  retrouvées sans proposition résiduelle, blocage, ancrage périmé ni erreur.
+
+Ces résultats restent un rapport de préparation tant que les brouillons ne
+sont pas appliqués puis publiés. Ils ne qualifient pas les autres occurrences
+administratives attendues par le PRD 04.
+
 ## 7. Expérience publique
 
 ### 7.1 Structure de la page
@@ -368,7 +390,7 @@ direction, lié à une empreinte exacte.
 - le point projeté appartient à une séquence source existante ;
 - les ancrages suivent strictement l’ordre des `cityPassages` dans leur sens ;
 - deux passages distincts ne partagent pas une clé implicite par leur seul nom ;
-- un passage `start` ou `end` peut reprendre l’extrémité exacte du GPX ;
+- un passage `start` ou `end` reprend l’extrémité exacte du GPX ;
 - une publication de chapitre reste possible sans ancrage tant que le Builder
   n’est pas activé ;
 - le Builder n’expose que les passages entièrement qualifiés pour le sens
@@ -381,16 +403,18 @@ Une commande npm du CMS :
 1. télécharge uniquement les 20 médias officiels autorisés ;
 2. valide taille, XML, structure, coordonnées et altitude ;
 3. calcule leur SHA-256 binaire ;
-4. projette l’ancre communale sur les candidats compatibles avec l’ordre des
-   passages ;
-5. réutilise les limites administratives et chaînages du classeur comme
-   contrôles lorsqu’ils sont disponibles ;
-6. classe plusieurs passages possibles, un écart élevé ou un ordre incohérent
+4. exige que les dix empreintes AB du jeu contrôlé correspondent aux médias
+   courants ;
+5. interpole le premier chaînage AB contrôlé de chaque passage intermédiaire
+   sur le segment source original, sans reprendre un point rééchantillonné ;
+6. rapproche ce même arrêt primaire sur le média BA, sous contrainte d’ordre ;
+7. fixe les passages de frontière aux extrémités exactes des médias ;
+8. classe plusieurs passages possibles, un écart élevé ou un ordre incohérent
    comme ambigu ;
-7. produit un rapport avant toute écriture ;
-8. écrit seulement dans les brouillons avec `--apply` et une confirmation
+9. produit un rapport avant toute écriture ;
+10. écrit seulement dans les brouillons avec `--apply` et une confirmation
    explicite ;
-9. ne publie aucun chapitre.
+11. ne publie aucun chapitre.
 
 Les villes de frontière et les cas à plusieurs passages sont relus
 explicitement. Une proposition ambiguë n’est jamais transformée en ancrage
@@ -959,6 +983,8 @@ dépendance d’exécution : fermer le Builder ne ferme pas les pages catalogue.
 - aucune notion de durée ou de journée recommandée ;
 - un seul fichier par sélection ;
 - ancrages primaires stockés par passage et direction ;
+- premier passage AB contrôlé retenu comme arrêt primaire intermédiaire, puis
+  rapproché sur le média BA ;
 - un lieu de jonction éditorial partagé par frontière, décliné en deux
   qualifications techniques AB et BA ;
 - calcul des ancrages hors requête publique puis validation ;
