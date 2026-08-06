@@ -82,7 +82,7 @@ function buildVisitIndexes(
     if (current === end.chapterIndex) {
       return {
         indexes,
-        usesLoopOrigin: current <= start.chapterIndex || end.chapterIndex <= start.chapterIndex,
+        usesLoopOrigin: end.chapterIndex <= start.chapterIndex,
       };
     }
   }
