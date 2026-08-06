@@ -1,4 +1,4 @@
-import { distanceWgs84Metres, sequenceDistanceMetres } from './geometry.ts';
+import { distanceWgs84Metres } from './geometry.ts';
 import type { GpxPoint } from './types.ts';
 
 export interface RouteMetrics {
@@ -155,9 +155,11 @@ function smoothKnownRuns(samples: readonly ElevationSample[]): number[][] {
 }
 
 function elevationCoverage(sequences: readonly (readonly GpxPoint[])[]): {
+  distanceMetres: number;
   coveredDistance: number;
   maximumGapDistance: number;
 } {
+  let distanceMetres = 0;
   let coveredDistance = 0;
   let maximumGapDistance = 0;
 
@@ -165,6 +167,7 @@ function elevationCoverage(sequences: readonly (readonly GpxPoint[])[]): {
     let currentGapDistance = 0;
     for (let index = 1; index < sequence.length; index += 1) {
       const edgeDistance = distanceWgs84Metres(sequence[index - 1], sequence[index]);
+      distanceMetres += edgeDistance;
       if (
         sequence[index - 1].elevation !== undefined
         && sequence[index].elevation !== undefined
@@ -179,17 +182,17 @@ function elevationCoverage(sequences: readonly (readonly GpxPoint[])[]): {
     maximumGapDistance = Math.max(maximumGapDistance, currentGapDistance);
   }
 
-  return { coveredDistance, maximumGapDistance };
+  return { distanceMetres, coveredDistance, maximumGapDistance };
 }
 
 export function computeRouteMetrics(
   sequences: readonly (readonly GpxPoint[])[]
 ): RouteMetrics {
-  const distanceMetres = sequences.reduce(
-    (total, sequence) => total + sequenceDistanceMetres(sequence),
-    0
-  );
-  const { coveredDistance, maximumGapDistance } = elevationCoverage(sequences);
+  const {
+    distanceMetres,
+    coveredDistance,
+    maximumGapDistance,
+  } = elevationCoverage(sequences);
   const elevationCoverageRatio = distanceMetres === 0
     ? 0
     : coveredDistance / distanceMetres;

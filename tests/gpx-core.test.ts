@@ -293,6 +293,23 @@ test('serializeGpxPortion creates a self-contained GPX without trackpoint times'
   );
 });
 
+test('serializeGpxPortion validates an export against its actual geometry size', () => {
+  const sequences = Array.from({ length: 513 }, (_, index) => [{
+    latitude: 50,
+    longitude: 2 + index * 0.000001,
+  }]);
+
+  const xml = serializeGpxPortion({
+    departureName: 'Départ',
+    arrivalName: 'Arrivée',
+    direction: 'AB',
+    generatedAt: new Date('2026-08-06T10:00:00.000Z'),
+    sequences,
+  });
+
+  assert.equal((xml.match(/<trkseg>/g) ?? []).length, sequences.length);
+});
+
 test('parseOfficialGpx rejects unsafe, unsupported and oversized sources', () => {
   assert.throws(
     () => parseOfficialGpx('<!DOCTYPE gpx><gpx version="1.1"><trk><trkseg><trkpt lat="0" lon="0" /></trkseg></trk></gpx>'),

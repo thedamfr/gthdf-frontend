@@ -93,6 +93,10 @@ ${trackSegments}
   </trk>
 </gpx>`;
 
-  parseOfficialGpx(xml);
+  parseOfficialGpx(xml, {
+    maximumPoints: sequences.reduce((total, sequence) => total + sequence.length, 0),
+    maximumTracks: 1,
+    maximumSegments: sequences.length,
+  });
   return xml;
 }
