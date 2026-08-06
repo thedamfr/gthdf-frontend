@@ -1,7 +1,7 @@
 # ADR — Ancrages directionnels pour les portions GPX officielles
 
 **Date :** 6 août 2026\
-**Statut :** proposé pour revue technique\
+**Statut :** accepté et implémenté\
 **Décision liée :**
 [`prd_03_gpx_builder_ville_a_ville.md`](prd_03_gpx_builder_ville_a_ville.md)
 
@@ -44,6 +44,11 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
    validation de toutes les autres occurrences.
 7. Le noyau de découpe et ses fixtures constituent le contrat partagé. Le job
    du PRD 04 ne dépend pas de la disponibilité de la route HTTP du Builder.
+8. Chaque chapitre porte aussi une jonction qualifiée par sens, liée aux
+   empreintes des deux médias adjacents. Une jonction exacte est réunie ; un
+   écart accepté reste deux séquences ; une jonction bloquée ferme la portion.
+9. Un coupe-circuit CMS désactivé par défaut ne peut être activé que si toute
+   la boucle publiée satisfait ces invariants.
 
 ## Conséquences
 

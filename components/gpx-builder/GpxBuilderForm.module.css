@@ -1,0 +1,202 @@
+.form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.directionFieldset,
+.cityFieldset {
+  min-width: 0;
+  border: 3px solid var(--color-charbon);
+  padding: clamp(1rem, 4vw, 2rem);
+  background: var(--color-beige);
+}
+
+.directionFieldset legend,
+.cityFieldset legend {
+  padding: 0 0.6rem;
+  font-family: var(--font-brand);
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 800;
+}
+
+.directionOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.directionOption {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 2px solid var(--color-charbon);
+  padding: 0.75rem 1rem;
+  background: var(--color-creme);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.directionOption:has(input:checked) {
+  background: var(--color-jaune);
+}
+
+.directionOption input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--color-charbon);
+}
+
+.cityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.cityControl {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.cityControl label {
+  font-weight: 800;
+}
+
+.cityControl label:nth-of-type(2) {
+  margin-top: 0.5rem;
+}
+
+.cityControl input,
+.cityControl select {
+  min-height: 3rem;
+  width: 100%;
+  border: 2px solid var(--color-charbon);
+  border-radius: 0;
+  padding: 0.65rem 0.85rem;
+  background: var(--color-creme);
+  color: var(--color-charbon);
+  font: inherit;
+}
+
+.previewButton,
+.downloadButton {
+  min-height: 3.25rem;
+  border: 3px solid var(--color-charbon);
+  border-radius: 0;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-charbon);
+  color: var(--color-creme);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.previewButton {
+  justify-self: start;
+}
+
+.previewButton:hover:not(:disabled),
+.downloadButton:hover:not(:disabled) {
+  background: var(--color-rouge);
+  border-color: var(--color-rouge);
+}
+
+.previewButton:disabled,
+.downloadButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.directionOption:focus-within,
+.cityControl input:focus-visible,
+.cityControl select:focus-visible,
+.previewButton:focus-visible,
+.downloadButton:focus-visible,
+.liveStatus:focus-visible {
+  outline: 4px solid var(--color-bleu);
+  outline-offset: 3px;
+}
+
+.liveStatus {
+  min-height: 1.5rem;
+  font-weight: 700;
+}
+
+.liveStatus:empty {
+  min-height: 0;
+}
+
+.summary {
+  border: 3px solid var(--color-charbon);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  background: var(--color-creme);
+  box-shadow: 8px 8px 0 var(--color-charbon);
+}
+
+.summary h2 {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--color-bleu);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metrics div {
+  border-top: 2px solid var(--color-charbon);
+  padding-top: 0.75rem;
+}
+
+.metrics dt {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metrics dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.warning {
+  margin: 0 0 1.25rem;
+  border-left: 5px solid var(--color-rouge);
+  padding: 0.75rem 1rem;
+  background: var(--color-beige);
+}
+
+.loopNotice,
+.durationNote {
+  margin: 0 0 1.25rem;
+  font-weight: 700;
+}
+
+.durationNote {
+  font-style: italic;
+}
+
+@media (max-width: 700px) {
+  .directionOptions,
+  .cityGrid,
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .previewButton,
+  .downloadButton {
+    width: 100%;
+  }
+}

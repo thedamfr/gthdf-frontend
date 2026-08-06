@@ -1,8 +1,8 @@
 # PRD 03 — GPX Builder v2 : créer une portion officielle ville à ville
 
-**Version :** 1.0\
+**Version :** 1.1\
 **Date :** 6 août 2026\
-**Statut :** prêt pour revue technique\
+**Statut :** implémenté localement — qualification éditoriale et activation en attente\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendances fonctionnelles :** PRD 01 — Référentiel des villes ; PRD 02 —
 ordre public des chapitres\
@@ -224,7 +224,7 @@ La page affiche, dans cet ordre :
 5. la ville de départ ;
 6. la ville d’arrivée ;
 7. le résumé de la portion ;
-8. l’action `Télécharger cette portion`.
+8. l’action `Télécharger mon GPX`.
 
 Le formulaire et son résultat restent compréhensibles sans carte.
 
@@ -331,7 +331,7 @@ Le composant reçoit deux sous-composants optionnels :
 - `gpxAnchorAB` ;
 - `gpxAnchorBA`.
 
-Contrat proposé pour `chapter.gpx-anchor` :
+Contrat implémenté pour `chapter.gpx-anchor` :
 
 | Champ | Type | Règle |
 |---|---|---|
@@ -348,9 +348,8 @@ Contrat proposé pour `chapter.gpx-anchor` :
 | `algorithmVersion` | string | version de proposition et de calcul |
 | `reviewNote` | text court | justification d’une ambiguïté résolue |
 
-Les noms définitifs peuvent évoluer pendant la revue de schéma sans modifier
-le contrat : un passage publié possède au plus un ancrage primaire validé par
-direction et lié à une empreinte exacte.
+Le schéma conserve ainsi au plus un ancrage primaire validé par passage et par
+direction, lié à une empreinte exacte.
 
 ### 9.3 Invariants
 
@@ -536,6 +535,9 @@ durée, vitesse, difficulté ou recommandation sportive n’est dérivée.
 `gthdf-cms` :
 
 - étend `chapter.city-passage` avec les deux ancrages directionnels ;
+- qualifie sur chaque chapitre les jonctions directionnelles vers le chapitre
+  suivant dans le sens parcouru ;
+- porte le coupe-circuit global `gpxBuilderEnabled`, désactivé par défaut ;
 - valide la cohérence des ancrages au moment de publier un chapitre lorsque le
   Builder est activé ;
 - fournit la commande de proposition, dry run et application ;
@@ -690,7 +692,8 @@ est transitoire et n’est pas stocké comme projet utilisateur.
 - aucun GPX chargé avant une sélection complète ;
 - maximum dix médias lus pour une portion faisant un tour de boucle ;
 - téléchargements bornés et parallélisme limité ;
-- sources officielles mises en cache côté serveur selon leur empreinte ;
+- sources officielles chargées sans cache partagé tant que la stratégie
+  d’invalidation par empreinte n’a pas été mesurée sur Clever Cloud ;
 - manifeste Strapi revalidé sans rendre un ancien ancrage compatible avec un
   nouveau média ;
 - résumé visé en moins de 2 s à chaud et 5 s à froid ;
@@ -749,7 +752,7 @@ Le scénario Boulogne-sur-Mer → Gravelines en sens AB doit :
 - terminer sur l’ancrage de Gravelines dans Calais → Saint-Omer ;
 - produire environ 79,6 km selon la version qualifiée des sources ;
 - inclure les deux chapitres dans le résumé ;
-- se réimporter dans le Builder ;
+- se réimporter dans les applications de navigation de recette ;
 - s’ouvrir correctement dans au moins deux applications de navigation.
 
 La recette BA utilise un cas où les géométries AB et BA divergent afin de
@@ -932,11 +935,8 @@ dépendance d’exécution : fermer le Builder ne ferme pas les pages catalogue.
 
 ### Validations techniques restantes
 
-- confirmer la forme Strapi finale du sous-composant d’ancrage ;
 - qualifier les 233 passages dans les deux sens et recenser les ambiguïtés ;
-- confirmer les libellés publics des deux sens ;
 - qualifier les jonctions AB et BA ;
-- valider la méthode de dénivelé sur des références connues ;
 - mesurer le coût froid et chaud sur Clever Cloud `nano` ;
 - confirmer la stratégie de cache et d’invalidation par hash ;
 - tester les GPX générés dans les applications de navigation retenues ;
@@ -960,3 +960,40 @@ sens choisi et aucune hypothèse de durée n’est imposée.
 Le même contrat de découpe peut alors alimenter le catalogue du PRD 04 sans
 transformer le Builder en générateur de pages SEO ni réduire les occurrences
 exhaustives du catalogue à ses seuls arrêts éditoriaux.
+
+## 26. Bilan d’implémentation de la version 1.1
+
+Le 6 août 2026, l’implémentation locale couvre :
+
+- les composants Strapi `gpx-anchor` et `gpx-junction`, les deux ancrages par
+  passage, les deux jonctions par chapitre et le coupe-circuit global ;
+- la commande CMS `prepare:gpx-anchors`, sûre en dry run, avec rapport,
+  résolutions explicites, application limitée aux brouillons et rollback par
+  snapshot `before` ;
+- le contrôle global qui refuse l’activation tant que les chapitres publiés,
+  les deux sens, les ancres et les jonctions ne forment pas une boucle valide ;
+- le noyau Frontend de parsing GPX 1.1, empreinte binaire, distance WGS84,
+  découpe, interpolation, jonctions, dénivelé, sérialisation et relecture ;
+- le manifeste serveur expurgé, les endpoints de prévisualisation et de
+  téléchargement, puis le formulaire public ville à ville ;
+- les occurrences répétées désambiguïsées et les villes de frontière
+  consécutives regroupées sans perdre leurs deux côtés techniques.
+
+Vérifications exécutées sur ce snapshot : 85 tests CMS, build Strapi, 81 tests
+unitaires Frontend, 15 tests composants, lint et build Next complets. La
+requête Strapi imbriquée du manifeste a également été vérifiée sur l’API
+locale : dix chapitres et leurs passages sont retournés sans erreur.
+
+Le dry run local sur la copie synchronisée des données réelles inspecte les
+dix chapitres et propose les 466 ancrages attendus sans blocage ni erreur. Il
+signale 179 ancrages à revue renforcée : 153 à plus de 1 000 m de l’ancre
+communale et 67 avec une occurrence distante concurrente, ces catégories
+pouvant se recouvrir. Dix jonctions sont exactes ; dix autres demandent une
+décision explicite, avec un écart maximal observé de 225,4 m. Aucune donnée
+n’a été écrite.
+
+Le lot n’est pas activable publiquement à ce stade : les 233 passages × deux
+directions et les vingt jonctions doivent encore être relus, appliqués aux
+brouillons puis publiés. La recette réelle Boulogne-sur-Mer → Gravelines, les
+deux applications de navigation et les mesures Clever Cloud restent les
+conditions de mise en service. Le coupe-circuit demeure donc à `false`.

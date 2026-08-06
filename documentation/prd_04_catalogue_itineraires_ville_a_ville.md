@@ -1,6 +1,6 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.4\
+**Version :** 0.5\
 **Date :** 6 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -24,6 +24,13 @@ primaire AB et BA par `cityPassage` et le contrat commun de découpe. Le
 présent lot réutilise ce socle, mais conserve son propre modèle exhaustif :
 les arrêts éditoriaux du Builder ne représentent pas toutes les occurrences
 géographiques nécessaires au catalogue.
+
+Depuis l’implémentation PRD 03, ce socle comprend aussi des jonctions
+directionnelles qualifiées, liées aux empreintes des médias adjacents, et des
+fixtures exécutables sous `lib/gpx/`. Le PRD 04 peut reprendre leur contrat et
+leurs résultats, mais doit porter sa propre copie serveur ou extraire un
+package commun : il ne doit pas importer le code depuis l’application Next ni
+appeler ses endpoints HTTP.
 
 Les décisions structurantes sont les suivantes :
 
@@ -229,10 +236,10 @@ L’implémentation nécessite deux PR de production coordonnées :
 Le CMS est déployé en premier avec tous les flags publics désactivés. Le
 frontend doit rester compatible avec un catalogue vide.
 
-Ces PR partent du schéma d’ancrage directionnel et du contrat de découpe
-livrés par le PRD 03. Si les deux lots sont développés en parallèle, les
-fixtures et champs partagés sont figés et cross-linkés avant la mise en œuvre
-des modèles catalogue ; aucun second format d’ancrage primaire n’est créé.
+Ces PR partent du schéma d’ancrage et de jonction directionnels et du contrat
+de découpe livrés par le PRD 03. Les fixtures et champs partagés sont figés et
+cross-linkés avant la mise en œuvre des modèles catalogue ; aucun second
+format d’ancrage primaire ou de jonction n’est créé.
 
 ## 7. Audit du classeur fourni
 
