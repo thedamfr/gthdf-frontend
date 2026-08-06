@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { loadOfficialGpxSource } from '../lib/gpx-builder/source-loader.ts';
+import {
+  loadOfficialGpxSourceWithOptions as loadOfficialGpxSource,
+} from '../lib/gpx-builder/source-loader-core.ts';
 import { sha256Hex } from '../lib/gpx/hash.ts';
 
 const GPX = `<?xml version="1.0"?><gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg><trkpt lat="50" lon="2"/><trkpt lat="50" lon="2.001"/></trkseg></trk></gpx>`;
