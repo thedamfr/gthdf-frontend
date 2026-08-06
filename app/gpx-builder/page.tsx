@@ -46,8 +46,7 @@ export default async function GpxBuilderPage() {
       <aside className={styles.note} aria-label="À savoir">
         <h2>À savoir</h2>
         <p>
-          Le GPX produit reprend uniquement la géométrie et les altitudes utiles des traces officielles.
-          Les horodatages des enregistrements sources ne sont pas inclus.
+          Le fichier est créé à partir des traces officielles du GTHF pour la portion choisie.
         </p>
       </aside>
     </main>
