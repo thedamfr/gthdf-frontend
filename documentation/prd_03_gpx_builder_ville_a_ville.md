@@ -1008,7 +1008,7 @@ Le 6 août 2026, l’implémentation locale couvre :
 - les occurrences répétées désambiguïsées et les villes de frontière
   consécutives regroupées sans perdre leurs deux côtés techniques.
 
-Vérifications exécutées sur ce snapshot : 96 tests CMS, build Strapi, 86 tests
+Vérifications exécutées sur ce snapshot : 97 tests CMS, build Strapi, 86 tests
 unitaires Frontend, 17 tests composants, lint et build Next complets. La
 requête Strapi imbriquée du manifeste a également été vérifiée sur l’API
 locale : dix chapitres et leurs passages sont retournés sans erreur.
