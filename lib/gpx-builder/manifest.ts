@@ -260,7 +260,10 @@ function buildDirection(
           cityDocumentId: passage.city.documentId,
           name: passage.city.name.trim(),
           alternativeNames: Array.isArray(passage.city.alternativeNames)
-            ? passage.city.alternativeNames.filter((name) => typeof name === 'string')
+            ? passage.city.alternativeNames
+              .filter((name): name is string => typeof name === 'string')
+              .map((name) => name.trim())
+              .filter(Boolean)
             : [],
           context: null,
           members: [member],

@@ -98,6 +98,12 @@ function endpoint(sequence: readonly GpxPoint[], side: 'first' | 'last'): GpxPoi
   return point;
 }
 
+function isSameGpxPoint(first: GpxPoint, second: GpxPoint): boolean {
+  return first.latitude === second.latitude
+    && first.longitude === second.longitude
+    && first.elevation === second.elevation;
+}
+
 function appendChapterSequences(
   target: GpxPoint[][],
   incoming: readonly (readonly GpxPoint[])[],
@@ -135,7 +141,9 @@ function appendChapterSequences(
     if (actualGapMetres > EXACT_JUNCTION_TOLERANCE_METRES) {
       throw new GpxContractError('invalid_junction', 'An exact GPX junction is no longer exact.');
     }
-    previousSequence.push(...sequences[0].slice(1));
+    previousSequence.push(...(
+      isSameGpxPoint(previousPoint, nextPoint) ? sequences[0].slice(1) : sequences[0]
+    ));
     target.push(...sequences.slice(1));
     return;
   }

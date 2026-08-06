@@ -42,7 +42,12 @@ test('buildGpxBuilderManifest orders AB and BA stops without exposing source dat
       cityPassages: [
         {
           id: 1,
-          city: { documentId: 'city-a', name: 'Lille', alternativeNames: ['Rijsel'], publishedAt: '2026-08-06' },
+          city: {
+            documentId: 'city-a',
+            name: 'Lille',
+            alternativeNames: [' Rijsel ', ' ', '', 'Lillois'],
+            publishedAt: '2026-08-06',
+          },
           gpxAnchorAB: anchor(hashes.oneAB, 0),
           gpxAnchorBA: anchor(hashes.oneBA, 10),
         },
@@ -97,6 +102,7 @@ test('buildGpxBuilderManifest orders AB and BA stops without exposing source dat
   );
   assert.equal(publicManifest.directions.AB.label, 'Sens Lille → Arras');
   assert.equal(publicManifest.directions.BA.label, 'Sens Amiens → Arras');
+  assert.deepEqual(publicManifest.directions.AB.stops[0].alternativeNames, ['Rijsel', 'Lillois']);
   assert.match(publicManifest.directions.AB.stops[0].id, /^stop_[a-f0-9]{16}$/);
 
   const serialized = JSON.stringify(publicManifest);

@@ -166,6 +166,53 @@ test('extractRoutePortion joins exact boundaries across several chapters', () =>
   );
 });
 
+test('extractRoutePortion preserves near but distinct points at an exact junction', () => {
+  const hashes = ['a'.repeat(64), 'b'.repeat(64)];
+  const firstEnd = { latitude: 0, longitude: 1, elevation: 10 };
+  const secondStart = { latitude: 0, longitude: 1.000005, elevation: 11 };
+  const documents = [
+    parseOfficialGpx('<gpx version="1.1"><trk><trkseg><trkpt lat="0" lon="0"><ele>0</ele></trkpt><trkpt lat="0" lon="1"><ele>10</ele></trkpt></trkseg></trk></gpx>'),
+    parseOfficialGpx('<gpx version="1.1"><trk><trkseg><trkpt lat="0" lon="1.000005"><ele>11</ele></trkpt><trkpt lat="0" lon="2"><ele>20</ele></trkpt></trkseg></trk></gpx>'),
+  ];
+  const chapters = documents.map((document, index) => ({
+    slug: `chapter-${index + 1}`,
+    sourceSha256: hashes[index],
+    document,
+    junctionAfter: {
+      status: 'exact' as const,
+      sourceSha256: hashes[index],
+      nextSourceSha256: hashes[(index + 1) % hashes.length],
+      gapMetres: index === 0 ? distanceWgs84Metres(firstEnd, secondStart) : 0,
+    },
+  }));
+  const anchor = (
+    sourceSha256: string,
+    pointIndex: number,
+    fraction: number,
+    longitude: number
+  ): GpxAnchor => ({
+    status: 'validated',
+    sourceSha256,
+    trackIndex: 0,
+    segmentIndex: 0,
+    pointIndex,
+    fraction,
+    chainageMetres: longitude,
+    projectedLatitude: 0,
+    projectedLongitude: longitude,
+    distanceToCityMetres: 0,
+    algorithmVersion: 'gpx-anchor-v1',
+  });
+
+  const portion = extractRoutePortion(
+    chapters,
+    { chapterIndex: 0, anchor: anchor(hashes[0], 0, 1, 1) },
+    { chapterIndex: 1, anchor: anchor(hashes[1], 0, 0, 1.000005) }
+  );
+
+  assert.deepEqual(portion.sequences, [[firstEnd, secondStart]]);
+});
+
 test('computeRouteMetrics never measures across a sequence break', () => {
   const point = (longitude: number) => ({
     latitude: 0,
