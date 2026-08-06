@@ -3,10 +3,10 @@ import 'server-only';
 import {
   generateGpxSelection,
   GpxBuilderError,
-} from './generate';
-import { readGpxBuilderRequest, GpxBuilderRequestError } from './request';
-import { getGpxBuilderManifest } from './server';
-import { loadOfficialGpxSource } from './source-loader';
+} from './generate.ts';
+import { readGpxBuilderRequest, GpxBuilderRequestError } from './request.ts';
+import { getGpxBuilderManifest } from './server.ts';
+import { loadOfficialGpxSource } from './source-loader.ts';
 
 type ResponseMode = 'preview' | 'download';
 

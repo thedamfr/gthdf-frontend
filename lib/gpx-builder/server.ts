@@ -3,13 +3,13 @@ import 'server-only';
 import {
   readResponseBytesWithLimit,
   ResponseSizeLimitError,
-} from '../bounded-response';
+} from '../bounded-response.ts';
 import {
   buildGpxBuilderManifest,
   createDisabledGpxBuilderManifest,
   type GpxBuilderChapterInput,
   type GpxBuilderManifest,
-} from './manifest';
+} from './manifest.ts';
 
 const STRAPI_RESPONSE_LIMIT_BYTES = 3 * 1024 * 1024;
 
