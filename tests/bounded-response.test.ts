@@ -2,9 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  decodeUtf8,
   readResponseBytesWithLimit,
   ResponseSizeLimitError,
 } from '../lib/bounded-response.ts';
+
+test('decodeUtf8 rejects malformed byte sequences', () => {
+  assert.equal(decodeUtf8(new TextEncoder().encode('{"ok":true}')), '{"ok":true}');
+  assert.throws(() => decodeUtf8(new Uint8Array([0xc3, 0x28])), TypeError);
+});
 
 test('readResponseBytesWithLimit reads a response up to the inclusive limit', async () => {
   const payload = await readResponseBytesWithLimit(

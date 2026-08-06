@@ -1,6 +1,7 @@
 import 'server-only';
 
 import {
+  decodeUtf8,
   readResponseBytesWithLimit,
   ResponseSizeLimitError,
 } from '../bounded-response.ts';
@@ -51,7 +52,7 @@ async function requestStrapiJson<T>(pathname: string, query: URLSearchParams): P
       response,
       STRAPI_RESPONSE_LIMIT_BYTES
     );
-    return JSON.parse(new TextDecoder().decode(bytes)) as T;
+    return JSON.parse(decodeUtf8(bytes)) as T;
   } catch (error) {
     if (error instanceof ResponseSizeLimitError) {
       throw new Error('strapi_response_too_large');

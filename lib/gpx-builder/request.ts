@@ -1,4 +1,5 @@
 import {
+  decodeUtf8,
   readResponseBytesWithLimit,
   ResponseSizeLimitError,
 } from '../bounded-response.ts';
@@ -44,7 +45,7 @@ export async function readGpxBuilderRequest(
 
   let payload: unknown;
   try {
-    payload = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    payload = JSON.parse(decodeUtf8(bytes));
   } catch {
     throw new GpxBuilderRequestError('La requête JSON est invalide.');
   }
