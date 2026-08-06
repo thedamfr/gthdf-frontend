@@ -11,6 +11,21 @@ import type { GpxBuilderMedia } from './manifest.ts';
 const DEFAULT_MAXIMUM_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MILLISECONDS = 15_000;
 
+export type GpxSourceErrorCode =
+  | 'source_unavailable'
+  | 'source_invalid'
+  | 'source_stale';
+
+export class GpxSourceError extends Error {
+  readonly code: GpxSourceErrorCode;
+
+  constructor(code: GpxSourceErrorCode, message: string) {
+    super(message);
+    this.name = 'GpxSourceError';
+    this.code = code;
+  }
+}
+
 interface SourceLoaderOptions {
   strapiUrl: string;
   allowedOrigins: readonly string[];
@@ -32,11 +47,17 @@ export async function loadOfficialGpxSourceWithOptions(
       options.allowedOrigins
     );
   } catch {
-    throw new Error('La trace officielle est indisponible.');
+    throw new GpxSourceError(
+      'source_unavailable',
+      'La trace officielle est indisponible.'
+    );
   }
 
   if (!isSha256(expectedSha256)) {
-    throw new Error('La référence de la trace officielle est invalide.');
+    throw new GpxSourceError(
+      'source_invalid',
+      'La référence de la trace officielle est invalide.'
+    );
   }
 
   const request = options.fetchImplementation ?? fetch;
@@ -50,10 +71,16 @@ export async function loadOfficialGpxSourceWithOptions(
       signal: AbortSignal.timeout(timeout),
     });
   } catch {
-    throw new Error('La trace officielle est temporairement indisponible.');
+    throw new GpxSourceError(
+      'source_unavailable',
+      'La trace officielle est temporairement indisponible.'
+    );
   }
   if (!response.ok) {
-    throw new Error('La trace officielle est temporairement indisponible.');
+    throw new GpxSourceError(
+      'source_unavailable',
+      'La trace officielle est temporairement indisponible.'
+    );
   }
 
   let bytes: Uint8Array;
@@ -64,20 +91,39 @@ export async function loadOfficialGpxSourceWithOptions(
     );
   } catch (error) {
     if (error instanceof ResponseSizeLimitError) {
-      throw new Error('La trace officielle est trop volumineuse.');
+      throw new GpxSourceError(
+        'source_invalid',
+        'La trace officielle est trop volumineuse.'
+      );
     }
-    throw new Error('La trace officielle est temporairement indisponible.');
+    throw new GpxSourceError(
+      'source_unavailable',
+      'La trace officielle est temporairement indisponible.'
+    );
   }
 
   if (sha256Hex(bytes) !== expectedSha256.toLowerCase()) {
-    throw new Error('La trace officielle a été actualisée et doit être requalifiée.');
+    throw new GpxSourceError(
+      'source_stale',
+      'La trace officielle a été actualisée et doit être requalifiée.'
+    );
   }
 
   let xml: string;
   try {
     xml = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   } catch {
-    throw new Error('La trace officielle utilise un encodage invalide.');
+    throw new GpxSourceError(
+      'source_invalid',
+      'La trace officielle utilise un encodage invalide.'
+    );
   }
-  return parseOfficialGpx(xml);
+  try {
+    return parseOfficialGpx(xml);
+  } catch {
+    throw new GpxSourceError(
+      'source_invalid',
+      'La trace officielle n’est pas conforme.'
+    );
+  }
 }

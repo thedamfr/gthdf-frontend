@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { generateGpxSelection } from '../lib/gpx-builder/generate.ts';
+import {
+  generateGpxSelection,
+  GpxBuilderError,
+} from '../lib/gpx-builder/generate.ts';
 import { buildGpxBuilderManifest } from '../lib/gpx-builder/manifest.ts';
+import { GpxSourceError } from '../lib/gpx-builder/source-loader-core.ts';
 import { distanceWgs84Metres } from '../lib/gpx/geometry.ts';
 import { parseOfficialGpx } from '../lib/gpx/parser.ts';
 
@@ -155,6 +159,46 @@ test('generateGpxSelection rejects stale, identical and unknown selections', asy
       loadSource,
     }),
     /actualisée/
+  );
+});
+
+test('generateGpxSelection exposes only typed source failures', async () => {
+  const manifest = fixture();
+  const selection = {
+    direction: 'AB' as const,
+    departureId: manifest.directions.AB.stops[0].id,
+    arrivalId: manifest.directions.AB.stops[1].id,
+    revision: manifest.revision,
+  };
+
+  await assert.rejects(
+    generateGpxSelection({
+      manifest,
+      selection,
+      generatedAt: new Date(),
+      loadSource: async () => {
+        throw new GpxSourceError(
+          'source_stale',
+          'La trace officielle a été actualisée et doit être requalifiée.'
+        );
+      },
+    }),
+    (error) => error instanceof GpxBuilderError
+      && error.code === 'source_stale'
+      && /requalifiée/.test(error.message)
+  );
+
+  const internalError = new Error('sensitive internal detail');
+  await assert.rejects(
+    generateGpxSelection({
+      manifest,
+      selection,
+      generatedAt: new Date(),
+      loadSource: async () => {
+        throw internalError;
+      },
+    }),
+    (error) => error === internalError
   );
 });
 

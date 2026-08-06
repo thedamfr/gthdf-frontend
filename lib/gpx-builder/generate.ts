@@ -7,6 +7,7 @@ import type {
   GpxBuilderMedia,
   GpxBuilderStop,
 } from './manifest.ts';
+import { GpxSourceError } from './source-loader-core.ts';
 
 const MAXIMUM_CHAPTERS = 10;
 const SOURCE_CONCURRENCY = 4;
@@ -16,6 +17,9 @@ export type GpxBuilderErrorCode =
   | 'stale_revision'
   | 'invalid_selection'
   | 'invalid_manifest'
+  | 'source_unavailable'
+  | 'source_invalid'
+  | 'source_stale'
   | 'generation_failed';
 
 export class GpxBuilderError extends Error {
@@ -173,14 +177,22 @@ export async function generateGpxSelection(
     selectionCrossesLoopOrigin
   );
   const sourceIndexes = [...new Set(selectedVisitIndexes)];
-  const documents = await loadWithConcurrency(
-    sourceIndexes,
-    SOURCE_CONCURRENCY,
-    (chapterIndex) => {
-      const chapter = direction.chapters[chapterIndex];
-      return input.loadSource(chapter.media, chapter.sourceSha256);
+  let documents: GpxDocument[];
+  try {
+    documents = await loadWithConcurrency(
+      sourceIndexes,
+      SOURCE_CONCURRENCY,
+      (chapterIndex) => {
+        const chapter = direction.chapters[chapterIndex];
+        return input.loadSource(chapter.media, chapter.sourceSha256);
+      }
+    );
+  } catch (error) {
+    if (error instanceof GpxSourceError) {
+      throw new GpxBuilderError(error.code, error.message);
     }
-  );
+    throw error;
+  }
   const documentsByIndex = new Map(
     sourceIndexes.map((chapterIndex, index) => [chapterIndex, documents[index]])
   );

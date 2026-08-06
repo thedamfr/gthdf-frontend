@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  GpxSourceError,
   loadOfficialGpxSourceWithOptions as loadOfficialGpxSource,
 } from '../lib/gpx-builder/source-loader-core.ts';
 import { sha256Hex } from '../lib/gpx/hash.ts';
@@ -53,7 +54,9 @@ test('loadOfficialGpxSource rejects untrusted and stale sources', async () => {
       'f'.repeat(64),
       options
     ),
-    /actualisée/
+    (error) => error instanceof GpxSourceError
+      && error.code === 'source_stale'
+      && /actualisée/.test(error.message)
   );
 });
 
