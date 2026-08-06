@@ -1,6 +1,6 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.5\
+**Version :** 0.6\
 **Date :** 6 août 2026\
 **Statut :** prêt pour revue produit et technique\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -68,6 +68,8 @@ Les décisions structurantes sont les suivantes :
 13. les ancrages AB primaires validés par le PRD 03 amorcent les occurrences
     correspondantes avec une provenance explicite ; ils ne remplacent ni le
     calcul, ni la revue des 449 occurrences attendues.
+14. le catalogue reprend aussi la qualification AB des lieux de jonction du
+    PRD 03 ; il ne crée pas une seconde décision éditoriale pour le même lieu.
 
 ## 2. Contexte et problème
 
@@ -412,6 +414,13 @@ exige une décision documentée et une nouvelle version d’algorithme.
 Une portion traversant `accepted_gap` est exportée avec plusieurs `trkseg` et
 porte un avertissement calculé. Une portion traversant `blocked` ou
 `pending_review` ne peut pas atteindre l’état prêt à publier.
+
+Le lieu éditorial est commun aux qualifications AB et BA du PRD 03. Il utilise
+la gare SNCF voyageurs par défaut ; Condé-sur-l’Escaut retient le point près
+des fortifications. Comme le catalogue MVP ne calcule que la géométrie AB, il
+importe la qualification AB et sa provenance au lieu de redemander une revue
+du même lieu. Les empreintes et l’écart restent néanmoins ceux des médias AB
+canoniques.
 
 ## 9. Définitions métier affinées
 
@@ -1803,6 +1812,8 @@ Différences intentionnelles :
 Les ancrages AB primaires peuvent être importés comme
 `RouteAnchor.origin=prd03_primary` s’ils correspondent au média et à
 l’occurrence courants. Ils ne remplacent pas les 449 occurrences attendues.
+Les jonctions AB qualifiées sont reprises avec leur lieu et leur note de revue
+sans fusionner les données directionnelles du PRD 03.
 Le job ne doit pas appeler l’endpoint public du Builder : fermer le Builder ne
 ferme pas le catalogue.
 
@@ -1827,6 +1838,7 @@ transverse ultérieur. Ils ne conditionnent ni le calcul, ni la publication.
 - ancrages AB primaires du PRD 03 réutilisés avec provenance, sans réduire le
   nombre d’occurrences attendu ;
 - jonctions explicites, aucune ligne inventée ;
+- lieux de jonction PRD 03 réutilisés sans seconde décision éditoriale ;
 - séparation itinéraire/révision ;
 - commande serveur, pas de cron ou route longue ;
 - dry run strict puis apply par hash ;
@@ -1842,8 +1854,8 @@ transverse ultérieur. Ils ne conditionnent ni le calcul, ni la publication.
 
 ### Validations réellement restantes
 
-- accepter ou corriger chacune des cinq jonctions non exactes, en particulier
-  les 225 m de fermeture à Hirson ;
+- appliquer puis publier les cinq qualifications de jonction préparées dans
+  le PRD 03 ; le catalogue doit vérifier leurs empreintes avant import ;
 - choisir où versionner le XLSX original, son manifeste normalisé et les
   snapshots de limites administratives ;
 - confirmer la forme finale de la tâche serveur one-shot du catalogue sur

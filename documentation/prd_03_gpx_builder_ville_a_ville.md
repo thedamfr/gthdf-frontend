@@ -1,6 +1,6 @@
 # PRD 03 — GPX Builder v2 : créer une portion officielle ville à ville
 
-**Version :** 1.1\
+**Version :** 1.2\
 **Date :** 6 août 2026\
 **Statut :** implémenté localement — qualification éditoriale et activation en attente\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
@@ -43,6 +43,8 @@ Les décisions structurantes sont les suivantes :
   ordonnés des chapitres ;
 - chaque passage possède un ancrage précis et validé sur chacun des GPX AB et
   BA du chapitre ;
+- chaque frontière de chapitre utilise un seul lieu de jonction éditorial,
+  commun aux sens AB et BA, sans rendre leurs géométries interchangeables ;
 - la génération utilise seulement les points des GPX officiels, jamais la
   géométrie simplifiée du PRD 02 ;
 - les coordonnées et altitudes de la portion sont conservées ;
@@ -263,6 +265,13 @@ Une même ville peut être le dernier passage d’un chapitre et le premier du
 suivant. Si les deux ancrages décrivent la même jonction validée, l’interface
 affiche un seul arrêt public.
 
+Le lieu de jonction éditorial est choisi une seule fois pour les deux sens.
+Par défaut, il s’agit de la gare SNCF voyageurs de la ville lorsqu’elle existe
+et constitue un repère adapté. Une exception peut utiliser un repère stable et
+nommé : à Condé-sur-l’Escaut, le point retenu se situe près des fortifications.
+Cette symétrie éditoriale ne permet jamais de dériver une géométrie ou un
+dénivelé BA depuis AB.
+
 Le manifeste serveur conserve néanmoins les deux côtés de la frontière afin de
 savoir quel fichier terminer ou commencer lors de l’extraction.
 
@@ -447,6 +456,12 @@ Le même point calculé devient l’extrémité exacte du document généré.
 
 ### 10.5 Jonctions
 
+- une décision éditoriale qualifie le même lieu pour AB et BA ;
+- le CMS conserve néanmoins deux enregistrements directionnels, car chacun est
+  lié aux empreintes et aux extrémités de ses deux médias adjacents ;
+- la gare SNCF voyageurs est le repère par défaut ; un repère stable et nommé
+  est accepté pour les exceptions, comme les fortifications à
+  Condé-sur-l’Escaut ;
 - une jonction exacte peut réunir deux séquences en dédupliquant le point
   commun ;
 - une rupture connue et acceptée reste représentée par deux `trkseg` ;
@@ -768,14 +783,22 @@ prouver que le média BA est réellement utilisé.
 1. ajouter le composant d’ancrage et les validations ;
 2. ajouter la commande de proposition et ses tests ;
 3. lancer le dry run sur les 233 passages et les deux directions ;
-4. résoudre les ambiguïtés ;
-5. appliquer uniquement aux brouillons ;
-6. relire puis publier les chapitres ;
-7. laisser le Builder v2 désactivé.
+4. renseigner une seule décision par lieu de jonction et la décliner en AB et
+   BA dans le rapport ;
+5. résoudre les ambiguïtés d’ancrage ;
+6. appliquer uniquement aux brouillons ;
+7. relire puis publier les chapitres ;
+8. laisser le Builder v2 désactivé.
 
 Le rapport conserve les hashes avant/après, les passages non résolus et les
 commandes de retour arrière. Aucune migration ne remplace une valeur validée
 sans décision explicite.
+
+Le composant `gpx-junction` existant suffit : le libellé du lieu et la
+justification sont conservés dans sa note de revue. La préparation accepte un
+tableau `junctionPairs` et crée les deux résolutions directionnelles. Cette
+évolution du fichier de données ne nécessite donc pas de migration de schéma
+Strapi.
 
 ### 20.2 PR frontend
 
@@ -929,6 +952,8 @@ dépendance d’exécution : fermer le Builder ne ferme pas les pages catalogue.
 - aucune notion de durée ou de journée recommandée ;
 - un seul fichier par sélection ;
 - ancrages primaires stockés par passage et direction ;
+- un lieu de jonction éditorial partagé par frontière, décliné en deux
+  qualifications techniques AB et BA ;
 - calcul des ancrages hors requête publique puis validation ;
 - génération à la demande côté Next ;
 - coordonnées et altitudes conservées, temps omis ;
@@ -939,7 +964,8 @@ dépendance d’exécution : fermer le Builder ne ferme pas les pages catalogue.
 ### Validations techniques restantes
 
 - qualifier les 233 passages dans les deux sens et recenser les ambiguïtés ;
-- qualifier les jonctions AB et BA ;
+- appliquer aux brouillons les cinq décisions de jonction partagées déjà
+  préparées, après la revue des ancrages ;
 - mesurer le coût froid et chaud sur Clever Cloud `nano` ;
 - confirmer la stratégie de cache et d’invalidation par hash ;
 - tester les GPX générés dans les applications de navigation retenues ;
@@ -964,7 +990,7 @@ Le même contrat de découpe peut alors alimenter le catalogue du PRD 04 sans
 transformer le Builder en générateur de pages SEO ni réduire les occurrences
 exhaustives du catalogue à ses seuls arrêts éditoriaux.
 
-## 26. Bilan d’implémentation de la version 1.1
+## 26. Bilan d’implémentation de la version 1.2
 
 Le 6 août 2026, l’implémentation locale couvre :
 
@@ -982,8 +1008,8 @@ Le 6 août 2026, l’implémentation locale couvre :
 - les occurrences répétées désambiguïsées et les villes de frontière
   consécutives regroupées sans perdre leurs deux côtés techniques.
 
-Vérifications exécutées sur ce snapshot : 85 tests CMS, build Strapi, 81 tests
-unitaires Frontend, 15 tests composants, lint et build Next complets. La
+Vérifications exécutées sur ce snapshot : 94 tests CMS, build Strapi, 86 tests
+unitaires Frontend, 17 tests composants, lint et build Next complets. La
 requête Strapi imbriquée du manifeste a également été vérifiée sur l’API
 locale : dix chapitres et leurs passages sont retournés sans erreur.
 
@@ -992,11 +1018,15 @@ dix chapitres et propose les 466 ancrages attendus sans blocage ni erreur. Il
 signale 179 ancrages à revue renforcée : 153 à plus de 1 000 m de l’ancre
 communale et 67 avec une occurrence distante concurrente, ces catégories
 pouvant se recouvrir. Dix jonctions sont exactes ; dix autres demandent une
-décision explicite, avec un écart maximal observé de 225,4 m. Aucune donnée
-n’a été écrite.
+décision explicite, avec un écart maximal observé de 225,4 m. Elles
+correspondent à cinq lieux physiques : les gares d’Arras, Hirson, Soissons et
+Lille-Flandres, ainsi que le point près des fortifications de
+Condé-sur-l’Escaut. Un second dry run développe ces cinq décisions partagées
+en dix qualifications `accepted_gap`, sans blocage, erreur ni écriture.
 
 Le lot n’est pas activable publiquement à ce stade : les 233 passages × deux
-directions et les vingt jonctions doivent encore être relus, appliqués aux
-brouillons puis publiés. La recette réelle Boulogne-sur-Mer → Gravelines, les
-deux applications de navigation et les mesures Clever Cloud restent les
-conditions de mise en service. Le coupe-circuit demeure donc à `false`.
+directions doivent encore être relus ; leurs ancrages et les vingt jonctions
+doivent ensuite être appliqués aux brouillons puis publiés. La recette réelle
+Boulogne-sur-Mer → Gravelines, les deux applications de navigation et les
+mesures Clever Cloud restent les conditions de mise en service. Le
+coupe-circuit demeure donc à `false`.

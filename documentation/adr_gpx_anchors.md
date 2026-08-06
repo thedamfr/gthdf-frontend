@@ -47,7 +47,12 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 8. Chaque chapitre porte aussi une jonction qualifiée par sens, liée aux
    empreintes des deux médias adjacents. Une jonction exacte est réunie ; un
    écart accepté reste deux séquences ; une jonction bloquée ferme la portion.
-9. Un coupe-circuit CMS désactivé par défaut ne peut être activé que si toute
+9. Une frontière de chapitre possède un seul lieu de jonction éditorial,
+   commun à AB et BA : la gare SNCF voyageurs par défaut, ou un repère stable
+   et nommé en exception. La décision est saisie une fois puis développée en
+   deux qualifications directionnelles, sans partager leurs empreintes,
+   géométries ni métriques.
+10. Un coupe-circuit CMS désactivé par défaut ne peut être activé que si toute
    la boucle publiée satisfait ces invariants.
 
 ## Conséquences
@@ -58,6 +63,8 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 - le téléchargement échoue de façon sûre si une source change ;
 - les cas multi-chapitres restent déterministes ;
 - la sélection publique reste simple ;
+- une frontière ne demande qu’une décision éditoriale, même si sa validité
+  technique reste contrôlée séparément dans chaque sens ;
 - PRD 03 amorce une partie du travail d’ancrage de PRD 04 sans remplacer son
   modèle exhaustif ;
 - aucune paire de villes n’est pré-générée ou stockée pour le Builder.
