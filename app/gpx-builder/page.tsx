@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: 'Choisissez deux villes du Grand Tour des Hauts-de-France et téléchargez la portion officielle dans le bon sens.',
 };
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function GpxBuilderPage() {
   const manifest = toPublicGpxBuilderManifest(await getGpxBuilderManifest());

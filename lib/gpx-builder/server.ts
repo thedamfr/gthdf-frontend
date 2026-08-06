@@ -11,6 +11,10 @@ import {
   type GpxBuilderChapterInput,
   type GpxBuilderManifest,
 } from './manifest.ts';
+import {
+  gpxBuilderStrapiCacheOptions,
+  type GpxBuilderStrapiRequestKind,
+} from './cache-policy.ts';
 
 const STRAPI_RESPONSE_LIMIT_BYTES = 3 * 1024 * 1024;
 const STRAPI_REQUEST_TIMEOUT_MILLISECONDS = 10_000;
@@ -32,14 +36,18 @@ function strapiConfiguration(): { baseUrl: string; token: string } {
   return { baseUrl: url.origin, token };
 }
 
-async function requestStrapiJson<T>(pathname: string, query: URLSearchParams): Promise<T> {
+async function requestStrapiJson<T>(
+  pathname: string,
+  query: URLSearchParams,
+  requestKind: GpxBuilderStrapiRequestKind
+): Promise<T> {
   const { baseUrl, token } = strapiConfiguration();
   const response = await fetch(`${baseUrl}${pathname}?${query}`, {
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    next: { revalidate: 60 },
+    ...gpxBuilderStrapiCacheOptions(requestKind),
     redirect: 'error',
     signal: AbortSignal.timeout(STRAPI_REQUEST_TIMEOUT_MILLISECONDS),
   });
@@ -68,7 +76,7 @@ async function featureEnabled(): Promise<boolean> {
   });
   const payload = await requestStrapiJson<{
     data?: { gpxBuilderEnabled?: unknown } | null;
-  }>('/api/global', query);
+  }>('/api/global', query, 'feature-switch');
   return payload.data?.gpxBuilderEnabled === true;
 }
 
@@ -100,7 +108,7 @@ async function publishedChapters(): Promise<GpxBuilderChapterInput[]> {
   });
   const payload = await requestStrapiJson<{
     data?: GpxBuilderChapterInput[];
-  }>('/api/chapters', query);
+  }>('/api/chapters', query, 'chapters');
   if (!Array.isArray(payload.data)) {
     throw new Error('missing_chapters');
   }
