@@ -85,7 +85,7 @@ calcul, ni réduire ce modèle exhaustif aux seuls arrêts du Builder.
 - le CMS et le frontend sont tous deux modifiés ;
 - les 233 passages doivent être qualifiés dans deux sens ;
 - les cas ambigus demandent une revue humaine ;
-- le premier passage primaire ne qualifie pas les autres occurrences d’une
+- l’arrêt primaire ne qualifie pas les autres occurrences d’une
   commune attendues par le PRD 04 ;
 - une modification de GPX impose de recalculer les ancrages concernés ;
 - les contrats partagés doivent être validés dans deux dépôts qui ne publient

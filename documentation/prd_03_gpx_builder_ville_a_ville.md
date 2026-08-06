@@ -45,7 +45,7 @@ Les décisions structurantes sont les suivantes :
   ordonnés des chapitres ;
 - chaque passage possède un ancrage précis et validé sur chacun des GPX AB et
   BA du chapitre ;
-- l’arrêt primaire intermédiaire reprend le premier passage AB du jeu
+- l’arrêt primaire intermédiaire reprend le premier chaînage AB du jeu
   contrôlé, puis le même lieu est rapproché sur le GPX BA ;
 - chaque frontière de chapitre utilise un seul lieu de jonction éditorial,
   commun aux sens AB et BA, sans rendre leurs géométries interchangeables ;
@@ -983,7 +983,7 @@ dépendance d’exécution : fermer le Builder ne ferme pas les pages catalogue.
 - aucune notion de durée ou de journée recommandée ;
 - un seul fichier par sélection ;
 - ancrages primaires stockés par passage et direction ;
-- premier passage AB contrôlé retenu comme arrêt primaire intermédiaire, puis
+- premier chaînage AB contrôlé retenu comme arrêt primaire intermédiaire, puis
   rapproché sur le média BA ;
 - un lieu de jonction éditorial partagé par frontière, décliné en deux
   qualifications techniques AB et BA ;
