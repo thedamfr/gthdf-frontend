@@ -254,8 +254,7 @@ trace officielle retenue, sans vocabulaire AB/BA.
 - une ville n’a pas besoin de `hasPublicPage=true` pour être sélectionnable ;
 - elle doit être publiée, référencée par un chapitre publié et disposer d’un
   ancrage validé dans les deux sens ;
-- le départ ne peut pas être identique à l’arrivée ;
-- lorsque la boucle revient à son origine, le résumé le signale explicitement.
+- le départ ne peut pas être identique à l’arrivée.
 
 Une ville réellement rencontrée plusieurs fois reste représentée par plusieurs
 arrêts désambiguïsés, par exemple avec le chapitre ou la position relative.
@@ -287,8 +286,7 @@ Après une sélection valide, afficher :
 - le dénivelé positif et négatif disponibles, préfixés par `~` ;
 - les chapitres traversés dans l’ordre ;
 - le nombre de séquences si une rupture connue impose plusieurs segments ;
-- un avertissement de jonction le cas échéant ;
-- un rappel : `Cette portion ne constitue pas une estimation de durée.`
+- un avertissement de jonction le cas échéant.
 
 Le bouton de téléchargement reste désactivé tant que le serveur n’a pas
 confirmé que la configuration et les sources sont cohérentes.

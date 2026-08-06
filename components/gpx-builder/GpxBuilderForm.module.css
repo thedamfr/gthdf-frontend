@@ -196,16 +196,6 @@
   background: var(--color-beige);
 }
 
-.loopNotice,
-.durationNote {
-  margin: 0 0 1.25rem;
-  font-weight: 700;
-}
-
-.durationNote {
-  font-style: italic;
-}
-
 @media (max-width: 700px) {
   .cityGrid,
   .metrics {

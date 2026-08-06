@@ -405,19 +405,11 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
               <dd>{summary.sequenceCount}</dd>
             </div>
           </dl>
-          {summary.usesLoopOrigin && (
-            <p className={styles.loopNotice}>
-              Cette portion passe par l’origine d’affichage de la boucle.
-            </p>
-          )}
           {summary.warnings.length > 0 && (
             <p className={styles.warning}>
               Cette portion comporte {summary.warnings.length === 1 ? 'une interruption qualifiée' : `${summary.warnings.length} interruptions qualifiées`} entre deux traces officielles.
             </p>
           )}
-          <p className={styles.durationNote}>
-            Cette portion ne constitue pas une estimation de durée.
-          </p>
           <button
             className={styles.downloadButton}
             type="button"
