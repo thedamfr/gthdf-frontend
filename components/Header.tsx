@@ -15,6 +15,7 @@ const navLinks: NavLink[] = [
   { href: '/chapitres', label: 'Chapitres' },
   { href: '/blog', label: 'Blog' },
   { href: '/checkpoints', label: 'Checkpoints' },
+  { href: '/gpx-builder', label: 'Tracer mon parcours' },
   { href: '/a-propos', label: 'À propos' },
   { href: '/mentions-legales', label: 'Mentions' },
 ];
