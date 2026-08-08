@@ -12,9 +12,10 @@ import {
   type CityChapter,
 } from '@/lib/cities';
 import { getCityRoleLabel } from '@/lib/city-content';
+import { getFeaturedItinerariesForCity } from '@/lib/itineraries/server';
 import styles from './page.module.css';
 
-export const revalidate = 300;
+export const revalidate = 60;
 export const dynamicParams = true;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gthf.fr';
@@ -125,6 +126,8 @@ export default async function CityPage({ params }: CityPageProps) {
     notFound();
   }
 
+  const featuredItineraries = await getFeaturedItinerariesForCity(city.documentId);
+
   return (
     <main className={styles.page}>
       <Link href="/chapitres" className={styles.backLink}>
@@ -159,6 +162,27 @@ export default async function CityPage({ params }: CityPageProps) {
               </article>
             ))}
           </div>
+        </section>
+      )}
+
+      {featuredItineraries.length > 0 && (
+        <section className={styles.itineraries} aria-labelledby="city-itineraries-title">
+          <h2 id="city-itineraries-title">Itinéraires à vélo</h2>
+          <ul className={styles.itineraryGrid}>
+            {featuredItineraries.map((itinerary) => (
+              <li key={itinerary.documentId}>
+                <Link href={`/itineraires-velo/${itinerary.slug}`}>
+                  <strong>{itinerary.departure.name} → {itinerary.arrival.name}</strong>
+                  <span>
+                    {(itinerary.distanceMetres / 1000).toLocaleString('fr-FR', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })} km sur le GTHF
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

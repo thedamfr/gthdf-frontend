@@ -12,7 +12,8 @@
 }
 
 .backLink:focus-visible,
-.chapterCard a:focus-visible {
+.chapterCard a:focus-visible,
+.itineraryGrid a:focus-visible {
   outline: 3px solid var(--color-rouge);
   outline-offset: 3px;
 }
@@ -82,6 +83,40 @@
   opacity: 0.75;
 }
 
+.itineraries {
+  margin-top: 3rem;
+}
+
+.itineraries > h2 {
+  margin-bottom: 1.5rem;
+  padding-left: 1rem;
+  border-left: 6px solid var(--color-vert);
+  font-size: 2rem;
+}
+
+.itineraryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.itineraryGrid a {
+  display: grid;
+  min-height: 88px;
+  align-content: center;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 3px solid var(--color-vert);
+  color: var(--color-charbon);
+  text-underline-offset: 0.2em;
+}
+
+.itineraryGrid span {
+  font-size: 0.92rem;
+}
+
 @media (max-width: 700px) {
   .page {
     width: min(100% - 2rem, 1100px);
@@ -97,6 +132,10 @@
   }
 
   .chapters > h2 {
+    font-size: 1.65rem;
+  }
+
+  .itineraries > h2 {
     font-size: 1.65rem;
   }
 }

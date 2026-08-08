@@ -32,10 +32,10 @@ Create `.env.local` from `.env.example`. `PREVIEW_SECRET` must contain the
 same long random value in the frontend and CMS environments. Keep it
 server-only: do not prefix it with `NEXT_PUBLIC_`.
 
-Le GPX Builder utilise également `STRAPI_API_TOKEN`, strictement serveur. Le
-token legacy `NEXT_PUBLIC_STRAPI_API_TOKEN` utilisé par d’anciens écrans ne
-doit pas être repris pour cette fonctionnalité. Les origines objet autorisées
-se configurent avec `STRAPI_MEDIA_ORIGINS`.
+Toutes les lectures authentifiées utilisent `STRAPI_API_TOKEN`, strictement
+serveur. La variable legacy `NEXT_PUBLIC_STRAPI_API_TOKEN` n’est pas prise en
+charge et ne doit jamais être définie. Les origines objet autorisées se
+configurent avec `STRAPI_MEDIA_ORIGINS`.
 
 First, run the development server:
 
@@ -63,6 +63,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `/villes/[slug]` : Hub d'une ville publiée et activée dans Strapi
 - `/checkpoints` : Page checkpoints CMS + accordéon
 - `/gpx-builder` : Générateur d’une portion officielle entre deux villes
+- `/itineraires-velo/[slug]` : Itinéraire ville à ville publié et vérifié
 - `/blog` : Liste des articles avec filtre par catégorie (`?category=slug`)
 - `/article/[slug]` : Détail article
 - `/a-propos` : Page à propos CMS (title + blocks)
