@@ -32,7 +32,7 @@ test('the GPX proxy validates options, bytes and binary hash', async () => {
     dependencies(async (url, init) => {
       assert.equal(url, 'http://localhost:1340/uploads/calais-boulogne-gthf.gpx');
       assert.equal(init.redirect, 'error');
-      assert.equal(init.cache, 'force-cache');
+      assert.equal(init.cache, 'no-store');
       assert.equal((init.headers as Record<string, string>).Accept, 'application/gpx+xml');
       return new Response(gpxBytes, {
         headers: {

@@ -141,7 +141,7 @@ export async function loadItineraryArtifactWithDependencies(
   try {
     response = await dependencies.fetchImpl(url, {
       headers: { Accept: expected.allowedMimeTypes.join(', ') },
-      cache: 'force-cache',
+      cache: 'no-store',
       redirect: 'error',
       signal: dependencies.timeoutSignal(MEDIA_TIMEOUT_MILLISECONDS),
     });
