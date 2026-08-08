@@ -6,6 +6,7 @@ import { getPublicCatalogueEntries } from '@/lib/itineraries/server';
 import { loadCatalogueSitemapRoutes } from '@/lib/itineraries/sitemap-core';
 
 export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gthf.fr';
 
@@ -88,8 +89,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Keep the sitemap available if Strapi is temporarily unavailable.
   }
 
-  // Catalogue failures deliberately propagate: Next can then retain the last
-  // valid ISR response instead of caching a false empty catalogue.
+  // Catalogue failures deliberately propagate: the dynamic route returns an
+  // upstream error instead of caching a false empty catalogue.
   const itineraryRoutes = await loadCatalogueSitemapRoutes(
     getPublicCatalogueEntries,
     BASE_URL

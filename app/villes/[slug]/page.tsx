@@ -16,6 +16,7 @@ import { getFeaturedItinerariesForCity } from '@/lib/itineraries/server';
 import styles from './page.module.css';
 
 export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gthf.fr';
