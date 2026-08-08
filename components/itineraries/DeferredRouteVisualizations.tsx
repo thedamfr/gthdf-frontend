@@ -89,11 +89,10 @@ export default function DeferredRouteVisualizations({
       aria-labelledby="itinerary-map-title"
     >
       <div className={styles.sectionHeading}>
-        <p className={styles.eyebrow}>Tracé réel</p>
-        <h2 id="itinerary-map-title">Carte de la portion</h2>
+        <p className={styles.eyebrow}>Tracé officiel</p>
+        <h2 id="itinerary-map-title">Aperçu du tracé</h2>
         <p>
-          La trace suit la géométrie simplifiée du GPX officiel. Les éventuelles ruptures
-          restent séparées.
+          Cette vue schématique montre la forme de la portion, son départ et son arrivée.
         </p>
       </div>
 
