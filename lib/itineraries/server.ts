@@ -11,6 +11,7 @@ import { guardCityItinerary } from './guard';
 import { itineraryStrapiCacheOptions, type ItineraryRequestKind } from './cache-policy';
 import {
   catalogueFeatureIsOpen,
+  loadOptionalCatalogueEntries,
   readCatalogueFeatureState,
   resolveCatalogueItineraryCore,
   type CatalogueFeatureState,
@@ -413,12 +414,15 @@ export const getFeaturedItinerariesForCity = cache(async (
     return [];
   }
 
-  const guarded = await getPublicGuardedItineraries({
-    'filters[featuredOnCityPages][$eq]': 'true',
-    'filters[seoStatus][$eq]': 'indexable',
-    'filters[$or][0][cityA][documentId][$eq]': cityDocumentId,
-    'filters[$or][1][cityB][documentId][$eq]': cityDocumentId,
-  });
+  const guarded = await loadOptionalCatalogueEntries(
+    () => getPublicGuardedItineraries({
+      'filters[featuredOnCityPages][$eq]': 'true',
+      'filters[seoStatus][$eq]': 'indexable',
+      'filters[$or][0][cityA][documentId][$eq]': cityDocumentId,
+      'filters[$or][1][cityB][documentId][$eq]': cityDocumentId,
+    }),
+    (error) => console.error('Catalogue city hub unavailable:', error)
+  );
 
   return guarded
     .map((entry) => entry.dto)

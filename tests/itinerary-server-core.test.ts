@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   catalogueFeatureIsOpen,
   CatalogueUnavailableError,
+  loadOptionalCatalogueEntries,
   readCatalogueFeatureState,
   resolveCatalogueItineraryCore,
 } from '../lib/itineraries/server-core.ts';
@@ -43,6 +44,23 @@ test('a configuration failure is missing rather than an upstream response', asyn
     (error) => error instanceof ConfigurationError
   );
   assert.deepEqual(state, { kind: 'missing', reason: 'missing_private_token' });
+});
+
+test('an optional city hub never fails its legacy page when the catalogue is unavailable', async () => {
+  const reported: unknown[] = [];
+  const entries = await loadOptionalCatalogueEntries(
+    async () => { throw new CatalogueUnavailableError('missing_feature_switch'); },
+    (error) => reported.push(error)
+  );
+
+  assert.deepEqual(entries, []);
+  assert.equal(reported.length, 1);
+  assert.ok(reported[0] instanceof CatalogueUnavailableError);
+});
+
+test('an optional city hub preserves available catalogue entries', async () => {
+  const entries = [{ slug: 'abbeville-amiens' }];
+  assert.equal(await loadOptionalCatalogueEntries(async () => entries), entries);
 });
 
 test('an authoritative closed flag resolves a public slug as not found', async () => {

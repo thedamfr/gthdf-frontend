@@ -20,6 +20,18 @@ export class CatalogueUnavailableError extends Error {
   }
 }
 
+export async function loadOptionalCatalogueEntries<T>(
+  loadEntries: () => Promise<T[]>,
+  reportError: (error: unknown) => void = () => undefined
+): Promise<T[]> {
+  try {
+    return await loadEntries();
+  } catch (error) {
+    reportError(error);
+    return [];
+  }
+}
+
 export function classifyCatalogueFeaturePayload(payload: unknown): CatalogueFeatureState {
   if (!payload || typeof payload !== 'object') {
     return { kind: 'missing', reason: 'missing_feature_switch' };
