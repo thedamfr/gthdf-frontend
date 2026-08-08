@@ -145,8 +145,10 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
         <h1>{defaultHeading}</h1>
         {customTitle !== defaultHeading && <p className={styles.editorialTitle}>{customTitle}</p>}
         <p className={styles.routeContext}>
-          Cette distance suit le tracé officiel du Grand Tour des Hauts-de-France ; elle ne
-          correspond pas à une ligne droite entre les deux villes.
+          Cet itinéraire cyclotouristique suit le tracé officiel du Grand Tour des
+          Hauts-de-France et privilégie, autant que possible, un parcours confortable pour les
+          familles. La distance affichée suit ce tracé : elle ne correspond pas à une ligne
+          droite entre les deux villes.
         </p>
       </header>
 
