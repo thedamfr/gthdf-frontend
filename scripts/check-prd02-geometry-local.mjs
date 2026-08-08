@@ -132,7 +132,7 @@ const frontendUrl = localUrl(
   'LOCAL_FRONTEND_URL',
   'http://localhost:3000'
 );
-const apiToken = process.env.STRAPI_API_TOKEN || process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
+const apiToken = process.env.STRAPI_API_TOKEN;
 const headers = {
   Accept: 'application/json',
   ...(apiToken ? { Authorization: `Bearer ${apiToken}` } : {}),

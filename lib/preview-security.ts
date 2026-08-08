@@ -11,6 +11,7 @@ const DYNAMIC_PREVIEW_BASES = new Set([
   'article',
   'auteur',
   'chapitres',
+  'itineraires-velo',
   'villes',
 ]);
 

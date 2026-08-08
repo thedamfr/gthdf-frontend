@@ -1,0 +1,277 @@
+.page {
+  width: min(1120px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 2.75rem 0 5rem;
+  overflow-wrap: anywhere;
+}
+
+.backLink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-bottom: 1.75rem;
+  color: var(--color-charbon);
+  font-weight: 700;
+  text-underline-offset: 0.2em;
+}
+
+.backLink:focus-visible,
+.page a:focus-visible,
+.downloadButton:focus-visible {
+  outline: 3px solid var(--color-rouge);
+  outline-offset: 4px;
+}
+
+.previewBanner {
+  margin-bottom: 1.25rem;
+  padding: 0.8rem 1rem;
+  border: 3px solid var(--color-jaune);
+  background: #fff8df;
+  font-weight: 800;
+}
+
+.header {
+  max-width: 980px;
+  padding: 1rem 0 2.75rem;
+  border-bottom: 4px solid var(--color-charbon);
+}
+
+.eyebrow {
+  margin-bottom: 0.55rem;
+  color: var(--color-bleu);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  max-width: 950px;
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+}
+
+.editorialTitle {
+  margin-top: 1.25rem;
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+.routeContext {
+  max-width: 760px;
+  margin-top: 1.25rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.summary {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 2.75rem;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  border: 4px solid var(--color-bleu);
+  background: #fffaf0;
+}
+
+.summary h2,
+.introduction h2,
+.routeLists h2,
+.warnings h2 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.metrics > div {
+  min-width: 0;
+  padding: 1rem;
+  border-left: 5px solid var(--color-vert);
+  background: var(--color-creme);
+}
+
+.metrics dt {
+  min-height: 3em;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.metrics dd {
+  margin-top: 0.4rem;
+  font-family: var(--font-brand);
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  line-height: 1.1;
+}
+
+.downloadButton {
+  display: inline-flex;
+  min-height: 52px;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.2rem;
+  border: 3px solid var(--color-charbon);
+  background: var(--color-rouge);
+  color: white;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 5px 5px 0 var(--color-charbon);
+}
+
+.downloadButton:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 var(--color-charbon);
+}
+
+.downloadNote,
+.listNote,
+.updatedAt {
+  font-size: 0.95rem;
+  opacity: 0.78;
+}
+
+.warnings {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 4px solid var(--color-jaune);
+  background: #fff8df;
+}
+
+.warnings ul {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  padding-left: 1.25rem;
+}
+
+.introduction {
+  display: grid;
+  gap: 1rem;
+  max-width: 840px;
+  margin-top: 3rem;
+}
+
+.introduction p {
+  font-size: 1.08rem;
+  line-height: 1.75;
+  white-space: pre-line;
+}
+
+.routeLists {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2rem;
+  margin-top: 3.25rem;
+}
+
+.routeLists > section {
+  min-width: 0;
+  padding-top: 1.25rem;
+  border-top: 5px solid var(--color-charbon);
+}
+
+.chapterList,
+.cityList {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: route-item;
+}
+
+.chapterList li,
+.cityList li {
+  position: relative;
+  min-width: 0;
+  padding: 1rem 1rem 1rem 3.4rem;
+  border: 2px solid var(--color-beige);
+  background: #fffaf0;
+  counter-increment: route-item;
+}
+
+.chapterList li::before,
+.cityList li::before {
+  content: counter(route-item);
+  position: absolute;
+  top: 0.8rem;
+  left: 0.8rem;
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-bleu);
+  color: white;
+  font-weight: 800;
+}
+
+.chapterList a,
+.cityList a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--color-charbon);
+  font-weight: 800;
+  text-underline-offset: 0.2em;
+}
+
+.chapterList span {
+  display: block;
+  font-size: 0.92rem;
+  opacity: 0.78;
+}
+
+.listNote {
+  margin-top: 1rem;
+}
+
+.updatedAt {
+  margin-top: 2rem;
+  text-align: right;
+}
+
+@media (max-width: 820px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .routeLists {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .page {
+    width: min(100% - 2rem, 1120px);
+    padding-top: 1.5rem;
+  }
+
+  .header h1 {
+    font-size: clamp(2.25rem, 14vw, 3.5rem);
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics dt {
+    min-height: 0;
+  }
+
+  .downloadButton {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .downloadButton:hover {
+    transform: none;
+  }
+}

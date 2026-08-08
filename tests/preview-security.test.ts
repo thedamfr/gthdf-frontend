@@ -8,6 +8,7 @@ import {
 
 test('isAllowedPreviewPath accepts only known internal routes', () => {
   assert.equal(isAllowedPreviewPath('/chapitres/saint-omer-calais'), true);
+  assert.equal(isAllowedPreviewPath('/itineraires-velo/calais-boulogne-sur-mer'), true);
   assert.equal(isAllowedPreviewPath('https://example.com'), false);
   assert.equal(isAllowedPreviewPath('//example.com'), false);
   assert.equal(isAllowedPreviewPath('/chapitres/../../admin'), false);
