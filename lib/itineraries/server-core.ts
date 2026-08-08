@@ -69,7 +69,7 @@ export function catalogueFeatureIsOpen(
   if (preview || state.kind === 'open') {
     return true;
   }
-  if (state.kind === 'authoritative_closed') {
+  if (state.kind === 'authoritative_closed' || state.kind === 'missing') {
     return false;
   }
   throw new CatalogueUnavailableError(state.reason);

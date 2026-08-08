@@ -22,6 +22,10 @@ test('an explicit false feature flag is authoritative while missing data fails c
     { kind: 'missing', reason: 'missing_feature_switch' }
   );
   assert.equal(catalogueFeatureIsOpen({ kind: 'authoritative_closed' }), false);
+  assert.equal(
+    catalogueFeatureIsOpen({ kind: 'missing', reason: 'missing_feature_switch' }),
+    false
+  );
 });
 
 test('network and Strapi 500 failures remain distinguishable from an authoritative 404', async () => {
@@ -44,6 +48,7 @@ test('a configuration failure is missing rather than an upstream response', asyn
     (error) => error instanceof ConfigurationError
   );
   assert.deepEqual(state, { kind: 'missing', reason: 'missing_private_token' });
+  assert.equal(catalogueFeatureIsOpen(state), false);
 });
 
 test('an optional city hub never fails its legacy page when the catalogue is unavailable', async () => {
