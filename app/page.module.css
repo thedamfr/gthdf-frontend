@@ -221,6 +221,7 @@
   display: inline-block;
   color: var(--color-charbon);
   text-decoration: none;
+  text-align: center;
   font-size: 1.25rem;
   font-weight: 600;
   padding: 1rem 2rem;

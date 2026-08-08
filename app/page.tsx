@@ -190,7 +190,7 @@ export default async function Home() {
               Parcourir les chapitres
             </Link>
             <Link href="/gpx-builder" className={styles.gpxBuilderLink}>
-              Télécharger la trace GPX
+              Préparer mon parcours GPX
             </Link>
           </div>
         </div>
