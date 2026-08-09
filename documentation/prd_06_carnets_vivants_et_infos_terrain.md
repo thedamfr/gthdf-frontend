@@ -1,6 +1,6 @@
 # PRD 06 — Carnets vivants, traces reconnues et informations terrain
 
-**Version :** 0.7\
+**Version :** 0.8\
 **Date :** 9 août 2026\
 **Statut :** prêt pour revue produit, sécurité et architecture\
 **Source produit :** `PRD_04_carnets_vivants_et_infos_terrain.md` transmis le 9 août 2026 ; renuméroté pour éviter une collision avec les PRD déjà attribués\
@@ -64,8 +64,9 @@ La livraison est progressive :
 Le PRD fixe les frontières, contrats, états et garde-fous. Le corridor de
 50 mètres et le seuil de reconnaissance de 80 % sont des décisions produit. Le
 lot 0 doit les implémenter et les vérifier sur corpus, puis trancher les autres
-paramètres géographiques, le canal email transactionnel, la politique de
-conservation et la qualification de l’infrastructure privée. Ces arbitrages
+paramètres géographiques, la politique de conservation et la qualification de
+l’infrastructure privée. Le canal transactionnel du MVP est le relais SMTP
+Brevo, sans lui déléguer l'identité ni les comptes. Ces arbitrages
 sont explicités en section 28 avec recommandation, responsable et lot bloqué.
 
 ## 2. Pourquoi le document devient PRD 06
@@ -774,6 +775,27 @@ parcours support ; aucune fusion silencieuse.
   plus strict ;
 - Content Security Policy qualifiée avant l’ajout des pages compte.
 
+### 15.4 Email transactionnel Brevo
+
+Le MVP utilise le relais SMTP Brevo uniquement pour la vérification d'adresse
+et la réinitialisation du mot de passe. Brevo n'est ni fournisseur d'identité,
+ni source de vérité des comptes, ni base marketing : aucune synchronisation de
+la liste des voyageurs n'est requise.
+
+L'intégration passe par un adaptateur SMTP remplaçable. L'application lit
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` et `MAIL_FROM` depuis son
+environnement. Seuls `SMTP_USER` et `SMTP_PASSWORD` sont sensibles ; leur valeur
+n'apparaît jamais dans Git, le PRD, une pull request ou les logs. Le déploiement
+de production les reçoit directement comme variables d'environnement Clever
+Cloud. Les environnements de développement et de production emploient des clés
+SMTP Brevo distinctes et révocables.
+
+Le domaine expéditeur GTHF est authentifié dans Brevo avec DKIM et DMARC avant
+le pilote. Les emails existent en texte brut et HTML, les liens emploient des
+tokens aléatoires à usage unique et aucun token n'est journalisé. Un échec
+d'envoi laisse le compte non vérifié et permet une relance limitée ; il ne crée
+ni second compte ni nouveau signal révélant l'existence de l'adresse.
+
 ## 16. Consentement, confidentialité et suppression
 
 ### 16.1 Registre de consentement
@@ -1177,8 +1199,9 @@ contenu privé.
 2. produire le manifeste des 20 GPX officiels et leurs SHA-256 ;
 3. figer un `ReferenceRoute` publié pour la boucle ;
 4. créer la base et les secrets privés sans bucket objet ;
-5. configurer l'envoi email transactionnel, l'application Strava, leurs
-   secrets et les rôles équipe ;
+5. configurer le relais SMTP Brevo, authentifier le domaine expéditeur,
+   injecter les secrets par l'environnement Clever Cloud, puis configurer
+   l'application Strava et les rôles équipe ;
 6. charger uniquement des comptes et traces de test consentis ;
 7. qualifier matching, suppression, export et incident ;
 8. réaliser la revue DPO/sécurité ;
@@ -1264,7 +1287,7 @@ lot doit être divisé davantage.
 | Frontière de données | Strapi est éditorial et public | service voyageur séparé | architecture, avant lot 1 |
 | Dépôt/déployable | deux dépôts actuels ne portent pas ce domaine | nouveau dépôt API + worker | propriétaire technique, lot 0 |
 | Identité | pas de SaaS d'identité souhaité | décidé : email/mot de passe local Argon2id et OAuth Strava, liés à un compte GTHF opaque ; OIDC reporté | implémentation/sécurité, lot 1 |
-| Email transactionnel | aucun provider ni SMTP dans les dépôts | choisir un relais SMTP pour vérification et reset ; ce n'est pas un fournisseur d'identité | produit/ops, lot 1 |
+| Email transactionnel | aucun provider ni SMTP dans les dépôts | décidé : relais SMTP Brevo pour vérification et reset, derrière un adaptateur remplaçable ; secrets injectés par Clever Cloud | implémentation/ops, lot 1 |
 | Clé chapitre | slug/order/documentId insuffisants | `chapterKey` immuable | CMS, lot 0 |
 | Base privée | Clever autorise les schémas mais pas la création libre d'une base ou d'un rôle RW ; le même add-on partage ses identifiants propriétaire | second add-on PostgreSQL relié seulement à l'API et au worker privés | infra/architecture, lot 1 |
 | Stockage traces | fichiers bornés à 25 Mio et fortement liés au cycle de vie DB | décidé : octets GPX/FIT en `bytea` dans une table `TracePayload` séparée | implémentation/infra, lot 1 |
@@ -1422,6 +1445,7 @@ réversibilité au moins équivalent.
 - Argon2id avec paramètres et vecteurs connus, génération de sel et rehash ;
 - politique de mot de passe, blocklist et normalisation email ;
 - expiration, hash et usage unique des tokens email/reset ;
+- rendu texte et HTML des deux emails Brevo sans secret ni token dans les logs ;
 - parser GPX hostile et bornes ;
 - hashes bruts et normalisés ;
 - projection sur linéaire, union d’intervalles et direction ;
@@ -1436,6 +1460,8 @@ réversibilité au moins équivalent.
 ### 30.2 Tests d’intégration
 
 - inscription, vérification email, connexion, oubli et reset sans énumération ;
+- envoi par l'adaptateur SMTP Brevo, relance bornée et comportement contrôlé en
+  cas d'indisponibilité du relais ;
 - limitation des tentatives et révocation des sessions après reset ;
 - création par email, création par Strava et liaison explicite sans doublon ;
 - refus de fusion automatique d'identités conflictuelles ;
@@ -1596,7 +1622,13 @@ matrice séparée.
 - [Clever Cloud — CRON](https://www.clever-cloud.com/developers/doc/administrate/cron/) :
   exécution par scaler et nécessité de déduplication ;
 - [Clever Cloud — File System Buckets](https://www.clever-cloud.com/developers/doc/addons/fs-bucket/) :
-  disque applicatif non durable entre redéploiements.
+  disque applicatif non durable entre redéploiements ;
+- [Clever Cloud — Configuration des variables d'environnement](https://www.clever-cloud.com/developers/doc/cli/applications/configuration/) :
+  injection de la configuration applicative sans l'inscrire dans Git ;
+- [Brevo — SMTP relay integration](https://developers.brevo.com/docs/smtp-integration) :
+  relais transactionnel, identifiants SMTP dédiés et paramètres de connexion ;
+- [Brevo — Authentifier son domaine](https://help.brevo.com/hc/fr/articles/12163873383186-Authentifier-votre-domaine-dans-Brevo-code-Brevo-enregistrement-DKIM-enregistrement-DMARC) :
+  configuration du domaine expéditeur, DKIM et DMARC.
 
 Ces références doivent être revérifiées au lancement des lots Strava, Garmin
 et infrastructure.
@@ -1618,6 +1650,8 @@ et infrastructure.
   sans SaaS d'identité supplémentaire ;
 - mots de passe en Argon2id avec sel unique, politique longue sans règles de
   composition arbitraires, blocklist et reset à usage unique ;
+- relais SMTP Brevo pour les emails de vérification et reset, sans délégation
+  d'identité, avec secrets injectés par l'environnement Clever Cloud ;
 - `ExternalIdentity.subject = athlete.id` pour Strava ;
 - scope Strava `read` suffisant pour le compte et l'import GPX, scopes
   activité facultatifs pour la synchronisation ;
@@ -1644,21 +1678,19 @@ et infrastructure.
 
 ### Questions bloquantes du lot 0
 
-1. relais SMTP, domaine expéditeur et règles de délivrabilité des emails
-   vérification/reset ;
-2. dépôt, langage final et ownership du domaine voyageur ;
-3. offre, région, sauvegarde et politique du stockage privé ;
-4. queue PostgreSQL ou broker dédié après mesure ;
-5. paramètres de projection complémentaires pour les cas ambigus, sans modifier
+1. dépôt, langage final et ownership du domaine voyageur ;
+2. offre, région, sauvegarde et politique du stockage privé ;
+3. queue PostgreSQL ou broker dédié après mesure ;
+4. paramètres de projection complémentaires pour les cas ambigus, sans modifier
    le corridor de 50 mètres ni le seuil de 80 % ;
-6. durées de conservation et besoin d’analyse d’impact ;
-7. validation DPO du seuil de confidentialité k=5 ;
-8. acteur et procédure d’activation de la première barrière hivernale, ainsi que
+5. durées de conservation et besoin d’analyse d’impact ;
+6. validation DPO du seuil de confidentialité k=5 ;
+7. acteur et procédure d’activation de la première barrière hivernale, ainsi que
    les éventuelles surcharges par chapitre ;
-9. rôles et personnes habilitées à voir les retours précis ;
-10. coût et taille du pilote, y compris la capacité Strava ;
-11. forme du package géographique partagé ;
-12. SLO définitifs de retrait, purge et reprise.
+8. rôles et personnes habilitées à voir les retours précis ;
+9. coût et taille du pilote, y compris la capacité Strava ;
+10. forme du package géographique partagé ;
+11. SLO définitifs de retrait, purge et reprise.
 
 ## 35. Définition de terminé
 
