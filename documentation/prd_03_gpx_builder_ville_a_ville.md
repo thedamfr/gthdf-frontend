@@ -1,8 +1,8 @@
 # PRD 03 — GPX Builder v2 : créer une portion officielle ville à ville
 
-**Version :** 1.5\
-**Date :** 6 août 2026\
-**Statut :** implémenté — qualification des ancrages prête, activation en attente\
+**Version :** 1.6\
+**Date :** 9 août 2026\
+**Statut :** livré et validé en production — clarification visuelle en cours de livraison\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendances fonctionnelles :** PRD 01 — Référentiel des villes ; PRD 02 —
 ordre public des chapitres\
@@ -250,10 +250,14 @@ La page affiche, dans cet ordre :
 1. un retour vers le GTHF ;
 2. le H1 `Créer mon GPX sur le GTHF` ;
 3. une explication courte : choisir son départ et son arrivée ;
-4. la combobox de départ ;
-5. la combobox d’arrivée ;
-6. le résumé de la portion, sans vocabulaire AB/BA ;
-7. l’action `Télécharger mon GPX`.
+4. le visuel du parcours complet déjà utilisé sur l’accueil, accompagné d’un
+   texte présentant le Grand Tour comme une boucle à découvrir à vélo, par
+   sections et à son rythme ;
+5. le lien `Découvrir le parcours complet` vers les dix chapitres ;
+6. la combobox de départ ;
+7. la combobox d’arrivée ;
+8. le résumé de la portion, sans vocabulaire AB/BA ;
+9. l’action `Télécharger mon GPX`.
 
 Le formulaire et son résultat restent compréhensibles sans carte.
 
@@ -1021,8 +1025,9 @@ personnel.
 ## 25. Définition de terminé
 
 Le lot est terminé lorsqu’un voyageur choisit une ville de départ et une ville
-d’arrivée dans deux comboboxes, comprend la portion obtenue puis télécharge un
-GPX fidèle aux sources officielles du sens automatiquement retenu.
+d’arrivée dans deux comboboxes, comprend qu’il extrait une section de la boucle
+GTHF à parcourir à son rythme, puis télécharge un GPX fidèle aux sources
+officielles du sens automatiquement retenu.
 
 Le cas peut rester dans un chapitre, en traverser plusieurs ou passer par
 l’origine de la boucle. Les ancrages sont validés et liés aux empreintes
@@ -1100,3 +1105,21 @@ Strapi `float`, vérifié localement comme une migration PostgreSQL de
 contrôlées doivent être réappliquées pour restaurer les valeurs précises. La
 publication est interdite tant que le passage suivant ne classe pas les dix
 chapitres comme inchangés.
+
+## 28. Mise en production et clarification visuelle de la version 1.6
+
+Le 6 août 2026, les dix chapitres et leurs 233 passages qualifiés ont été
+publiés, le coupe-circuit a été activé et les appels de production ont validé
+les deux sens. Boulogne-sur-Mer → Gravelines retient AB sur environ 79,6 km ;
+le trajet inverse retient BA sur environ 79,7 km avec sa géométrie et son
+dénivelé propres. Les deux fichiers ont ensuite été contrôlés par un humain
+dans des applications de navigation et jugés conformes aux traces attendues.
+
+Un retour du 9 août 2026 montre toutefois que les personnes connaissant peu la
+GTHF peuvent interpréter le Builder comme un calculateur de liaison directe
+entre deux villes. Cette ambiguïté concerne le contexte visuel, pas la trace
+générée. La page réutilise donc l’image du parcours complet affichée sur
+l’accueil, explique explicitement que le résultat suit une section de la
+boucle officielle et relie vers `/chapitres` pour découvrir les dix chapitres.
+Le Builder reste entièrement utilisable si l’image éditoriale est absente :
+l’illustration locale de la carte sert alors de repli.
