@@ -1,6 +1,6 @@
 # PRD 06 — Carnets vivants, traces reconnues et informations terrain
 
-**Version :** 0.5\
+**Version :** 0.6\
 **Date :** 9 août 2026\
 **Statut :** prêt pour revue produit, sécurité et architecture\
 **Source produit :** `PRD_04_carnets_vivants_et_infos_terrain.md` transmis le 9 août 2026 ; renuméroté pour éviter une collision avec les PRD déjà attribués\
@@ -24,14 +24,17 @@ livrable. Il préserve les quatre principes non négociables du document source 
 4. le produit valorise les jours vécus à vélo, pas l’inactivité ni un record de
    lenteur.
 
+Le principe de confidentialité des photos est conservé pour une extension
+future, mais les photos et tout bucket privé sont explicitement exclus du MVP.
+
 L’audit conduit à recommander une séparation ferme entre deux domaines :
 
 - **Strapi reste le CMS éditorial public et l'outil de modération des récits** :
   chapitres, GPX officiels, récits candidats puis publiés, informations terrain
   éditorialisées et médias publics ;
 - **un domaine voyageur privé distinct** porte les comptes, sessions, traces,
-  voyages, géométries, médias privés, consentements, tokens tiers,
-  reconnaissances, agrégats et signalements bruts ;
+  voyages, géométries, consentements, tokens tiers, reconnaissances, agrégats
+  et signalements bruts ;
 - **Next.js porte l’expérience web** et ne reçoit que les données privées de
   l’utilisateur connecté ou des projections publiques minimales ;
 - **un worker asynchrone durable** valide les fichiers, calcule les couvertures,
@@ -93,7 +96,7 @@ Un voyage réel produit rarement un seul fichier propre :
   réellement le couvrir.
 
 Le service doit reconnaître ces parcours sans révéler les habitudes, lieux de
-départ, horaires ou médias privés. Il doit ensuite laisser le voyageur choisir
+départ ou horaires. Il doit ensuite laisser le voyageur choisir
 séparément s’il souhaite raconter son voyage, aider l’équipe ou contribuer à
 un indicateur anonyme.
 
@@ -107,7 +110,7 @@ un indicateur anonyme.
 - distinguer temps en mouvement, durée d’activité, jours à vélo et durée du
   voyage ;
 - proposer des retours terrain localisés et privés à l’équipe ;
-- publier uniquement des récits et médias sélectionnés puis modérés ;
+- publier des récits textuels sélectionnés puis modérés dans Strapi ;
 - afficher un signal récent uniquement lorsque l’anonymat collectif est
   défendable ;
 - permettre export, retrait de consentement, suppression et révocation ;
@@ -121,7 +124,8 @@ un indicateur anonyme.
 Le MVP ne comprend pas :
 
 - réseau social, abonnements, fil, commentaires publics libres ou messagerie ;
-- publication automatique d’une trace, photo, date ou activité ;
+- publication automatique d’une trace, date ou activité ;
+- ajout de photos aux récits ou retours terrain et création d'un bucket privé ;
 - suivi GPS continu ou permission de localisation en arrière-plan ;
 - carte publique d’une trace personnelle ;
 - synchronisation Komoot ;
@@ -130,7 +134,8 @@ Le MVP ne comprend pas :
 - recommandation de sécurité automatique à partir d’un seul passage ;
 - réécriture du GPX Builder ou appel de ses endpoints publics ;
 - utilisation de l’index simplifié du PRD 02 comme preuve géographique ;
-- partage de base de données ou de bucket privé avec le CMS éditorial ;
+- stockage d'une donnée voyageur privée dans la base ou le bucket public du
+  CMS éditorial ;
 - ajout de données privées dans les analytics, logs ou outils marketing ;
 - décision juridique définitive sur la base légale et les durées de
   conservation sans revue dédiée.
@@ -195,9 +200,10 @@ Les constats suivants proviennent de `gthdf-frontend@8deb0fd` et de
 
 - Clever Cloud utilise une infrastructure immuable : le disque local ne doit
   contenir aucun fichier utilisateur durable ;
-- Cellar est compatible S3 et sait produire des URLs pré-signées, mais le
-  bucket éditorial existant est public et ne doit pas être réutilisé pour les
-  traces privées ;
+- les GPX/FIT voyageurs, bornés à 25 Mio, sont stockés dans le PostgreSQL
+  privé en `bytea` et ne nécessitent pas Cellar ;
+- les photos sont hors MVP : aucun bucket privé n'est créé ; le Cellar
+  éditorial public existant reste réservé aux médias déjà publics du CMS ;
 - un cron Clever est exécuté sur chaque scaler et peut se chevaucher pendant
   un déploiement ; il ne remplace donc pas une queue durable sans verrouillage ;
 - l'add-on PostgreSQL permet de gérer des schémas, mais pas de créer librement
@@ -211,9 +217,9 @@ Les constats suivants proviennent de `gthdf-frontend@8deb0fd` et de
 
 ### 7.1 Privé par défaut
 
-Compte, voyage, trace, géométrie, timestamps, médias, notes, tokens tiers,
-résultats détaillés et retours terrain restent privés. Une reconnaissance ne
-crée aucune projection publique.
+Compte, voyage, trace, géométrie, timestamps, notes, tokens tiers, résultats
+détaillés et retours terrain restent privés. Les futurs médias voyageurs
+suivront la même règle. Une reconnaissance ne crée aucune projection publique.
 
 ### 7.2 Finalités et consentements séparés
 
@@ -224,8 +230,8 @@ retrait :
 - contribuer au signal agrégé « parcouru récemment » ;
 - transmettre un retour privé à l’équipe.
 
-Le consentement au signal agrégé n’autorise ni récit, ni photo, ni
-communication marketing. Le retrait n’efface pas automatiquement les données
+Le consentement au signal agrégé n’autorise ni récit, ni communication
+marketing. Le retrait n’efface pas automatiquement les données
 nécessaires au carnet privé ; il retire la contribution concernée.
 
 ### 7.3 Preuve géographique privée
@@ -236,10 +242,10 @@ géométrie preuve.
 
 ### 7.4 Projection, jamais changement d’ACL
 
-Soumettre un récit crée dans Strapi un contenu candidat non publié. Publier une
-photo crée une copie dérivée nettoyée dans le stockage public. Le système ne
-rend jamais public une trace, un voyage ou un média privé d'origine en changeant
-son ACL.
+Soumettre un récit crée dans Strapi un contenu textuel candidat non publié. Le
+système ne rend jamais public une trace ou un voyage en changeant son ACL. Une
+future extension photo devra créer un dérivé nettoyé au lieu de publier
+l'original privé.
 
 ### 7.5 Pas d’inférence négative
 
@@ -261,16 +267,14 @@ signée sont exclus des logs, traces APM, analytics, messages d’erreur et
 flowchart LR
   B[Navigateur] -->|session same-origin| N[Next.js GTHF]
   N -->|API privée authentifiée| V[Service voyageur privé]
-  V --> D[(PostgreSQL privé)]
-  V --> O[(Bucket privé)]
+  V --> D[(PostgreSQL privé + GPX/FIT bytea)]
   V --> Q[(Jobs durables)]
   W[Worker de reconnaissance] --> Q
   W --> D
-  W --> O
   W -->|lecture GPX officiels et empreintes| S[Strapi éditorial]
   M[Console terrain privée] --> V
   E[Équipe éditoriale] -->|modération des récits| S
-  V -->|récit candidat, chapitres et médias dérivés| S
+  V -->|récit candidat et chapitres| S
   S -->|contenus publiés uniquement| N
   V -->|projection agrégée sans identité| N
 ~~~
@@ -292,7 +296,7 @@ flowchart LR
 - modèle de récit candidat puis publié, relié à un ou plusieurs chapitres ;
 - file, états et décisions de modération éditoriale des récits ;
 - modèle public d'information terrain ;
-- médias publics dérivés ;
+- récits textuels au MVP ; leurs médias sont explicitement différés ;
 - Draft & Publish, aperçu et SEO ;
 - aucun modèle de trace, voyage, consentement, token OAuth ou retour brut.
 
@@ -301,7 +305,8 @@ flowchart LR
 - identité applicative liée à un fournisseur OIDC ;
 - autorisations par propriétaire et rôles équipe ;
 - métadonnées, consentements, déduplication, voyages et états ;
-- URLs pré-signées courtes pour le bucket privé ;
+- stockage des octets GPX/FIT dans PostgreSQL et accès sans URL publique ;
+- aucun stockage objet privé au MVP ;
 - API idempotente et journal d’audit ;
 - vérification des chapitres reconnus avant création d'un récit candidat ;
 - lien opaque entre consentement privé et document Strapi pour le retrait ;
@@ -323,8 +328,7 @@ flowchart LR
 L’option « tout dans Strapi » réduirait le nombre de services mais :
 
 - mélangerait données éditoriales publiques et historiques de déplacement ;
-- réutiliserait un bucket public ou exigerait deux politiques média très
-  différentes dans la même application ;
+- préparerait prématurément un stockage privé de photos hors périmètre MVP ;
 - exposerait le CMS et ses plugins à un trafic d’upload et de calcul privé ;
 - partagerait le petit pool PostgreSQL avec le matching ;
 - rendrait les droits, suppressions et tokens OAuth plus difficiles à auditer ;
@@ -346,11 +350,14 @@ Un dépôt TypeScript/Node distinct contient deux entrypoints :
 
 Ils sont déployés comme deux applications Clever Cloud séparées et reliés au
 même **nouvel add-on PostgreSQL privé**, distinct de celui de Strapi. Cet add-on
-porte les données voyageurs et une table de jobs durable ; Strapi n'en reçoit
-pas les identifiants. Les échanges récit–CMS passent par API, jamais par jointure
-SQL.
+porte les données voyageurs, les octets GPX/FIT en `bytea` et une table de
+jobs durable ; Strapi n'en reçoit pas les identifiants. Les blobs sont isolés
+dans une table un-à-un pour que les requêtes de bibliothèque ne les chargent
+jamais implicitement. Les échanges récit–CMS passent par API, jamais par
+jointure SQL.
 
-Le lot 0 doit comparer cette file PostgreSQL à un broker dédié. Pour le MVP,
+Le lot 0 dimensionne stockage, sauvegardes et restauration à partir du corpus
+pilote. Il doit comparer la file PostgreSQL à un broker dédié. Pour le MVP,
 PostgreSQL est recommandé afin de limiter l’infrastructure, à condition
 d’utiliser verrous courts, `SKIP LOCKED` ou mécanisme équivalent, idempotency
 keys et métriques de retard.
@@ -406,7 +413,8 @@ sont contractuelles.
 | Entité | Champs et invariants principaux |
 |---|---|
 | `TravelerAccount` | ID opaque, fournisseur et `subject` OIDC uniques, état, locale, fuseau préféré, dates de création/suspension/suppression |
-| `Trace` | propriétaire, état, clé objet privée, hash brut, hash normalisé par propriétaire, bornes temporelles, fuseau source, métriques, format, suppression |
+| `Trace` | propriétaire, état, hash brut, hash normalisé par propriétaire, bornes temporelles, fuseau source, métriques, format, suppression ; aucune sélection implicite des octets |
+| `TracePayload` | relation un-à-un avec la trace, octets GPX/FIT bruts en `bytea`, taille, MIME contrôlé et date de purge ; plafond 25 Mio |
 | `TraceSource` | trace canonique, type `file/strava/garmin`, identifiant externe, scopes/provenance ; unicité propriétaire + source + identifiant |
 | `Trip` | propriétaire, titre, fuseau IANA, dates observées et éventuellement déclarées, notes privées, état |
 | `TripTrace` | association éditable, ordre, date d’ajout ; une trace appartient au maximum à un voyage actif |
@@ -417,11 +425,11 @@ sont contractuelles.
 | `ConsentEvent` | propriétaire, finalité, `granted/withdrawn`, version de notice, horodatage, source de preuve |
 | `OAuthConnection` | fournisseur, identifiant externe, scopes accordés, tokens chiffrés, expiration, révocation, dernier curseur |
 | `StoryPublicationLink` | voyage, consentement, `documentId` Strapi opaque, version soumise, chapitres reconnus autorisés, état de retrait ; aucun corps éditorial |
-| `StoryMediaSelection` | média privé source, dérivé public Strapi, ordre, texte alternatif, preuve de sélection |
-| `TerrainReport` | voyage, chapitre, passage, type, niveau, date observée, commentaire, position facultative, photo privée et statut interne |
+| `TerrainReport` | voyage, chapitre, passage, type, niveau, date observée, commentaire, position facultative et statut interne ; aucune photo au MVP |
 | `TerrainModerationDecision` | retour terrain, acteur équipe, décision, motif, dates et référence de promotion éditoriale |
 | `RecentPassageContribution` | propriétaire, passage reconnu, finalité consentie, barrière hivernale et état d’éligibilité |
 | `WinterFreshnessBarrier` | portée globale ou chapitre, instant de coupure, libellé de saison, état, acteur et version |
+| `ExportArchive` | propriétaire, état, archive chiffrée en `bytea`, taille, expiration courte, nombre de téléchargements et purge |
 | `DeletionRequest` | périmètre, état, étapes, erreurs, dates et preuve de purge |
 
 ### 10.2 Contrainte voyage–trace
@@ -470,9 +478,8 @@ Sorties : `rejected`, `withdrawal_pending`, `withdrawn`, `unpublished_by_team`.
 distinct conserve l'état de modération. Le domaine privé conserve seulement le
 lien vers le `documentId`, la preuve de consentement et l'état de retrait.
 
-Un récit retiré échoue fermé : Strapi le dépublie d'abord, les pages chapitre
-sont revalidées, puis les médias dérivés sont supprimés selon la politique de
-rétention.
+Un récit retiré échoue fermé : Strapi le dépublie d'abord puis les pages
+chapitre sont revalidées. Aucun média voyageur n'est à purger au MVP.
 
 ### 11.3 Retour terrain
 
@@ -486,13 +493,15 @@ rétention.
 
 ### 12.1 Flux
 
-1. le navigateur demande une intention d’upload authentifiée ;
-2. le service vérifie quota et propriétaire puis renvoie une URL pré-signée
-   courte vers le bucket privé ;
-3. le navigateur envoie directement l’objet ;
-4. le service vérifie taille et empreinte attendues ;
-5. le worker place l’objet en quarantaine logique, parse et normalise ;
-6. l’objet devient une trace seulement après validation ;
+1. le navigateur ouvre un upload authentifié vers l'API privée ;
+2. l'API vérifie propriétaire, quota, `Content-Length` lorsqu'il existe et
+   limite de débit avant de lire le corps ;
+3. elle reçoit le flux avec une limite dure, calcule le hash et contrôle le
+   format sans écrire sur le disque local ;
+4. elle crée `Trace` et `TracePayload` en quarantaine dans le PostgreSQL
+   privé ; les octets bruts sont stockés en `bytea` ;
+5. le worker lit le payload, parse et normalise ;
+6. le payload devient une trace exploitable seulement après validation ;
 7. les erreurs affichent un message utile sans journaliser le contenu.
 
 ### 12.2 Garde-fous initiaux
@@ -508,10 +517,12 @@ implémentation ne peut toutefois pas être non bornée :
 - coordonnées finies et dans WGS84 ;
 - timestamps invalides isolés, jamais interprétés silencieusement ;
 - temps CPU, mémoire et taille de rapport bornés ;
-- hash calculé en flux ;
-- aucun nom de fichier utilisateur utilisé comme clé objet ;
-- quota par compte et limitation de débit ;
-- analyse antivirus des médias et évaluation séparée pour GPX/FIT.
+- hash calculé pendant la réception ;
+- nom de fichier utilisateur conservé au plus comme métadonnée nettoyée, jamais
+  comme identifiant ni chemin ;
+- `TracePayload` exclu par défaut de toutes les requêtes de liste ;
+- quota par compte, concurrence d'upload bornée et limitation de débit ;
+- évaluation du besoin antivirus séparée pour GPX/FIT.
 
 Un dépassement produit `rejected_limit` avec la limite concernée. Il ne lance
 pas un job indéfini.
@@ -709,7 +720,6 @@ récupération de compte, portabilité et absence de dépendance irréversible.
   administrateur sécurité ;
 - MFA obligatoire pour les rôles équipe ;
 - élévation et export de données journalisés ;
-- liens médias signés après autorisation et à durée courte ;
 - aucune route privée indexable ou préchargée dans une page publique.
 
 ### 15.3 CSRF, XSS et session
@@ -729,10 +739,11 @@ récupération de compte, portabilité et absence de dépendance irréversible.
 Chaque finalité possède des événements append-only. L’état courant est dérivé
 du dernier événement valide. La notice exacte est versionnée.
 
-Le consentement de publication porte sur une version Strapi du texte, une liste
-de médias, un nom public et des chapitres. Le domaine privé en conserve la
-preuve et le hash de version, sans dupliquer le corps éditorial. Modifier l’un
-de ces éléments crée dans Strapi une nouvelle version soumise à modération.
+Le consentement de publication porte sur une version Strapi du texte, un nom
+public et des chapitres. Le domaine privé en conserve la preuve et le hash de
+version, sans dupliquer le corps éditorial. Modifier l’un de ces éléments crée
+dans Strapi une nouvelle version soumise à modération. Les médias nécessiteront
+un consentement et un contrat dédiés dans une extension post-MVP.
 
 ### 16.2 Retrait
 
@@ -755,7 +766,7 @@ Valeurs techniques proposées pour la revue DPO/sécurité :
 | upload rejeté | purge sous 7 jours | besoin support |
 | trace et voyage | jusqu’à suppression par le voyageur | durée d’inactivité |
 | token tiers | jusqu’à déconnexion ; purge immédiate après révocation | preuve de révocation |
-| dérivé public retiré | masquage immédiat, purge sous 30 jours | sauvegardes |
+| futur dérivé média public retiré | hors MVP ; politique à définir avant activation | sauvegardes |
 | données primaires supprimées | inaccessibles immédiatement, purge sous 30 jours | contraintes fournisseur |
 | sauvegardes | expiration maximale 90 jours | capacité de restauration sélective |
 | audit sécurité | durée minimale nécessaire | base légale et accès |
@@ -775,37 +786,23 @@ L’utilisateur peut exporter :
 - récits récupérés depuis Strapi et retours privés ;
 - sources connectées.
 
-L’archive est générée en job, chiffrée au repos, téléchargeable par URL signée
-courte et purgée automatiquement.
+L’archive est générée en job dans `ExportArchive.payload bytea`, chiffrée au
+niveau applicatif avec une clé distincte de la base, puis téléchargée par une
+route authentifiée qui revalide le propriétaire. Elle expire et est purgée
+automatiquement sous 24 heures. Aucune URL objet signée ni aucun bucket n'est
+nécessaire.
 
-## 17. Médias privés et publics
+## 17. Photos et stockage objet — hors MVP
 
-### 17.1 Privé
+Le MVP n'accepte aucune photo dans un récit ou un retour terrain et ne
+provisionne aucun bucket privé. Les GPX/FIT sont stockés dans
+`TracePayload.rawBytes` en PostgreSQL ; les récits Strapi sont textuels.
 
-- bucket distinct, politique `deny by default` ;
-- aucune URL permanente ;
-- chiffrement au repos qualifié ;
-- clés objet aléatoires sans email, nom ou date lisible ;
-- upload et lecture par URL signée de cinq minutes maximum recommandée ;
-- quotas par utilisateur ;
-- dérivés privés séparés de l’original ;
-- sauvegarde et région documentées.
-
-### 17.2 Public
-
-L’approbation d’une photo :
-
-1. relit la sélection et le consentement ;
-2. décode puis réencode dans un format sûr ;
-3. supprime EXIF, GPS, commentaire et miniature embarquée ;
-4. applique dimensions et poids publics ;
-5. demande un texte alternatif ;
-6. crée un nouvel objet dans le stockage public Strapi ;
-7. lie ce média à un brouillon éditorial ;
-8. conserve une référence de provenance privée inaccessible au public.
-
-Le retrait supprime la projection et le dérivé public ; l’original privé suit
-le choix de conservation du voyageur.
+Une extension photo fera l'objet d'un lot et d'un ADR séparés couvrant au
+minimum : bucket privé `deny by default`, URLs signées, quotas, réencodage,
+suppression EXIF/GPS, texte alternatif, consentement par version, dérivé public
+Strapi, retrait et sauvegardes. Aucun champ, secret ou infrastructure préparée
+« au cas où » n'est ajouté au MVP.
 
 ## 18. Retours terrain et modération
 
@@ -823,8 +820,8 @@ Champs minimums :
 - date observée préremplie et modifiable ;
 - commentaire ;
 - position/portion facultative ;
-- photo facultative ;
-- vélo, charge et sens lorsque pertinents.
+- vélo, charge et sens lorsque pertinents ;
+- aucune photo au MVP.
 
 La position précise n’entre jamais dans Strapi. La console équipe privée
 l’affiche uniquement aux rôles habilités.
@@ -845,17 +842,17 @@ La publication reste une décision Strapi distincte.
 
 ### 18.3 Récits Strapi
 
-Le voyageur choisit texte, nom public, photos et chapitres reconnus depuis
-l'espace privé. Lors de la soumission, le service vérifie consentement et
-passages reconnus, produit les éventuels médias publics nettoyés, puis crée ou
-met à jour un récit non publié dans Strapi. Le texte destiné au public, les
-médias dérivés, les relations aux chapitres et tout le workflow de modération
-ont Strapi pour source de vérité.
+Le voyageur choisit texte, nom public et chapitres reconnus depuis l'espace
+privé. Lors de la soumission, le service vérifie consentement et passages
+reconnus, puis crée ou met à jour un récit non publié dans Strapi. Le texte
+destiné au public, les relations aux chapitres et tout le workflow de
+modération ont Strapi pour source de vérité. Aucune photo n'est acceptée au
+MVP.
 
 L'équipe travaille dans Strapi : elle peut approuver, refuser ou demander une
 correction. Le voyageur répond depuis son espace ; le backend applique la
 modification au document Strapi sans exposer de jeton CMS. Une correction du
-texte, du nom, des chapitres ou des médias après approbation repasse en revue.
+texte, du nom ou des chapitres après approbation repasse en revue.
 
 Un récit multi-chapitres est un document Strapi unique relié à tous les
 chapitres choisis. Il apparaît dans le bloc « Carnets de voyageurs » de chacune
@@ -980,6 +977,7 @@ Les chemins sont indicatifs ; les invariants sont obligatoires.
 - `POST /v1/terrain-reports` ;
 - `POST /v1/consents/{purpose}` et `DELETE` ;
 - `POST /v1/exports` ;
+- `GET /v1/exports/{exportId}/download` ;
 - `DELETE /v1/account` ;
 - callbacks OAuth et webhook fournisseurs.
 
@@ -1066,7 +1064,7 @@ Une panne Strapi suit les gardes éditoriales existantes.
 - projections Strapi : garde de publication commune et revalidation maximale
   60 secondes pour les contenus retirables par leur auteur ;
 - signal récent : cache public maximal 60 secondes ;
-- aucune URL média privée mise en cache publiquement ;
+- aucune URL de trace ou donnée privée mise en cache publiquement ;
 - un retrait crée un état de fermeture autoritatif qui prime sur une ancienne
   projection ;
 - sitemap : récits seulement si une page canonique dédiée est décidée plus
@@ -1082,14 +1080,14 @@ Le threat model du lot 0 couvre :
 - IDOR entre voyageurs ;
 - vol de session et CSRF ;
 - fichier XML hostile, bombe de taille et épuisement CPU ;
-- URL signée copiée ou journalisée ;
+- identifiant d'export copié, deviné ou journalisé ;
 - fuite de géométrie par erreur, analytics ou support ;
 - sur-fetch d’une projection Strapi ;
 - réidentification par date/compteur récent ;
 - token OAuth compromis ou rotation concurrente ;
 - webhook falsifié, dupliqué, retardé ou réordonné ;
-- publication d’un média privé non sélectionné ;
-- suppression partielle entre DB, bucket, cache et Strapi ;
+- activation accidentelle d'un upload photo hors périmètre ;
+- suppression partielle entre DB, cache et Strapi ;
 - employé trop privilégié ;
 - sauvegarde contenant des données déjà supprimées.
 
@@ -1125,7 +1123,7 @@ contenu privé.
 1. ajouter et migrer `Chapter.chapterKey` dans le CMS ;
 2. produire le manifeste des 20 GPX officiels et leurs SHA-256 ;
 3. figer un `ReferenceRoute` publié pour la boucle ;
-4. créer base, bucket et secrets privés sans données réelles ;
+4. créer la base et les secrets privés sans bucket objet ;
 5. créer le fournisseur d’identité et les rôles équipe ;
 6. charger uniquement des comptes et traces de test consentis ;
 7. qualifier matching, suppression, export et incident ;
@@ -1140,8 +1138,9 @@ legacy sans prétendre avoir une preuve GPS.
 
 ### 25.3 Évolution des GPX
 
-Le remplacement d’un média crée un nouveau snapshot. Les anciens objets restent
-lisibles pour audit privé tant que la trace existe. Un job de recalcul
+Le remplacement d’un fichier GPX officiel crée un nouveau snapshot. Les anciens
+snapshots restent lisibles pour audit privé tant qu'une trace les référence. Un
+job de recalcul
 progressif utilise un curseur et ne bloque pas les pages publiques.
 
 ## 26. Déploiement et retour arrière
@@ -1149,7 +1148,7 @@ progressif utilise un curseur et ne bloque pas les pages publiques.
 ### 26.1 Ordre
 
 1. CMS : `chapterKey` et modèles publics, sans permission publique nouvelle ;
-2. service privé : DB, migrations, bucket, API fermée et worker arrêté ;
+2. service privé : DB, migrations, API fermée et worker arrêté, sans bucket ;
 3. frontend : UI masquée par feature flag ;
 4. worker : corpus de test puis pilote ;
 5. équipe : console et promotion en brouillon ;
@@ -1196,7 +1195,7 @@ Chaque étape possède un coupe-circuit indépendant :
 | 1 — Traces + Strava | compte, upload GPX, OAuth, historique borné, webhooks, déduplication, matching | fichier et activité Strava deviennent des traces privées sans voyage automatique |
 | 2 — Voyages + badge | association unique, agrégation par voyage puis progression compte, métriques, badge boucle, export/suppression | plusieurs voyages peuvent compléter la boucle sans double compte ni limite arbitraire |
 | 3 — Terrain | formulaire privé, console, états et audit | un retour partiel est trié sans apparaître dans Strapi |
-| 4 — Public volontaire | récit candidat et workflow dans Strapi, médias dérivés, affichage chapitre, barrière hivernale et agrégat k-anonyme | un récit se modère dans Strapi, apparaît sur ses chapitres et se retire dans le SLO sans géométrie exposée |
+| 4 — Public volontaire | récit textuel candidat et workflow dans Strapi, affichage chapitre, barrière hivernale et agrégat k-anonyme | un récit textuel se modère dans Strapi, apparaît sur ses chapitres et se retire dans le SLO sans géométrie exposée |
 | 5 — FIT | parseur et parité de métriques | une trace FIT suit le même contrat de matching |
 | 6 — Garmin | étude, accès partenaire et connecteur | connecteur activé seulement si le programme est approuvé |
 | 7 — Temps pris public | célébration volontaire sans classement | aucune pause artificielle transformée en record |
@@ -1213,7 +1212,8 @@ lot doit être divisé davantage.
 | Identité | aucune auth voyageur | OIDC managé, pas mot de passe GTHF | produit/sécurité/achat, lot 1 |
 | Clé chapitre | slug/order/documentId insuffisants | `chapterKey` immuable | CMS, lot 0 |
 | Base privée | Clever autorise les schémas mais pas la création libre d'une base ou d'un rôle RW ; le même add-on partage ses identifiants propriétaire | second add-on PostgreSQL relié seulement à l'API et au worker privés | infra/architecture, lot 1 |
-| Stockage privé | bucket actuel public | bucket Cellar/add-on distinct ou fournisseur équivalent qualifié | infra/DPO, lot 1 |
+| Stockage traces | fichiers bornés à 25 Mio et fortement liés au cycle de vie DB | décidé : octets GPX/FIT en `bytea` dans une table `TracePayload` séparée | implémentation/infra, lot 1 |
+| Photos et bucket | simplification MVP confirmée | décidé : aucune photo et aucun bucket privé au MVP ; lot ultérieur séparé | produit/architecture, post-MVP |
 | Queue | aucun worker ; cron dupliqué par scaler | table jobs du PostgreSQL privé + worker séparé au MVP | architecture/ops, lot 1 |
 | Matching | tolérance produit confirmée | décidé : corridor de 50 m et chapitre reconnu à 80 % ; corpus pour vérifier les cas limites sans durcir la règle | implémentation/data, lot 1 |
 | Dédoublonnage | multi-source attendu | une trace canonique, une appartenance voyage | produit, lot 2 |
@@ -1223,7 +1223,7 @@ lot doit être divisé davantage.
 | Conservation | aucune politique existante | tableau section 16 comme base | DPO/sécurité, avant pilote |
 | Modération récit | le contenu est destiné aux pages chapitre | décidé : candidat, workflow, décisions et publication dans Strapi ; preuve et consentement dans le domaine privé | CMS/éditorial, lot 4 |
 | Modération terrain | Strapi ne doit pas voir position et retour bruts | console privée puis brouillon d'information Strapi nettoyé | équipe éditoriale, lot 3 |
-| Médias publics | changement d’ACL dangereux | copie réencodée sans EXIF | sécurité/éditorial, lot 4 |
+| Médias publics | photos hors MVP | ADR ultérieur : copie réencodée sans EXIF, jamais changement d'ACL | sécurité/éditorial, post-MVP |
 | FIT | dépendances absentes | après qualification GPX et Strava | technique, lot 5 |
 | Strava | capacité et rate limits soumis à revue | décidé MVP : OAuth, webhooks et import borné ; approbation comme dépendance externe | partenariat/technique, lot 1 |
 | Garmin | programme partenaire | ne pas promettre avant acceptation | partenariat, lot 6 |
@@ -1240,7 +1240,7 @@ réversibilité au moins équivalent.
 ### 29.1 Architecture
 
 - aucune table voyageur, trace, token ou retour brut n’est créée dans Strapi ;
-- aucune donnée privée n’utilise le bucket éditorial public ;
+- aucun bucket privé n'est provisionné et aucune photo voyageur n'est acceptée ;
 - l’API privée refuse une requête authentifiée visant un objet d’un autre
   compte ;
 - Next ne contient aucun secret tiers dans le bundle client ;
@@ -1250,6 +1250,9 @@ réversibilité au moins équivalent.
 ### 29.2 Import et bibliothèque
 
 - un utilisateur importe plusieurs GPX indépendants ;
+- les octets GPX/FIT sont conservés en `bytea` dans `TracePayload`, jamais
+  dans Strapi, Cellar ou le disque applicatif ;
+- une requête de bibliothèque ne sélectionne jamais le `bytea` ;
 - un fichier hors limite est refusé avant calcul lourd ;
 - une trace est visible avec son état et son erreur éventuelle ;
 - zéro, un ou plusieurs chapitres peuvent être reconnus avant tout voyage ;
@@ -1292,13 +1295,13 @@ réversibilité au moins équivalent.
 
 ### 29.5 Publication
 
-- récit, photo et contribution récente nécessitent chacun une action explicite ;
+- récit et contribution récente nécessitent chacun une action explicite ;
 - le récit candidat, ses états de modération et sa version publiée vivent dans
   Strapi ;
 - les chapitres publiables sont un sous-ensemble des passages reconnus ;
 - chaque récit publié apparaît dans le bloc « Carnets de voyageurs » de tous
   les chapitres Strapi auxquels il est relié, et d'aucun autre ;
-- une photo publique est un dérivé sans EXIF ;
+- aucun champ photo n'est présent au MVP ;
 - aucune trace, position, heure ou date précise n’est publique ;
 - une correction post-approbation repasse en revue ;
 - le retrait masque la projection dans le SLO ;
@@ -1328,12 +1331,13 @@ réversibilité au moins équivalent.
 
 ### 29.8 Droits et suppression
 
-- l’utilisateur exporte ses données ;
+- l’utilisateur exporte ses données via une archive `bytea` temporaire,
+  authentifiée et purgée sous 24 heures ;
 - il supprime une trace sans supprimer son compte ;
 - il supprime un voyage sans publier d’information ;
 - déconnecter Strava révoque et supprime les tokens ;
 - supprimer le compte révoque immédiatement les sessions ;
-- la purge couvre DB, bucket, dérivés, projections et agrégats ;
+- la purge couvre DB, contenus Strapi, caches et agrégats ;
 - une restauration rejoue les tombstones de suppression ;
 - toutes les étapes sont auditables sans conserver la géométrie dans l’audit.
 
@@ -1360,19 +1364,19 @@ réversibilité au moins équivalent.
 - états et idempotence ;
 - politique k-anonyme ;
 - transitions de consentement et suppression ;
-- sanitisation et suppression EXIF.
+- validation du rejet de tout champ ou upload photo.
 
 ### 30.2 Tests d’intégration
 
-- upload direct signé ;
+- upload GPX borné vers l'API puis stockage `bytea` ;
 - isolation entre deux comptes ;
 - job concurrent et reprise après crash ;
 - rotation OAuth concurrente ;
 - webhook dupliqué/réordonné ;
 - lecture Strapi d’un nouveau snapshot ;
 - promotion vers brouillon, publication puis retrait ;
-- purge DB + objet + cache ;
-- panne Strapi, bucket, DB, identité et fournisseur tiers ;
+- purge DB + contenu Strapi + cache ;
+- panne Strapi, DB, identité et fournisseur tiers ;
 - limite de pool et backpressure.
 
 ### 30.3 Corpus géographique
@@ -1405,12 +1409,12 @@ Mesures obligatoires :
 
 ### 30.5 Mesures de plateforme
 
-- taille réelle des GPX et photos pilotes ;
-- débit upload direct ;
+- taille réelle des GPX pilotes ;
+- débit d'upload vers l'API ;
 - CPU/mémoire du worker sur le plus gros fichier accepté ;
 - profondeur maximale de queue ;
 - connexions PostgreSQL ;
-- coût objet, DB, identité et egress ;
+- coût DB, identité et egress ;
 - comportement pendant un déploiement zéro-downtime ;
 - SLO de retrait et suppression.
 
@@ -1432,7 +1436,7 @@ Mesures obligatoires :
 
 - `src/api/chapter/content-types/chapter/schema.json` pour `chapterKey` ;
 - modèle de récit candidat/publié et modèle d'information terrain ;
-- relations récit–chapitres et médias publics ;
+- relations récit–chapitres ;
 - états, file et décisions de modération des récits dans Strapi ;
 - validations de publication et garde de cohérence dans `src/index.ts` ou
   domaine dédié ;
@@ -1443,8 +1447,8 @@ Mesures obligatoires :
 ### Nouveau domaine voyageur
 
 - API, worker et migrations ;
-- schéma DB privé ;
-- adaptateur objet privé ;
+- schéma DB privé avec `TracePayload.rawBytes bytea` ;
+- aucun adaptateur objet ou média au MVP ;
 - adaptateur OIDC ;
 - clients Strapi et Strava ;
 - matching géographique ;
@@ -1524,6 +1528,9 @@ et infrastructure.
 - Strapi source de vérité éditoriale et des GPX officiels ;
 - Next comme expérience web, pas comme stockage durable ;
 - worker asynchrone obligatoire ;
+- octets GPX/FIT stockés en `bytea` dans une table privée séparée des
+  métadonnées ;
+- aucune photo et aucun bucket privé au MVP ;
 - GPX et Strava au premier lot ;
 - AB et BA analysés séparément ;
 - SHA-256 officiel et version d’algorithme conservés ;
@@ -1572,12 +1579,12 @@ requises, il reçoit son badge privé de boucle complète. Le voyageur peut
 exporter et supprimer ses données. Aucun élément n’est public sans action
 distincte.
 
-Le périmètre public est terminé lorsqu’un récit candidat est modéré dans
-Strapi puis apparaît dans le bloc « Carnets de voyageurs » de chacun de ses
-chapitres reconnus, et d'aucun autre, qu’une photo publique ne contient plus
-de métadonnées privées, qu’un retour brut devient au besoin une information
-éditoriale séparée et que le signal récent reste absent sous son seuil. Le
-retrait ferme toutes les surfaces dans le SLO.
+Le périmètre public est terminé lorsqu’un récit textuel candidat est modéré
+dans Strapi puis apparaît dans le bloc « Carnets de voyageurs » de chacun de
+ses chapitres reconnus, et d'aucun autre, qu’un retour brut devient au besoin
+une information éditoriale séparée et que le signal récent reste absent sous
+son seuil. Aucun parcours photo ni bucket privé n'est livré. Le retrait ferme
+toutes les surfaces dans le SLO.
 
 Le système reste un carnet de slow travel et un canal de connaissance terrain,
 pas un réseau social ni un classement.
