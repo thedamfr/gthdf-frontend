@@ -28,9 +28,9 @@ async function getRoutePreviewImageUrl(): Promise<string | undefined> {
     if (!mediaUrl) {
       return undefined;
     }
-    const strapiUrl = process.env.STRAPI_URL
-      ?? process.env.NEXT_PUBLIC_STRAPI_URL
-      ?? 'http://localhost:1337';
+    // The resolved URL is serialized into next/image, so relative media must
+    // use the public Strapi origin rather than a server-only endpoint.
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL ?? 'http://localhost:1337';
     const allowedOrigins = (process.env.STRAPI_MEDIA_ORIGINS ?? '')
       .split(',')
       .map((origin) => origin.trim())
