@@ -1,6 +1,6 @@
 # PRD 06 — Carnets vivants, traces reconnues et informations terrain
 
-**Version :** 0.1\
+**Version :** 0.2\
 **Date :** 9 août 2026\
 **Statut :** prêt pour revue produit, sécurité et architecture\
 **Source produit :** `PRD_04_carnets_vivants_et_infos_terrain.md` transmis le 9 août 2026 ; renuméroté pour éviter une collision avec les PRD déjà attribués\
@@ -46,13 +46,16 @@ La livraison est progressive :
 
 - lot 0 : ADR, identité stable des chapitres, corpus de traces et protocole de
   confidentialité ;
-- lot 1 : compte, import GPX privé, bibliothèque et reconnaissance ;
-- lot 2 : voyages et agrégation multi-traces ;
+- lot 1 : compte, import GPX privé, connexion Strava, bibliothèque et
+  reconnaissance ;
+- lot 2 : voyages, agrégation multi-traces et badge de boucle complète ;
 - lot 3 : retours terrain privés et triage ;
-- lot 4 : récits volontaires, projections publiques et signal agrégé ;
-- lot 5 : Strava après revue de l’application et mise en place du worker ;
-- lot 6 : FIT, puis Garmin seulement après validation du programme partenaire ;
-- lot 7 : éventuelle célébration « Le temps pris », sans classement au MVP.
+- lot 4 : récits volontaires, projections publiques et signal agrégé après la
+  dernière barrière hivernale ;
+- lot 5 : FIT, après validation des chaînes GPX et Strava ;
+- lot 6 : Garmin seulement après validation du programme partenaire ;
+- lot 7 : éventuelle célébration publique « Le temps pris », sans classement
+  au MVP.
 
 Le PRD fixe les frontières, contrats, états et garde-fous. Il laisse au lot 0
 les seuils géographiques définitifs, le fournisseur d’identité, la politique
@@ -106,8 +109,9 @@ un indicateur anonyme.
 - afficher un signal récent uniquement lorsque l’anonymat collectif est
   défendable ;
 - permettre export, retrait de consentement, suppression et révocation ;
-- préparer les connecteurs sans rendre le MVP dépendant de Strava, Garmin ou
-  Komoot ;
+- livrer Strava dans le MVP sans rendre le carnet inutilisable lors d’une panne
+  du fournisseur ;
+- préparer FIT et Garmin sans rendre le MVP dépendant de Garmin ou Komoot ;
 - rendre chaque traitement idempotent, observable, reprenable et testable.
 
 ## 5. Non-objectifs
@@ -389,13 +393,15 @@ sont contractuelles.
 | `OfficialRouteSnapshot` | `chapterKey`, direction, SHA-256, métriques source, version du parseur |
 | `TraceChapterCoverage` | trace, snapshot, intervalles de chaînage couverts, ratio, direction, confiance, statut, version d’algorithme, rapport borné |
 | `TripChapterPassage` | voyage, chapitre, union des couvertures canoniques, statut, métriques et versions contributrices |
+| `TravelerRouteProgress` | propriétaire, parcours de référence, union des passages reconnus de tous ses voyages, chapitres couverts, badge, nombre de voyages et jours à vélo |
 | `ConsentEvent` | propriétaire, finalité, `granted/withdrawn`, version de notice, horodatage, source de preuve |
 | `OAuthConnection` | fournisseur, identifiant externe, scopes accordés, tokens chiffrés, expiration, révocation, dernier curseur |
 | `StorySubmission` | voyage, auteur public choisi, texte public, chapitres sélectionnés, état de modération |
 | `StoryMediaSelection` | média privé source, dérivé public, ordre, texte alternatif, preuve de sélection |
 | `TerrainReport` | voyage, chapitre, passage, type, niveau, date observée, commentaire, position facultative, photo privée et statut interne |
 | `ModerationDecision` | objet, acteur équipe, décision, motif, dates et référence de projection |
-| `RecentPassageContribution` | propriétaire, passage reconnu, finalité consentie, fenêtre et état d’éligibilité |
+| `RecentPassageContribution` | propriétaire, passage reconnu, finalité consentie, barrière hivernale et état d’éligibilité |
+| `WinterFreshnessBarrier` | portée globale ou chapitre, instant de coupure, libellé de saison, état, acteur et version |
 | `DeletionRequest` | périmètre, état, étapes, erreurs, dates et preuve de purge |
 
 ### 10.2 Contrainte voyage–trace
@@ -469,7 +475,7 @@ puis les objets sont supprimés selon la politique de rétention.
 Le lot 0 doit mesurer un corpus avant de figer les bornes. La première
 implémentation ne peut toutefois pas être non bornée :
 
-- GPX seul au lot 1 ;
+- GPX et Strava au lot 1 ;
 - taille maximale recommandée : 25 Mio, à confirmer par corpus ;
 - nombre maximal recommandé : 500 000 points ;
 - XML sans DTD ni entité externe ;
@@ -495,7 +501,7 @@ FIT n’est pas un « GPX dégradé ». Son lot exige :
 - parité des métriques nécessaires au matching ;
 - limites binaires et détection de corruption.
 
-FIT entre au lot 6 seulement après validation de la chaîne GPX.
+FIT entre au lot 5 seulement après validation des chaînes GPX et Strava.
 
 ## 13. Reconnaissance géographique
 
@@ -606,22 +612,36 @@ Chaque voyage possède un fuseau IANA. Pour le GTHF, `Europe/Paris` est proposé
 par défaut ; le voyageur peut le corriger. Les jours ne sont jamais calculés
 selon le fuseau du serveur.
 
-### 14.3 Boucle complète
+### 14.3 Progression de boucle et badge MVP
 
-Le MVP stocke la couverture du `ReferenceRoute`, mais n’affiche pas de badge
-public. Le lot 0 doit trancher :
+Le badge privé « Boucle GTHF complétée » fait partie du MVP. Il appartient au
+compte voyageur, pas à un voyage unique. `TravelerRouteProgress` unit les
+`TripChapterPassage.recognized` de tous les voyages du même propriétaire.
 
-- seuil de couverture globale et par chapitre ;
-- continuité et ordre attendus ;
-- cohérence de direction ;
-- durée maximale entre première et dernière activité ;
-- traitement d’une modification de la boucle.
+Le badge est attribué lorsque :
 
-Recommandation produit à tester : un seul voyage, toutes les sections requises,
-au moins le seuil `recognized` par chapitre et une fenêtre observée maximale de
-90 jours. Une simple addition de sorties de plusieurs années est exclue. La
-direction globale n’est pas rendue obligatoire tant que les parcours AB et BA
-restent tous deux officiels, mais les incohérences sont signalées.
+- l’union de ces voyages couvre toutes les sections requises du
+  `ReferenceRoute` ;
+- chaque chapitre atteint le seuil `recognized` de la politique courante ou
+  une version déclarée compatible ;
+- chaque trace contributrice appartient bien à un seul voyage ;
+- les doublons sont neutralisés entre sources et voyages.
+
+Le voyageur peut donc compléter le GTHF en six, sept, dix voyages ou davantage.
+Aucune durée maximale n’est imposée entre la première et la dernière activité.
+Le badge affiche factuellement le nombre de voyages contributeurs, les jours à
+vélo et la période observée, sans transformer ces valeurs en performance.
+
+L’ordre des voyages et la direction globale ne bloquent pas le badge au MVP
+tant que chaque section est parcourue sur une direction officielle. Les
+incohérences restent visibles dans le détail privé. Le lot 0 fixe seulement les
+seuils de couverture, les règles de compatibilité lors d’un changement de GPX
+et les cas ambigus.
+
+Supprimer un voyage ou une trace recalcule `TravelerRouteProgress` et peut
+retirer le badge si la couverture devient insuffisante. Le badge est privé par
+défaut. Son affichage dans un récit ou une autre surface publique exige un
+consentement explicite et ne publie ni trace, ni dates précises.
 
 ## 15. Identité, sessions et autorisations
 
@@ -796,42 +816,64 @@ automatiquement un récit déjà modéré ; il ouvre une alerte éditoriale si l
 modification est matérielle. Cette tolérance historique ne s’applique pas au
 signal récent.
 
-## 19. Signal « parcouru récemment »
+## 19. Signal « parcouru depuis le dernier hiver »
 
-### 19.1 Unité et minimisation
+### 19.1 Deux barrières distinctes
 
-L’unité de confidentialité est l’utilisateur distinct, pas le nombre de
-traces. Un même utilisateur ne compte qu’une fois par chapitre et fenêtre,
-même avec plusieurs voyages.
+La fraîcheur terrain n’utilise pas une fenêtre glissante de 90 jours. Un
+passage est frais seulement s’il a été observé après la dernière barrière
+hivernale applicable au chapitre.
 
-Le DTO public ne donne ni nombre exact, ni profil, ni date précise, ni sens, ni
-durée, ni trace.
+Cette règle de fraîcheur ne remplace pas la barrière de confidentialité :
+l’unité publique reste l’utilisateur distinct, pas le nombre de traces. Un même
+utilisateur ne compte qu’une fois par chapitre et saison, même avec plusieurs
+voyages.
 
-### 19.2 Politique initiale recommandée
+### 19.2 Barrière hivernale
 
-- fenêtre glissante : 90 jours ;
-- seuil : au moins 5 utilisateurs distincts consentants ;
-- délai de sécurité : exclure les passages des 7 derniers jours ;
-- date affichée : mois du cinquième passage distinct le plus récent, pas mois
-  du dernier voyageur ;
-- texte : « Des voyageurs ont parcouru ce chapitre récemment » ;
-- absence : bloc omis avec aucune conclusion sur l’état du parcours.
+`WinterFreshnessBarrier` contient :
 
-Ces valeurs sont une recommandation à valider avec le DPO et un test de
-réidentification. Elles sont versionnées dans `AggregationPolicy` et ne sont
-pas modifiables silencieusement.
+- `barrierAt`, instant à partir duquel un passage peut compter ;
+- un libellé tel que `hiver-2025-2026` ;
+- une portée globale, avec surcharge facultative par chapitre ;
+- l’acteur, la date d’activation, le motif et la version de politique ;
+- un état `draft/active/superseded`.
 
-### 19.3 Recalcul
+L’équipe active une nouvelle barrière après l’hiver ou après un événement qui
+rend les anciennes observations peu fiables. L’activation masque immédiatement
+l’ancien signal. Il réapparaît seulement lorsque suffisamment de voyageurs ont
+roulé après cette barrière. En l’absence de barrière active valide, le système
+échoue fermé et omet le bloc.
 
-Suppression, retrait, déclassement d’une couverture ou changement de politique
-recompose l’agrégat. Si le seuil n’est plus atteint, le bloc disparaît dans le
-SLO public. Aucun ancien cache ne peut le maintenir au-delà de 60 secondes.
+### 19.3 Confidentialité et libellé public
+
+Politique initiale recommandée :
+
+- au moins 5 utilisateurs distincts consentants depuis la barrière ;
+- passages reconnus sur une version officielle courante ou compatible ;
+- aucun nombre exact, profil, date précise, sens, durée ou trace ;
+- texte : « Ce chapitre a été parcouru depuis le dernier hiver » ;
+- saison affichable : `hiver 2025-2026`, sans révéler le dernier passage ;
+- absence : bloc omis, sans conclusion sur l’état du parcours.
+
+Le seuil de cinq protège contre la réidentification ; la barrière hivernale
+porte la fraîcheur métier. Le seuil reste à valider avec le DPO et un test de
+réidentification. Les paramètres sont versionnés et ne changent jamais
+silencieusement.
+
+### 19.4 Recalcul
+
+Suppression, retrait, nouvelle barrière, déclassement d’une couverture ou
+changement de politique recompose l’agrégat. Si le seuil n’est plus atteint, le
+bloc disparaît dans le SLO public. Aucun ancien cache ne peut le maintenir
+au-delà de 60 secondes.
 
 ## 20. Strava, Garmin et Komoot
 
 ### 20.1 Strava
 
-Strava est un lot postérieur au GPX. Le design doit prévoir :
+Strava fait partie du MVP et du lot 1 au même titre que l’import GPX. Le MVP
+doit prévoir :
 
 - OAuth 2.0 avec `state`, scopes minimaux et vérification des scopes réellement
   accordés ;
@@ -844,7 +886,13 @@ Strava est un lot postérieur au GPX. Le design doit prévoir :
 - suppression ou invalidation lorsque l’activité devient privée ou est
   supprimée selon le scope ;
 - déconnexion appliquant l’endpoint de révocation courant ;
-- revue Strava et capacité athlètes avant ouverture.
+- revue Strava et capacité athlètes comme dépendance de mise en production.
+
+Le développement et la recette limitée peuvent avancer avec la capacité de
+test disponible. L’ouverture du MVP au public exige une capacité Strava
+compatible avec le pilote puis la cible. Une panne ou un refus temporaire du
+fournisseur ne bloque pas l’import GPX, mais Strava reste un critère fonctionnel
+de fin du MVP.
 
 Le connecteur ne place jamais automatiquement une activité dans un voyage et
 ne donne aucun consentement public implicite.
@@ -893,9 +941,9 @@ Réponse possible :
 ~~~json
 {
   "visible": true,
-  "label": "Des voyageurs ont parcouru ce chapitre récemment",
-  "period": "2026-07",
-  "policyVersion": "recent-passage-v1",
+  "label": "Ce chapitre a été parcouru depuis le dernier hiver",
+  "season": "hiver-2025-2026",
+  "policyVersion": "winter-freshness-v1",
   "updatedAt": "2026-08-09T12:00:00Z"
 }
 ~~~
@@ -1052,7 +1100,8 @@ progressif utilise un curseur et ne bloque pas les pages publiques.
 5. équipe : console et promotion en brouillon ;
 6. activation privée du pilote ;
 7. activation séparée des récits, retours et agrégats publics ;
-8. Strava dans un déploiement ultérieur.
+8. connexion Strava du MVP après validation de la capacité applicative, avec
+   import GPX toujours disponible.
 
 Chaque étape possède un coupe-circuit indépendant :
 
@@ -1089,13 +1138,13 @@ Chaque étape possède un coupe-circuit indépendant :
 | Lot | Contenu | Livrable vérifiable |
 |---|---|---|
 | 0 — Cadrage | ADR, threat model, DPO, clé chapitre, corpus, seuils, identité, stockage, queue | décisions bloquantes signées et corpus versionné |
-| 1 — Traces | compte, upload GPX, bibliothèque, déduplication, matching | une trace privée est reconnue sans voyage |
-| 2 — Voyages | association unique, agrégation, métriques, export/suppression | dix traces peuvent former un voyage sans double compte |
+| 1 — Traces + Strava | compte, upload GPX, OAuth, historique borné, webhooks, déduplication, matching | fichier et activité Strava deviennent des traces privées sans voyage automatique |
+| 2 — Voyages + badge | association unique, agrégation par voyage puis progression compte, métriques, badge boucle, export/suppression | plusieurs voyages peuvent compléter la boucle sans double compte ni limite arbitraire |
 | 3 — Terrain | formulaire privé, console, états et audit | un retour partiel est trié sans apparaître dans Strapi |
-| 4 — Public volontaire | récit, médias dérivés, modération, agrégat k-anonyme | retrait public dans le SLO et aucune géométrie exposée |
-| 5 — Strava | OAuth, historique borné, webhooks, révocation | une activité autorisée devient trace, jamais voyage automatique |
-| 6 — FIT/Garmin | parseur FIT puis étude/accès Garmin | parité de matching et connecteur seulement si approuvé |
-| 7 — Temps pris | règles de boucle et célébration privée/volontaire | aucune pause artificielle transformée en record |
+| 4 — Public volontaire | récit, médias dérivés, modération, barrière hivernale et agrégat k-anonyme | retrait public dans le SLO et aucune géométrie exposée |
+| 5 — FIT | parseur et parité de métriques | une trace FIT suit le même contrat de matching |
+| 6 — Garmin | étude, accès partenaire et connecteur | connecteur activé seulement si le programme est approuvé |
+| 7 — Temps pris public | célébration volontaire sans classement | aucune pause artificielle transformée en record |
 
 Chaque lot possède ses propres PR de production. Le lot 0 peut conclure qu’un
 lot doit être divisé davantage.
@@ -1112,13 +1161,14 @@ lot doit être divisé davantage.
 | Queue | aucun worker ; cron dupliqué par scaler | table jobs PostgreSQL + worker séparé au MVP | architecture/ops, lot 1 |
 | Matching | aucune trace voyageur réelle dans le dépôt | corpus versionné puis politique chiffrée | produit/data, lot 1 |
 | Dédoublonnage | multi-source attendu | une trace canonique, une appartenance voyage | produit, lot 2 |
-| Boucle complète | ordre et fenêtre non définis | pas de badge MVP ; tester fenêtre 90 jours | produit/data, lot 7 |
-| Signal récent | risque de réidentification | k=5, 90 jours, délai 7 jours, mois du k-ième | DPO/produit, lot 4 |
+| Boucle complète | badge demandé au MVP et pratique réelle en plusieurs sorties | progression du compte sur tous ses voyages, toutes les sections reconnues, aucune limite de durée, badge privé par défaut | seuils data, lot 2 |
+| Fraîcheur terrain | une fenêtre glissante ne reflète pas l’hiver | barrière hivernale éditoriale globale avec surcharge par chapitre | administration initiale, lot 4 |
+| Confidentialité du signal | risque de réidentification après la barrière | k=5 utilisateurs distincts, aucun compteur ni date précise | DPO/produit, lot 4 |
 | Conservation | aucune politique existante | tableau section 16 comme base | DPO/sécurité, avant pilote |
 | Modération | Strapi ne doit pas voir le brut | console privée puis brouillon Strapi nettoyé | équipe éditoriale, lot 3 |
 | Médias publics | changement d’ACL dangereux | copie réencodée sans EXIF | sécurité/éditorial, lot 4 |
-| FIT | dépendances absentes | après GPX et corpus | technique, lot 6 |
-| Strava | capacité et rate limits soumis à revue | webhooks + import borné après approbation | partenariat/technique, lot 5 |
+| FIT | dépendances absentes | après qualification GPX et Strava | technique, lot 5 |
+| Strava | capacité et rate limits soumis à revue | décidé MVP : OAuth, webhooks et import borné ; approbation comme dépendance externe | partenariat/technique, lot 1 |
 | Garmin | programme partenaire | ne pas promettre avant acceptation | partenariat, lot 6 |
 | Analytics | géométrie très sensible | événements minimaux sans contenu | produit/data, lot 1 |
 | Récit indexable | retrait auteur et contenu mince | aucune page indexable au MVP | SEO/éditorial, lot 4 |
@@ -1170,8 +1220,12 @@ réversibilité au moins équivalent.
   déclarée restent distincts ;
 - les jours utilisent le fuseau du voyage ;
 - une pause de quinze jours ne crée pas quinze jours à vélo ;
-- plusieurs années ne produisent pas une boucle reconnue ;
-- aucun classement public n’existe au MVP.
+- le badge boucle apparaît lorsque l’union des passages reconnus de tous les
+  voyages du compte couvre les sections requises, sans limite de durée ;
+- chaque trace reste rattachée à un seul voyage et ne compte qu’une fois ;
+- nombre de voyages, période observée et jours à vélo restent affichés
+  factuellement ;
+- le badge est privé par défaut et aucun classement public n’existe au MVP.
 
 ### 29.5 Publication
 
@@ -1185,11 +1239,13 @@ réversibilité au moins équivalent.
 
 ### 29.6 Signal agrégé
 
-- un utilisateur compte au plus une fois par chapitre/fenêtre ;
-- le bloc reste absent sous le seuil ;
-- le DTO ne contient aucun compteur exact ;
+- un utilisateur compte au plus une fois par chapitre et barrière hivernale ;
+- activer une nouvelle barrière masque les passages antérieurs ;
+- seuls les passages postérieurs à la barrière active peuvent faire réapparaître
+  le bloc ;
+- le bloc reste absent sous le seuil de confidentialité ;
+- le DTO ne contient aucun compteur exact ni date de dernier passage ;
 - le retrait d’un consentement recompose l’agrégat ;
-- le mois affiché ne révèle pas le dernier passage individuel ;
 - l’absence du bloc n’affiche aucun message d’impraticabilité.
 
 ### 29.7 Retours terrain
@@ -1216,7 +1272,7 @@ réversibilité au moins équivalent.
 
 ### 29.9 Connecteurs
 
-- le MVP fonctionne sans connecteur ;
+- le MVP reste utilisable par import GPX mais inclut le connecteur Strava ;
 - Strava vérifie les scopes réellement accordés ;
 - un webhook dupliqué est idempotent ;
 - un webhook est acquitté rapidement puis traité en job ;
@@ -1322,7 +1378,7 @@ Mesures obligatoires :
 - schéma DB privé ;
 - adaptateur objet privé ;
 - adaptateur OIDC ;
-- clients Strapi/Strava futurs ;
+- clients Strapi et Strava ;
 - matching géographique ;
 - jobs, audit, export et suppression ;
 - console équipe privée ou API correspondante ;
@@ -1395,7 +1451,7 @@ et infrastructure.
 - Strapi source de vérité éditoriale et des GPX officiels ;
 - Next comme expérience web, pas comme stockage durable ;
 - worker asynchrone obligatoire ;
-- GPX seul au premier lot ;
+- GPX et Strava au premier lot ;
 - AB et BA analysés séparément ;
 - SHA-256 officiel et version d’algorithme conservés ;
 - une trace canonique dans au plus un voyage actif ;
@@ -1403,8 +1459,11 @@ et infrastructure.
 - projection publique par copie nettoyée ;
 - aucune page récit indexable au MVP ;
 - aucun compteur public exact ;
-- aucune boucle publique ni classement au MVP ;
-- aucun connecteur obligatoire ;
+- badge privé de boucle complète au MVP, agrégé sur tous les voyages du compte
+  et sans limite de durée ;
+- aucune page de classement au MVP ;
+- Strava inclus au MVP avec import GPX toujours disponible ;
+- fraîcheur publique fondée sur une barrière hivernale éditoriale ;
 - `chapterKey` immuable à ajouter ;
 - retrait et suppression conçus avant le pilote.
 
@@ -1416,18 +1475,22 @@ et infrastructure.
 4. queue PostgreSQL ou broker dédié après mesure ;
 5. seuils de matching issus du corpus ;
 6. durées de conservation et besoin d’analyse d’impact ;
-7. validation du seuil k=5, de la fenêtre 90 jours et du délai 7 jours ;
-8. règle finale de boucle complète ;
-9. rôles et personnes habilitées à voir les retours précis ;
-10. coût et taille du pilote ;
-11. forme du package géographique partagé ;
-12. SLO définitifs de retrait, purge et reprise.
+7. validation DPO du seuil de confidentialité k=5 ;
+8. acteur et procédure d’activation de la première barrière hivernale, ainsi que
+   les éventuelles surcharges par chapitre ;
+9. seuils géographiques exacts du badge boucle dans les cas ambigus ;
+10. rôles et personnes habilitées à voir les retours précis ;
+11. coût et taille du pilote, y compris la capacité Strava ;
+12. forme du package géographique partagé ;
+13. SLO définitifs de retrait, purge et reprise.
 
 ## 35. Définition de terminé
 
 Le lot initial est terminé lorsqu’un voyageur peut créer un compte, importer
-un GPX dans un stockage privé, obtenir une reconnaissance reproductible,
-conserver la trace dans sa bibliothèque puis l’associer à un voyage. Il peut
+un GPX ou connecter Strava, obtenir une reconnaissance reproductible, conserver
+la trace dans sa bibliothèque puis l’associer à un voyage. La progression de
+son compte agrège tous ses voyages ; lorsque leur union couvre les sections
+requises, il reçoit son badge privé de boucle complète. Le voyageur peut
 exporter et supprimer ses données. Aucun élément n’est public sans action
 distincte.
 
