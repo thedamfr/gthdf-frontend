@@ -43,6 +43,7 @@
 .placeholder {
   display: grid;
   place-items: center;
+  aspect-ratio: 25 / 12;
   text-align: center;
 }
 
@@ -54,6 +55,17 @@
 .loaded {
   display: grid;
   gap: 2rem;
+}
+
+.mapSummary {
+  max-width: 760px;
+  margin-bottom: -1rem;
+  line-height: 1.65;
+}
+
+.skipMapLink {
+  width: fit-content;
+  font-weight: 800;
 }
 
 .mapFigure,
@@ -70,6 +82,65 @@
   width: 100%;
   height: auto;
   max-height: 560px;
+}
+
+.mapViewport {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 25 / 12;
+  min-height: 180px;
+  background: color-mix(in srgb, var(--color-creme) 75%, white);
+}
+
+.mapViewport .interactiveMapLayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mapViewport .interactiveMapLayer[data-ready='true'] {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mapViewport :global(.maplibregl-ctrl-group button) {
+  width: 44px;
+  height: 44px;
+}
+
+.mapViewport :global(.maplibregl-ctrl-attrib) {
+  max-width: calc(100% - 0.75rem);
+  font-size: 0.72rem;
+}
+
+.recenterButton {
+  color: var(--color-charbon);
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.recenterButton:focus-visible,
+.mapViewport :global(.maplibregl-ctrl-group button:focus-visible) {
+  outline: 3px solid var(--color-rouge);
+  outline-offset: -3px;
+}
+
+.mapStatus,
+.mapFallback {
+  margin-top: 0.75rem;
+  line-height: 1.55;
+}
+
+.mapFallback {
+  padding: 0.75rem;
+  border-left: 4px solid var(--color-rouge);
+  background: color-mix(in srgb, var(--color-creme) 80%, white);
 }
 
 .mapBackground {
@@ -108,6 +179,20 @@
 
 .arrivalMarker {
   fill: var(--color-rouge);
+}
+
+.gapMarker circle {
+  fill: var(--color-creme);
+  stroke: var(--color-charbon);
+  stroke-width: 4;
+}
+
+.gapMarker text {
+  fill: var(--color-charbon);
+  font-size: 20px;
+  font-weight: 900;
+  text-anchor: middle;
+  dominant-baseline: central;
 }
 
 .mapCaption {
@@ -152,21 +237,8 @@
   padding-left: 0.25rem;
 }
 
-.segmentSwatch {
-  display: inline-block;
-  width: 2.5rem;
-  margin-right: 0.5rem;
-  border-top: 4px solid var(--color-bleu);
-  vertical-align: middle;
-}
-
-.swatchPattern1 {
-  border-top-color: var(--color-rouge);
-  border-top-style: dashed;
-}
-
-.swatchPattern2 {
-  border-top: 4px dotted var(--color-vert);
+.segmentLegend strong {
+  white-space: nowrap;
 }
 
 .profile {

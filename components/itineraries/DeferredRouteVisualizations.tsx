@@ -13,6 +13,8 @@ interface DeferredRouteVisualizationsProps {
   elevationAvailable: boolean;
   departureName: string;
   arrivalName: string;
+  distanceMetres: number;
+  basemapEnabled: boolean;
 }
 
 type LoadState =
@@ -24,6 +26,8 @@ export default function DeferredRouteVisualizations({
   elevationAvailable,
   departureName,
   arrivalName,
+  distanceMetres,
+  basemapEnabled,
 }: DeferredRouteVisualizationsProps) {
   const containerRef = useRef<HTMLElement>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
@@ -92,7 +96,8 @@ export default function DeferredRouteVisualizations({
         <p className={styles.eyebrow}>Tracé officiel</p>
         <h2 id="itinerary-map-title">Aperçu du tracé</h2>
         <p>
-          Cette vue schématique montre la forme de la portion, son départ et son arrivée.
+          Situez cette portion sur la carte et zoomez pour voir les communes et les routes
+          traversées. Le tracé affiché suit le parcours officiel du GTHF.
         </p>
       </div>
 
@@ -116,6 +121,8 @@ export default function DeferredRouteVisualizations({
             elevationAvailable={elevationAvailable}
             departureName={departureName}
             arrivalName={arrivalName}
+            distanceMetres={distanceMetres}
+            basemapEnabled={basemapEnabled}
           />
         </Suspense>
       )}

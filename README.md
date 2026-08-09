@@ -37,6 +37,13 @@ serveur. La variable legacy `NEXT_PUBLIC_STRAPI_API_TOKEN` n’est pas prise en
 charge et ne doit jamais être définie. Les origines objet autorisées se
 configurent avec `STRAPI_MEDIA_ORIGINS`.
 
+Le fond cartographique des fiches itinéraires est contrôlé côté serveur par
+`ITINERARY_BASEMAP_ENABLED`. La valeur par défaut est `false` : le schéma SVG
+autonome reste alors affiché et aucun appel à OpenFreeMap n’est effectué. La
+valeur exacte `true` active le fond Positron différé ; remettre la variable à
+`false` constitue le retour arrière immédiat en cas d’indisponibilité du
+fournisseur ou avant validation de la politique de confidentialité.
+
 First, run the development server:
 
 ```bash
