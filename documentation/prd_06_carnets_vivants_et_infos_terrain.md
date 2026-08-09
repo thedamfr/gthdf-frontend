@@ -1,6 +1,6 @@
 # PRD 06 — Carnets vivants, traces reconnues et informations terrain
 
-**Version :** 0.4\
+**Version :** 0.5\
 **Date :** 9 août 2026\
 **Statut :** prêt pour revue produit, sécurité et architecture\
 **Source produit :** `PRD_04_carnets_vivants_et_infos_terrain.md` transmis le 9 août 2026 ; renuméroté pour éviter une collision avec les PRD déjà attribués\
@@ -200,6 +200,11 @@ Les constats suivants proviennent de `gthdf-frontend@8deb0fd` et de
   traces privées ;
 - un cron Clever est exécuté sur chaque scaler et peut se chevaucher pendant
   un déploiement ; il ne remplace donc pas une queue durable sans verrouillage ;
+- l'add-on PostgreSQL permet de gérer des schémas, mais pas de créer librement
+  une seconde base ou un second utilisateur applicatif en écriture ;
+- relier deux applications au même add-on leur injecterait les mêmes
+  identifiants propriétaire : deux schémas sépareraient les tables, pas les
+  autorisations ;
 - aucun mécanisme de traitement privé n’est aujourd’hui déployé.
 
 ## 7. Principes produit et sécurité non négociables
@@ -326,9 +331,11 @@ L’option « tout dans Strapi » réduirait le nombre de services mais :
 - augmenterait le risque qu’un `populate` ou une permission publie trop.
 
 Cette option ne peut être retenue que si un ADR démontre une isolation
-équivalente : base ou schéma privé, bucket privé distinct, routes
-fail-closed, worker séparé, tests d’autorisation systématiques et impossibilité
-de sur-fetch public. La recommandation reste un service séparé.
+équivalente : stockage privé distinct, routes fail-closed, worker séparé, tests
+d'autorisation systématiques et impossibilité de sur-fetch public. Sur Clever
+Cloud, un second schéma du même add-on n'est pas une frontière d'autorisation,
+car le rôle propriétaire peut gérer tous les schémas. La recommandation reste
+un service séparé avec son propre add-on PostgreSQL.
 
 ### 8.4 Forme de déploiement proposée
 
@@ -337,11 +344,16 @@ Un dépôt TypeScript/Node distinct contient deux entrypoints :
 - API privée ;
 - worker asynchrone.
 
-Ils sont déployés comme deux applications Clever Cloud séparées, partagent une
-base PostgreSQL privée et une table de jobs durable. Le lot 0 doit comparer
-cette file PostgreSQL à un broker dédié. Pour le MVP, PostgreSQL est recommandé
-afin de limiter l’infrastructure, à condition d’utiliser verrous courts,
-`SKIP LOCKED` ou mécanisme équivalent, idempotency keys et métriques de retard.
+Ils sont déployés comme deux applications Clever Cloud séparées et reliés au
+même **nouvel add-on PostgreSQL privé**, distinct de celui de Strapi. Cet add-on
+porte les données voyageurs et une table de jobs durable ; Strapi n'en reçoit
+pas les identifiants. Les échanges récit–CMS passent par API, jamais par jointure
+SQL.
+
+Le lot 0 doit comparer cette file PostgreSQL à un broker dédié. Pour le MVP,
+PostgreSQL est recommandé afin de limiter l’infrastructure, à condition
+d’utiliser verrous courts, `SKIP LOCKED` ou mécanisme équivalent, idempotency
+keys et métriques de retard.
 
 ## 9. Identités techniques et synchronisation éditoriale
 
@@ -1200,8 +1212,9 @@ lot doit être divisé davantage.
 | Dépôt/déployable | deux dépôts actuels ne portent pas ce domaine | nouveau dépôt API + worker | propriétaire technique, lot 0 |
 | Identité | aucune auth voyageur | OIDC managé, pas mot de passe GTHF | produit/sécurité/achat, lot 1 |
 | Clé chapitre | slug/order/documentId insuffisants | `chapterKey` immuable | CMS, lot 0 |
+| Base privée | Clever autorise les schémas mais pas la création libre d'une base ou d'un rôle RW ; le même add-on partage ses identifiants propriétaire | second add-on PostgreSQL relié seulement à l'API et au worker privés | infra/architecture, lot 1 |
 | Stockage privé | bucket actuel public | bucket Cellar/add-on distinct ou fournisseur équivalent qualifié | infra/DPO, lot 1 |
-| Queue | aucun worker ; cron dupliqué par scaler | table jobs PostgreSQL + worker séparé au MVP | architecture/ops, lot 1 |
+| Queue | aucun worker ; cron dupliqué par scaler | table jobs du PostgreSQL privé + worker séparé au MVP | architecture/ops, lot 1 |
 | Matching | tolérance produit confirmée | décidé : corridor de 50 m et chapitre reconnu à 80 % ; corpus pour vérifier les cas limites sans durcir la règle | implémentation/data, lot 1 |
 | Dédoublonnage | multi-source attendu | une trace canonique, une appartenance voyage | produit, lot 2 |
 | Boucle complète | badge demandé au MVP et pratique réelle en plusieurs sorties | progression du compte sur tous ses voyages, toutes les sections reconnues, aucune limite de durée, badge privé par défaut | seuils data, lot 2 |
@@ -1488,6 +1501,9 @@ matrice séparée.
   quotas courts/journaliers, capacité athlètes et revue de l’application ;
 - [Garmin Connect Developer Program — FAQ](https://developer.garmin.com/gc-developer-program/program-faq/) :
   accès entreprise sur demande et OAuth 2.0 ;
+- [Clever Cloud — PostgreSQL](https://www.clever-cloud.com/developers/doc/addons/postgresql/) :
+  gestion des schémas autorisée, mais création de bases et d'utilisateurs
+  supplémentaires indisponible par défaut ;
 - [Clever Cloud — Cellar](https://www.clever-cloud.com/developers/doc/addons/cellar/) :
   stockage S3, URLs pré-signées et versioning ;
 - [Clever Cloud — CRON](https://www.clever-cloud.com/developers/doc/administrate/cron/) :
@@ -1502,7 +1518,9 @@ et infrastructure.
 
 ### Décisions prises par ce PRD
 
-- données privées séparées de Strapi ;
+- données privées séparées de Strapi dans un add-on PostgreSQL distinct ;
+- un schéma séparé dans l'add-on Strapi ne constitue pas une isolation
+  suffisante sur Clever Cloud ;
 - Strapi source de vérité éditoriale et des GPX officiels ;
 - Next comme expérience web, pas comme stockage durable ;
 - worker asynchrone obligatoire ;
