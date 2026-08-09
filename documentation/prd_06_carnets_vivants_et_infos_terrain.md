@@ -1,6 +1,6 @@
 # PRD 06 — Carnets vivants, traces reconnues et informations terrain
 
-**Version :** 0.6\
+**Version :** 0.7\
 **Date :** 9 août 2026\
 **Statut :** prêt pour revue produit, sécurité et architecture\
 **Source produit :** `PRD_04_carnets_vivants_et_infos_terrain.md` transmis le 9 août 2026 ; renuméroté pour éviter une collision avec les PRD déjà attribués\
@@ -50,8 +50,8 @@ La livraison est progressive :
 
 - lot 0 : ADR, identité stable des chapitres, corpus de traces et protocole de
   confidentialité ;
-- lot 1 : compte, import GPX privé, connexion Strava, bibliothèque et
-  reconnaissance ;
+- lot 1 : compte et session par email/mot de passe ou Strava, import GPX
+  privé, synchronisation Strava facultative, bibliothèque et reconnaissance ;
 - lot 2 : voyages, agrégation multi-traces et badge de boucle complète ;
 - lot 3 : retours terrain privés et triage ;
 - lot 4 : récits volontaires créés et modérés dans Strapi, affichage sur les
@@ -64,7 +64,7 @@ La livraison est progressive :
 Le PRD fixe les frontières, contrats, états et garde-fous. Le corridor de
 50 mètres et le seuil de reconnaissance de 80 % sont des décisions produit. Le
 lot 0 doit les implémenter et les vérifier sur corpus, puis trancher les autres
-paramètres géographiques, le fournisseur d’identité, la politique de
+paramètres géographiques, le canal email transactionnel, la politique de
 conservation et la qualification de l’infrastructure privée. Ces arbitrages
 sont explicités en section 28 avec recommandation, responsable et lot bloqué.
 
@@ -102,6 +102,8 @@ un indicateur anonyme.
 
 ## 4. Objectifs
 
+- créer un compte par email/mot de passe ou par Strava sans fournisseur
+  d'identité SaaS supplémentaire ;
 - importer et conserver des traces privées indépendamment d’un voyage ;
 - reconnaître zéro, un ou plusieurs chapitres à partir d’une trace ;
 - agréger plusieurs traces au sein d’un voyage sans double comptage ;
@@ -155,8 +157,9 @@ Les constats suivants proviennent de `gthdf-frontend@8deb0fd` et de
   `PREVIEW_SECRET` ;
 - caches publics de 60 à 300 secondes selon les surfaces ;
 - endpoints actuels synchrones et bornés pour le Builder et le catalogue ;
-- aucun compte voyageur, login, session applicative, fournisseur OIDC, base
-  applicative, ORM, route d’upload privé, webhook ou file de travaux ;
+- aucun compte voyageur, login, session applicative, fournisseur d'identité,
+  envoi d'email transactionnel, base applicative, ORM, route d’upload privé,
+  webhook ou file de travaux ;
 - aucune dépendance FIT, Strava, queue ou stockage privé ;
 - le disque local du runtime ne peut pas devenir un stockage de traces
   durable.
@@ -302,7 +305,7 @@ flowchart LR
 
 **Service voyageur privé**
 
-- identité applicative liée à un fournisseur OIDC ;
+- compte interne accessible par email/mot de passe et/ou identité Strava ;
 - autorisations par propriétaire et rôles équipe ;
 - métadonnées, consentements, déduplication, voyages et états ;
 - stockage des octets GPX/FIT dans PostgreSQL et accès sans URL publique ;
@@ -412,7 +415,10 @@ sont contractuelles.
 
 | Entité | Champs et invariants principaux |
 |---|---|
-| `TravelerAccount` | ID opaque, fournisseur et `subject` OIDC uniques, état, locale, fuseau préféré, dates de création/suspension/suppression |
+| `TravelerAccount` | ID opaque interne, état, locale, fuseau préféré, dates de création/suspension/suppression ; indépendant de tout moyen de connexion |
+| `PasswordCredential` | compte, email canonique unique et vérifié, hash Argon2id au format PHC, dates de création/changement et état ; jamais le mot de passe |
+| `OneTimeAuthToken` | compte, finalité `verify_email/password_reset`, hash du token, expiration, usage unique et date de consommation |
+| `ExternalIdentity` | compte, fournisseur `strava`, sujet externe égal à `athlete.id`, état et dates ; unicité fournisseur + sujet |
 | `Trace` | propriétaire, état, hash brut, hash normalisé par propriétaire, bornes temporelles, fuseau source, métriques, format, suppression ; aucune sélection implicite des octets |
 | `TracePayload` | relation un-à-un avec la trace, octets GPX/FIT bruts en `bytea`, taille, MIME contrôlé et date de purge ; plafond 25 Mio |
 | `TraceSource` | trace canonique, type `file/strava/garmin`, identifiant externe, scopes/provenance ; unicité propriétaire + source + identifiant |
@@ -696,20 +702,49 @@ consentement explicite et ne publie ni trace, ni dates précises.
 
 ## 15. Identité, sessions et autorisations
 
-### 15.1 Fournisseur d’identité
+### 15.1 Email/mot de passe et Strava
 
-Le dépôt ne possède aucune authentification voyageur. Le lot 0 compare :
+Le MVP propose deux moyens de créer ou ouvrir un même `TravelerAccount` :
 
-- fournisseur OIDC managé ;
-- service d’identité auto-hébergé ;
-- plugin Strapi `users-permissions`.
+- email vérifié et mot de passe local ;
+- OAuth 2.0 Strava, avec `athlete.id` comme sujet externe stable.
 
-La recommandation est un fournisseur OIDC managé avec identifiant externe
-opaque, vérification d’email et flux passwordless ou passkey lorsque
-disponible. Le service privé ne stocke pas de mot de passe GTHF.
+Aucun fournisseur OIDC ou SaaS d'identité supplémentaire n'est requis. Le
+compte conserve un ID GTHF opaque ; voyages, traces et consentements ne
+référencent jamais directement l'email ou l'identifiant Strava.
 
-Le choix doit documenter coût, région, DPA, export, suppression, MFA,
-récupération de compte, portabilité et absence de dépendance irréversible.
+Le mot de passe est traité avec Argon2id. Argon2id est une fonction mémoire-dure
+de dérivation de mot de passe, pas un algorithme qualifié « post-quantique ».
+Son rôle est de rendre chaque essai hors ligne coûteux, y compris après fuite
+de la base.
+
+La bibliothèque choisie doit :
+
+- générer un sel aléatoire unique d'au moins 16 octets ;
+- produire une chaîne PHC contenant version, paramètres, sel et hash ;
+- démarrer au minimum à `m=19456 KiB, t=2, p=1`, puis être benchmarkée sur le
+  scaler Clever pour rester sous une seconde sans permettre un déni de service ;
+- re-hasher à la connexion lorsque les paramètres deviennent obsolètes ;
+- comparer en temps constant et ne jamais journaliser le mot de passe.
+
+Politique MVP : 15 caractères minimum, au moins 64 acceptés, espaces et Unicode
+autorisés, aucune règle artificielle majuscule/chiffre/symbole, blocage des mots
+de passe communs ou compromis et aucune rotation périodique sans suspicion de
+compromission.
+
+L'inscription email crée un token de vérification aléatoire dont seul le hash
+est stocké. L'oubli de mot de passe utilise un token distinct, à usage unique,
+expirant sous 30 minutes, et révoque les sessions après changement. Les réponses
+restent identiques qu'un email existe ou non.
+
+Le callback Strava vérifie `state`, échange le code côté serveur et contrôle les
+scopes accordés. Le scope `read` suffit pour la connexion ; les scopes activité
+restent facultatifs et leur refus laisse l'import GPX disponible.
+
+Un utilisateur authentifié peut lier Strava à son compte email ou ajouter un
+email/mot de passe à son compte créé via Strava. Aucun rapprochement automatique
+par nom ou email n'est autorisé. Un conflit crée une erreur explicite et un
+parcours support ; aucune fusion silencieuse.
 
 ### 15.2 Autorisation
 
@@ -722,12 +757,19 @@ récupération de compte, portabilité et absence de dépendance irréversible.
 - élévation et export de données journalisés ;
 - aucune route privée indexable ou préchargée dans une page publique.
 
-### 15.3 CSRF, XSS et session
+### 15.3 Authentification web et session
 
-- cookie `HttpOnly Secure SameSite` ;
+- cookie de session opaque `HttpOnly Secure SameSite`, sans JWT durable dans le
+  navigateur ;
 - protection CSRF sur les mutations si l’architecture de cookie l’exige ;
-- rotation de session après connexion et élévation ;
-- durée et révocation explicites ;
+- rotation de session après connexion, changement de mot de passe et élévation ;
+- limitation des essais par compte et par origine, avec ralentissement
+  progressif sans verrouillage permanent exploitable ;
+- messages génériques pour connexion, inscription et récupération afin de ne
+  pas révéler l'existence d'un compte ;
+- tokens de vérification et reset hashés, courts, expirables et à usage unique ;
+- autorisation du collage et des gestionnaires de mots de passe ;
+- durée, inventaire et révocation explicites des sessions ;
 - texte public rendu avec le mécanisme de sanitisation existant ou un schéma
   plus strict ;
 - Content Security Policy qualifiée avant l’ajout des pages compte.
@@ -751,8 +793,9 @@ un consentement et un contrat dédiés dans une extension post-MVP.
   prochain agrégat ;
 - récit : masquage public fail-closed, dépublication Strapi et purge des
   dérivés ;
-- connecteur : arrêt des synchronisations, révocation fournisseur puis
-  suppression des tokens ;
+- Strava : l'action « déconnecter » arrête les synchronisations et révoque les
+  tokens sans supprimer le compte, les traces ni les sessions email/mot de
+  passe ; une session ouverte uniquement via Strava est révoquée ;
 - compte : session révoquée, traitements gelés, suppression orchestrée ;
 - cache public maximal recommandé : 60 secondes ;
 - objectif de disparition publique : 15 minutes, incident déclenché au-delà.
@@ -923,11 +966,13 @@ au-delà de 60 secondes.
 
 ### 20.1 Strava
 
-Strava fait partie du MVP et du lot 1 au même titre que l’import GPX. Le MVP
-doit prévoir :
+Strava est à la fois un second moyen de connexion et, si le voyageur
+l'autorise, une source d'activités du MVP. Le lot 1 doit prévoir :
 
-- OAuth 2.0 avec `state`, scopes minimaux et vérification des scopes réellement
-  accordés ;
+- OAuth 2.0 serveur avec `state`, callback borné et code à usage unique ;
+- création, liaison ou réouverture idempotente par `athlete.id` ;
+- scope `read` obligatoire pour la connexion Strava, scopes activité
+  distincts et vérification de ce qui a réellement été accordé ;
 - tokens d’accès courts et refresh token rotatif chiffré ;
 - activité privée uniquement avec le scope explicitement requis ;
 - import historique borné, paginé, annulable et soumis aux rate limits ;
@@ -941,12 +986,13 @@ doit prévoir :
 
 Le développement et la recette limitée peuvent avancer avec la capacité de
 test disponible. L’ouverture du MVP au public exige une capacité Strava
-compatible avec le pilote puis la cible. Une panne ou un refus temporaire du
-fournisseur ne bloque pas l’import GPX, mais Strava reste un critère fonctionnel
-de fin du MVP.
+compatible avec le pilote puis la cible. Une panne Strava empêche seulement ce
+mode de connexion et la synchronisation ; email/mot de passe et import GPX
+restent disponibles.
 
-Le connecteur ne place jamais automatiquement une activité dans un voyage et
-ne donne aucun consentement public implicite.
+Refuser les scopes activité laisse disponibles le compte et l'import GPX. Le
+connecteur ne place jamais automatiquement une activité dans un voyage et ne
+donne aucun consentement public implicite.
 
 ### 20.2 Garmin
 
@@ -967,8 +1013,11 @@ Les chemins sont indicatifs ; les invariants sont obligatoires.
 
 ### 21.1 API privée
 
-- `POST /v1/uploads/intents` ;
-- `POST /v1/traces/{id}/complete-upload` ;
+- `POST /v1/auth/register`, `POST /v1/auth/verify-email` ;
+- `POST /v1/auth/login`, `POST /v1/auth/logout` ;
+- `POST /v1/auth/password/forgot`, `POST /v1/auth/password/reset` ;
+- départ et callback OAuth Strava, liaison et déconnexion ;
+- `POST /v1/traces/import` avec corps borné ;
 - `GET /v1/traces` et `GET /v1/traces/{id}` ;
 - `POST /v1/trips` ;
 - `PUT /v1/trips/{id}/traces/{traceId}` et `DELETE` associé ;
@@ -979,7 +1028,7 @@ Les chemins sont indicatifs ; les invariants sont obligatoires.
 - `POST /v1/exports` ;
 - `GET /v1/exports/{exportId}/download` ;
 - `DELETE /v1/account` ;
-- callbacks OAuth et webhook fournisseurs.
+- webhook Strava.
 
 Toutes les créations acceptent une clé d’idempotence. Les listes sont paginées.
 Les erreurs utilisent des codes stables et n’incluent aucun secret.
@@ -1079,6 +1128,10 @@ Le threat model du lot 0 couvre :
 
 - IDOR entre voyageurs ;
 - vol de session et CSRF ;
+- credential stuffing, brute force et épuisement mémoire par Argon2id ;
+- énumération d'emails via inscription, connexion ou récupération ;
+- interception ou rejeu d'un token de vérification/reset ;
+- prise de compte lors d'une liaison email–Strava ou fusion abusive ;
 - fichier XML hostile, bombe de taille et épuisement CPU ;
 - identifiant d'export copié, deviné ou journalisé ;
 - fuite de géométrie par erreur, analytics ou support ;
@@ -1124,7 +1177,8 @@ contenu privé.
 2. produire le manifeste des 20 GPX officiels et leurs SHA-256 ;
 3. figer un `ReferenceRoute` publié pour la boucle ;
 4. créer la base et les secrets privés sans bucket objet ;
-5. créer le fournisseur d’identité et les rôles équipe ;
+5. configurer l'envoi email transactionnel, l'application Strava, leurs
+   secrets et les rôles équipe ;
 6. charger uniquement des comptes et traces de test consentis ;
 7. qualifier matching, suppression, export et incident ;
 8. réaliser la revue DPO/sécurité ;
@@ -1152,10 +1206,10 @@ progressif utilise un curseur et ne bloque pas les pages publiques.
 3. frontend : UI masquée par feature flag ;
 4. worker : corpus de test puis pilote ;
 5. équipe : console et promotion en brouillon ;
-6. activation privée du pilote ;
+6. activation privée du pilote avec email/mot de passe, Strava et import GPX ;
 7. activation séparée des récits, retours et agrégats publics ;
-8. connexion Strava du MVP après validation de la capacité applicative, avec
-   import GPX toujours disponible.
+8. élargissement du pilote seulement après validation de la capacité athlètes
+   Strava.
 
 Chaque étape possède un coupe-circuit indépendant :
 
@@ -1192,7 +1246,7 @@ Chaque étape possède un coupe-circuit indépendant :
 | Lot | Contenu | Livrable vérifiable |
 |---|---|---|
 | 0 — Cadrage | ADR, threat model, DPO, clé chapitre, corpus, seuils, identité, stockage, queue | décisions bloquantes signées et corpus versionné |
-| 1 — Traces + Strava | compte, upload GPX, OAuth, historique borné, webhooks, déduplication, matching | fichier et activité Strava deviennent des traces privées sans voyage automatique |
+| 1 — Auth + traces + Strava | email/mot de passe Argon2id, OAuth Strava, upload GPX, historique borné, webhooks, déduplication, matching | les deux connexions ouvrent le même type de compte ; fichier et activité Strava deviennent des traces privées sans voyage automatique |
 | 2 — Voyages + badge | association unique, agrégation par voyage puis progression compte, métriques, badge boucle, export/suppression | plusieurs voyages peuvent compléter la boucle sans double compte ni limite arbitraire |
 | 3 — Terrain | formulaire privé, console, états et audit | un retour partiel est trié sans apparaître dans Strapi |
 | 4 — Public volontaire | récit textuel candidat et workflow dans Strapi, affichage chapitre, barrière hivernale et agrégat k-anonyme | un récit textuel se modère dans Strapi, apparaît sur ses chapitres et se retire dans le SLO sans géométrie exposée |
@@ -1209,7 +1263,8 @@ lot doit être divisé davantage.
 |---|---|---|---|
 | Frontière de données | Strapi est éditorial et public | service voyageur séparé | architecture, avant lot 1 |
 | Dépôt/déployable | deux dépôts actuels ne portent pas ce domaine | nouveau dépôt API + worker | propriétaire technique, lot 0 |
-| Identité | aucune auth voyageur | OIDC managé, pas mot de passe GTHF | produit/sécurité/achat, lot 1 |
+| Identité | pas de SaaS d'identité souhaité | décidé : email/mot de passe local Argon2id et OAuth Strava, liés à un compte GTHF opaque ; OIDC reporté | implémentation/sécurité, lot 1 |
+| Email transactionnel | aucun provider ni SMTP dans les dépôts | choisir un relais SMTP pour vérification et reset ; ce n'est pas un fournisseur d'identité | produit/ops, lot 1 |
 | Clé chapitre | slug/order/documentId insuffisants | `chapterKey` immuable | CMS, lot 0 |
 | Base privée | Clever autorise les schémas mais pas la création libre d'une base ou d'un rôle RW ; le même add-on partage ses identifiants propriétaire | second add-on PostgreSQL relié seulement à l'API et au worker privés | infra/architecture, lot 1 |
 | Stockage traces | fichiers bornés à 25 Mio et fortement liés au cycle de vie DB | décidé : octets GPX/FIT en `bytea` dans une table `TracePayload` séparée | implémentation/infra, lot 1 |
@@ -1331,19 +1386,28 @@ réversibilité au moins équivalent.
 
 ### 29.8 Droits et suppression
 
+- une révocation Strava invalide ses tokens sans supprimer les données ni le
+  moyen de connexion email/mot de passe ;
+- réautoriser le même `athlete.id` retrouve le même compte GTHF ;
+- changer ou réinitialiser le mot de passe révoque les autres sessions ;
 - l’utilisateur exporte ses données via une archive `bytea` temporaire,
   authentifiée et purgée sous 24 heures ;
 - il supprime une trace sans supprimer son compte ;
 - il supprime un voyage sans publier d’information ;
-- déconnecter Strava révoque et supprime les tokens ;
+- déconnecter Strava révoque et supprime les tokens et ferme les sessions qui
+  reposent uniquement sur Strava ;
 - supprimer le compte révoque immédiatement les sessions ;
 - la purge couvre DB, contenus Strapi, caches et agrégats ;
 - une restauration rejoue les tombstones de suppression ;
 - toutes les étapes sont auditables sans conserver la géométrie dans l’audit.
 
-### 29.9 Connecteurs
+### 29.9 Authentification et connecteurs
 
-- le MVP reste utilisable par import GPX mais inclut le connecteur Strava ;
+- email/mot de passe et Strava permettent chacun de créer ou ouvrir un compte ;
+- une liaison explicite associe les deux moyens au même `TravelerAccount` ;
+- aucun compte n'est fusionné automatiquement par nom ou email ;
+- le scope Strava `read` suffit à la connexion et à l'import GPX manuel ;
+- refuser un scope activité désactive seulement la synchronisation d'activités ;
 - Strava vérifie les scopes réellement accordés ;
 - un webhook dupliqué est idempotent ;
 - un webhook est acquitté rapidement puis traité en job ;
@@ -1355,6 +1419,9 @@ réversibilité au moins équivalent.
 
 ### 30.1 Tests unitaires
 
+- Argon2id avec paramètres et vecteurs connus, génération de sel et rehash ;
+- politique de mot de passe, blocklist et normalisation email ;
+- expiration, hash et usage unique des tokens email/reset ;
 - parser GPX hostile et bornes ;
 - hashes bruts et normalisés ;
 - projection sur linéaire, union d’intervalles et direction ;
@@ -1368,15 +1435,22 @@ réversibilité au moins équivalent.
 
 ### 30.2 Tests d’intégration
 
+- inscription, vérification email, connexion, oubli et reset sans énumération ;
+- limitation des tentatives et révocation des sessions après reset ;
+- création par email, création par Strava et liaison explicite sans doublon ;
+- refus de fusion automatique d'identités conflictuelles ;
 - upload GPX borné vers l'API puis stockage `bytea` ;
 - isolation entre deux comptes ;
 - job concurrent et reprise après crash ;
+- création puis reconnexion du même compte par `athlete.id` ;
 - rotation OAuth concurrente ;
+- refus des scopes activité avec import GPX toujours fonctionnel ;
+- révocation Strava sans suppression du compte ni de l'accès par mot de passe ;
 - webhook dupliqué/réordonné ;
 - lecture Strapi d’un nouveau snapshot ;
 - promotion vers brouillon, publication puis retrait ;
 - purge DB + contenu Strapi + cache ;
-- panne Strapi, DB, identité et fournisseur tiers ;
+- panne Strapi, DB, email transactionnel et Strava, avec repli attendu ;
 - limite de pool et backpressure.
 
 ### 30.3 Corpus géographique
@@ -1414,7 +1488,7 @@ Mesures obligatoires :
 - CPU/mémoire du worker sur le plus gros fichier accepté ;
 - profondeur maximale de queue ;
 - connexions PostgreSQL ;
-- coût DB, identité et egress ;
+- coût DB, email transactionnel, capacité Strava et egress ;
 - comportement pendant un déploiement zéro-downtime ;
 - SLO de retrait et suppression.
 
@@ -1449,8 +1523,9 @@ Mesures obligatoires :
 - API, worker et migrations ;
 - schéma DB privé avec `TracePayload.rawBytes bytea` ;
 - aucun adaptateur objet ou média au MVP ;
-- adaptateur OIDC ;
-- clients Strapi et Strava ;
+- credentials email/Argon2id, tokens de vérification/reset et sessions ;
+- identité OAuth Strava et mécanisme extensible `ExternalIdentity` ;
+- clients email, Strapi et Strava ;
 - matching géographique ;
 - jobs, audit, export et suppression ;
 - console équipe privée ou API correspondante ;
@@ -1495,6 +1570,14 @@ matrice séparée.
 
 - [CNIL — Géolocalisation et applications mobiles](https://www.cnil.fr/fr/geolocalisation-applications-mobiles-quelles-regles) :
   minimisation, maîtrise, accès, effacement, opposition et retrait ;
+- [RFC 9106 — Argon2](https://www.rfc-editor.org/rfc/rfc9106.html) :
+  fonction mémoire-dure, Argon2id, sel unique recommandé et paramètres
+  versionnés ;
+- [OWASP — Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) :
+  Argon2id, paramètres minimaux, sel géré par la bibliothèque et rehash ;
+- [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html) :
+  quinze caractères en facteur unique, longueur maximale d'au moins 64,
+  blocklist, limitation des essais et absence de rotation arbitraire ;
 - [Strava — Authentication](https://developers.strava.com/docs/authentication/) :
   OAuth 2.0, scopes réellement accordés, tokens courts, refresh rotatif et
   révocation ;
@@ -1531,6 +1614,13 @@ et infrastructure.
 - octets GPX/FIT stockés en `bytea` dans une table privée séparée des
   métadonnées ;
 - aucune photo et aucun bucket privé au MVP ;
+- email/mot de passe local et Strava comme deux moyens de connexion du MVP,
+  sans SaaS d'identité supplémentaire ;
+- mots de passe en Argon2id avec sel unique, politique longue sans règles de
+  composition arbitraires, blocklist et reset à usage unique ;
+- `ExternalIdentity.subject = athlete.id` pour Strava ;
+- scope Strava `read` suffisant pour le compte et l'import GPX, scopes
+  activité facultatifs pour la synchronisation ;
 - GPX et Strava au premier lot ;
 - AB et BA analysés séparément ;
 - SHA-256 officiel et version d’algorithme conservés ;
@@ -1554,7 +1644,8 @@ et infrastructure.
 
 ### Questions bloquantes du lot 0
 
-1. fournisseur d’identité et responsabilités contractuelles ;
+1. relais SMTP, domaine expéditeur et règles de délivrabilité des emails
+   vérification/reset ;
 2. dépôt, langage final et ownership du domaine voyageur ;
 3. offre, région, sauvegarde et politique du stockage privé ;
 4. queue PostgreSQL ou broker dédié après mesure ;
@@ -1571,8 +1662,10 @@ et infrastructure.
 
 ## 35. Définition de terminé
 
-Le lot initial est terminé lorsqu’un voyageur peut créer un compte, importer
-un GPX ou connecter Strava, obtenir une reconnaissance reproductible, conserver
+Le lot initial est terminé lorsqu’un voyageur peut créer son compte GTHF par
+email/mot de passe ou par Strava, lier ensuite les deux moyens sans doublon,
+puis importer un GPX ou autoriser la synchronisation de ses activités, obtenir
+une reconnaissance reproductible, conserver
 la trace dans sa bibliothèque puis l’associer à un voyage. La progression de
 son compte agrège tous ses voyages ; lorsque leur union couvre les sections
 requises, il reçoit son badge privé de boucle complète. Le voyageur peut
