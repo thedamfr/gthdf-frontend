@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import GpxBuilderForm from '@/components/gpx-builder/GpxBuilderForm';
+import GpxBuilderRouteContext from '@/components/gpx-builder/GpxBuilderRouteContext';
 import { toPublicGpxBuilderManifest } from '@/lib/gpx-builder/manifest';
 import { getGpxBuilderManifest } from '@/lib/gpx-builder/server';
+import { getHomepage } from '@/lib/strapi';
+import { resolveTrustedMediaUrl } from '@/lib/trusted-media-url';
 
 import styles from './page.module.css';
 
@@ -14,8 +17,39 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
+interface HomepageRouteContext {
+  mapPreviewImage?: { url?: string };
+}
+
+async function getRoutePreviewImageUrl(): Promise<string | undefined> {
+  try {
+    const homepage = await getHomepage() as HomepageRouteContext | null;
+    const mediaUrl = homepage?.mapPreviewImage?.url;
+    if (!mediaUrl) {
+      return undefined;
+    }
+    // The resolved URL is serialized into next/image, so relative media must
+    // use the public Strapi origin rather than a server-only endpoint.
+    const configuredStrapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL;
+    if (!configuredStrapiUrl && process.env.NODE_ENV === 'production') {
+      return undefined;
+    }
+    const strapiUrl = configuredStrapiUrl ?? 'http://localhost:1337';
+    const allowedOrigins = (process.env.STRAPI_MEDIA_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    return resolveTrustedMediaUrl(mediaUrl, strapiUrl, allowedOrigins);
+  } catch {
+    return undefined;
+  }
+}
+
 export default async function GpxBuilderPage() {
-  const manifest = toPublicGpxBuilderManifest(await getGpxBuilderManifest());
+  const [manifest, previewImageUrl] = await Promise.all([
+    getGpxBuilderManifest().then(toPublicGpxBuilderManifest),
+    getRoutePreviewImageUrl(),
+  ]);
 
   return (
     <main className={styles.container}>
@@ -24,11 +58,12 @@ export default async function GpxBuilderPage() {
         <p className={styles.eyebrow}>GPX officiel à la carte</p>
         <h1>Créer mon GPX sur le GTHF</h1>
         <p className={styles.intro}>
-          Choisissez votre ville de départ et votre ville d’arrivée.
-          Le Builder retient automatiquement la portion officielle la plus courte,
-          avec sa géométrie et son dénivelé propres.
+          Choisissez une ville de départ et une ville d’arrivée pour préparer
+          votre prochaine portion du Grand Tour.
         </p>
       </header>
+
+      <GpxBuilderRouteContext previewImageUrl={previewImageUrl} />
 
       {manifest.enabled ? (
         <GpxBuilderForm manifest={manifest} />

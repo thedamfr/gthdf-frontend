@@ -1,0 +1,85 @@
+.context {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(16rem, 0.75fr);
+  margin-bottom: clamp(2rem, 6vw, 4rem);
+  border: 3px solid var(--color-charbon);
+  background: var(--color-beige);
+  box-shadow: 8px 8px 0 var(--color-charbon);
+}
+
+.imageFrame {
+  position: relative;
+  min-height: clamp(18rem, 36vw, 28rem);
+  overflow: hidden;
+  border-right: 3px solid var(--color-charbon);
+  background: var(--color-creme);
+}
+
+.image {
+  object-fit: cover;
+}
+
+.copy {
+  align-self: center;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.4rem;
+  color: var(--color-bleu);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.copy h2 {
+  margin: 0 0 1rem;
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  line-height: 1.05;
+}
+
+.copy p:not(.eyebrow) {
+  margin: 0 0 1.5rem;
+  line-height: 1.6;
+}
+
+.copy a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  border: 2px solid var(--color-charbon);
+  padding: 0.6rem 1rem;
+  background: var(--color-jaune);
+  color: var(--color-charbon);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.copy a:hover {
+  background: var(--color-charbon);
+  color: var(--color-creme);
+}
+
+.copy a:focus-visible {
+  outline: 4px solid var(--color-bleu);
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  .context {
+    grid-template-columns: 1fr;
+  }
+
+  .imageFrame {
+    min-height: 16rem;
+    border-right: 0;
+    border-bottom: 3px solid var(--color-charbon);
+  }
+
+  .copy a {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}
