@@ -28,7 +28,9 @@ async function getRoutePreviewImageUrl(): Promise<string | undefined> {
     if (!mediaUrl) {
       return undefined;
     }
-    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+    const strapiUrl = process.env.STRAPI_URL
+      ?? process.env.NEXT_PUBLIC_STRAPI_URL
+      ?? 'http://localhost:1337';
     const allowedOrigins = (process.env.STRAPI_MEDIA_ORIGINS ?? '')
       .split(',')
       .map((origin) => origin.trim())

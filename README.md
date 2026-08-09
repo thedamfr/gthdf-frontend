@@ -136,8 +136,8 @@ serveur compare les portions AB et BA et retient automatiquement la plus
 courte ; le navigateur n’envoie aucun choix de sens.
 Le visuel du parcours complet repris depuis l’accueil précise que le GPX suit
 une section de la boucle officielle, et un lien conduit vers les dix chapitres.
-Le navigateur ne reçoit ni URL de média, ni coordonnées d’ancrage, ni
-empreinte de source. Les endpoints serveur sont :
+Les payloads des endpoints du Builder ne contiennent ni URL de média, ni
+coordonnées d’ancrage, ni empreinte de source. Les endpoints serveur sont :
 
 - `POST /api/gpx-builder/preview` pour le résumé ;
 - `POST /api/gpx-builder/download` pour le GPX 1.1.
