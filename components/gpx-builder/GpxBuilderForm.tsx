@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   useMemo,
   useRef,
@@ -452,9 +453,9 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
           </button>
           {catalogueItineraryLink && (
             <div className={styles.catalogueLink}>
-              <a href={catalogueItineraryLink.href}>
+              <Link href={catalogueItineraryLink.href}>
                 {catalogueItineraryLink.label}
-              </a>
+              </Link>
               <p>Retrouvez sa carte, les villes traversées et son GPX officiel.</p>
             </div>
           )}

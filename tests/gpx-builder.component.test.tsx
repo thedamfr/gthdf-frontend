@@ -1,8 +1,15 @@
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import GpxBuilderForm from '../components/gpx-builder/GpxBuilderForm';
 import type { PublicGpxBuilderManifest } from '../lib/gpx-builder/manifest';
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href} data-next-link="true">{children}</a>
+  ),
+}));
 
 const manifest: PublicGpxBuilderManifest = {
   enabled: true,
@@ -151,6 +158,7 @@ describe('GpxBuilderForm', () => {
 
     const link = await view.findByRole('link', { name: 'Découvrir cet itinéraire' });
     expect(link.getAttribute('href')).toBe('/itineraires-velo/lille-a-arras');
+    expect(link.getAttribute('data-next-link')).toBe('true');
     expect(view.getByText('Retrouvez sa carte, les villes traversées et son GPX officiel.')).toBeTruthy();
     expect(view.getByRole('button', { name: 'Télécharger mon GPX' })).toBeTruthy();
   });

@@ -1,6 +1,7 @@
 import type { GpxDirection } from '../gpx/types.ts';
 
 const SAFE_SLUG_PATTERN = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
+const DEFAULT_CATALOGUE_LOOKUP_TIMEOUT_MILLISECONDS = 1_000;
 
 export const CATALOGUE_ITINERARY_LINK_LABEL = 'Découvrir cet itinéraire' as const;
 // The PRD03 Builder is bound to the single canonical loop published by PRD04.
@@ -140,11 +141,26 @@ export function resolveCatalogueItineraryLink(
 }
 
 export async function loadOptionalCatalogueItineraryLink(
-  load: () => Promise<CatalogueItineraryLink | null>
+  load: () => Promise<CatalogueItineraryLink | null>,
+  timeoutMilliseconds = DEFAULT_CATALOGUE_LOOKUP_TIMEOUT_MILLISECONDS
 ): Promise<CatalogueItineraryLink | null> {
+  if (!Number.isFinite(timeoutMilliseconds) || timeoutMilliseconds <= 0) {
+    return null;
+  }
+
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
-    return await load();
+    return await Promise.race([
+      load(),
+      new Promise<null>((resolve) => {
+        timeout = setTimeout(() => resolve(null), timeoutMilliseconds);
+      }),
+    ]);
   } catch {
     return null;
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
   }
 }

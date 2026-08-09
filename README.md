@@ -154,8 +154,8 @@ secondaire `Découvrir cet itinéraire` lorsqu’une fiche catalogue publique
 représente exactement le même parcours AB, les mêmes villes ordonnées, les
 mêmes ancres, sources et jonctions. Le rapprochement réutilise la garde
 publique côté serveur. Une correspondance partielle ou inversée et une panne
-du catalogue n’affichent aucun lien, sans empêcher la prévisualisation ni le
-téléchargement du GPX.
+du catalogue n’affichent aucun lien. Le lookup est plafonné à une seconde afin
+de ne retarder ni la prévisualisation ni le téléchargement du GPX.
 
 Avant une recette locale, déployer ou démarrer le schéma CMS, préparer et
 publier les ancrages et jonctions relus, puis activer

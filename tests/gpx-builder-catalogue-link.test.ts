@@ -96,6 +96,21 @@ test('a catalogue lookup failure keeps the Builder preview available without a l
   );
 });
 
+test('a slow catalogue lookup is capped so the Builder preview stays responsive', async () => {
+  const delayedLink = candidateFixture();
+  const result = await loadOptionalCatalogueItineraryLink(
+    () => new Promise((resolve) => {
+      setTimeout(() => resolve({
+        href: `/itineraires-velo/${delayedLink.slug}`,
+        label: 'Découvrir cet itinéraire',
+      }), 100);
+    }),
+    10
+  );
+
+  assert.equal(result, null);
+});
+
 test('a guarded itinerary is normalized from its exact route sources and anchors', () => {
   const candidate = candidateFixture();
   const guarded = {

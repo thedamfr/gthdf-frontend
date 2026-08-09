@@ -12,6 +12,10 @@ import {
 export async function getCatalogueItineraryLink(
   match: BuilderCatalogueMatch
 ): Promise<CatalogueItineraryLink | null> {
+  if (match.direction !== 'AB') {
+    return null;
+  }
+
   const guarded = await getGuardedBuilderItineraries(
     match.departureCityDocumentId,
     match.arrivalCityDocumentId
