@@ -1,6 +1,6 @@
 # PRD 06 — Carnets vivants, traces reconnues et informations terrain
 
-**Version :** 0.2\
+**Version :** 0.3\
 **Date :** 9 août 2026\
 **Statut :** prêt pour revue produit, sécurité et architecture\
 **Source produit :** `PRD_04_carnets_vivants_et_infos_terrain.md` transmis le 9 août 2026 ; renuméroté pour éviter une collision avec les PRD déjà attribués\
@@ -57,11 +57,12 @@ La livraison est progressive :
 - lot 7 : éventuelle célébration publique « Le temps pris », sans classement
   au MVP.
 
-Le PRD fixe les frontières, contrats, états et garde-fous. Il laisse au lot 0
-les seuils géographiques définitifs, le fournisseur d’identité, la politique
-de conservation validée et la qualification de l’infrastructure privée. Ces
-arbitrages sont explicités en section 28 avec recommandation, responsable et
-lot bloqué.
+Le PRD fixe les frontières, contrats, états et garde-fous. Le corridor de
+50 mètres et le seuil de reconnaissance de 80 % sont des décisions produit. Le
+lot 0 doit les implémenter et les vérifier sur corpus, puis trancher les autres
+paramètres géographiques, le fournisseur d’identité, la politique de
+conservation et la qualification de l’infrastructure privée. Ces arbitrages
+sont explicités en section 28 avec recommandation, responsable et lot bloqué.
 
 ## 2. Pourquoi le document devient PRD 06
 
@@ -522,7 +523,7 @@ simple intersection, d’un point proche ou du nombre brut de points.
 7. mesurer couverture, continuité, écarts, ordre et sens ;
 8. calculer confiance et statut ;
 9. persister les preuves bornées, les versions et les raisons ;
-10. agréger ensuite au niveau du voyage.
+10. agréger ensuite au niveau du voyage puis de la progression du compte.
 
 Le ratio se calcule en mètres de parcours officiel couverts, pas en proportion
 de points. Le rééchantillonnage interne ne remplace pas la géométrie source
@@ -532,18 +533,33 @@ dans l’audit.
 
 Un `MatchingPolicy` immuable conserve :
 
-- distance maximale au tracé ;
+- `corridorMetres = 50` ;
+- `recognizedCoverageRatio = 0.80` ;
 - taille des intervalles ou pas de rééchantillonnage ;
-- longueur minimale continue ;
-- couverture minimale `partial` et `recognized` ;
-- tolérance aux coupures ;
-- règle de direction ;
-- qualité temporelle minimale ;
+- couverture minimale utile pour le statut `partial` ;
+- règles de projection des coupures et points aberrants ;
+- direction observée, sans en faire une contrainte de performance ;
+- qualité temporelle utilisée pour la fraîcheur et les métriques, pas pour la
+  reconnaissance géométrique ;
 - version parseur et algorithme ;
 - hash du corpus de qualification.
 
-Aucune valeur finale ne peut être choisie seulement à partir des GPX
-officiels. Le lot 0 doit réunir :
+Les deux premières valeurs sont fixées par décision produit :
+
+- un point ou segment contribue seulement lorsqu’il se trouve à 50 mètres ou
+  moins du GPX officiel AB ou BA correspondant ;
+- une trace reconnaît un chapitre lorsque l’union des chaînages ainsi couverts
+  atteint au moins 80 % du linéaire officiel ;
+- la même règle de 80 % s’applique à l’union des traces d’un voyage et à la
+  progression multi-voyages du compte ;
+- les 20 % non couverts tolèrent coupures GPS, petits détours et départs ou
+  arrivées imparfaits ;
+- aucune vitesse minimale, continuité parfaite, durée maximale ou séquence
+  chronométrée n’est exigée.
+
+Traverser ponctuellement le chapitre reste insuffisant : le seuil de 80 % doit
+être atteint. Le lot 0 ne peut pas durcir ces deux valeurs ; il doit les
+implémenter puis réunir un corpus pour qualifier les autres paramètres :
 
 - traces complètes propres ;
 - traces quotidiennes qui couvrent ensemble un chapitre ;
@@ -555,10 +571,10 @@ officiels. Le lot 0 doit réunir :
 - fichiers sans temps et temps incohérents ;
 - changement d’un GPX officiel.
 
-Les valeurs de départ à expérimenter, non contractuelles, sont un corridor de
-50 à 100 m selon la précision et une reconnaissance de 85 à 90 % au niveau
-voyage. Le rapport du lot 0 fixe les valeurs retenues, les faux positifs, faux
-négatifs et cas manuels.
+Le rapport du lot 0 mesure les faux positifs, faux négatifs et cas manuels
+avec le corridor de 50 mètres et le seuil de 80 %. Si le corpus révèle un cas
+dangereux, le rapport propose une règle complémentaire ciblée ; il ne remplace
+pas silencieusement ces seuils par une logique de performance.
 
 ### 13.4 Statuts
 
@@ -1159,7 +1175,7 @@ lot doit être divisé davantage.
 | Clé chapitre | slug/order/documentId insuffisants | `chapterKey` immuable | CMS, lot 0 |
 | Stockage privé | bucket actuel public | bucket Cellar/add-on distinct ou fournisseur équivalent qualifié | infra/DPO, lot 1 |
 | Queue | aucun worker ; cron dupliqué par scaler | table jobs PostgreSQL + worker séparé au MVP | architecture/ops, lot 1 |
-| Matching | aucune trace voyageur réelle dans le dépôt | corpus versionné puis politique chiffrée | produit/data, lot 1 |
+| Matching | tolérance produit confirmée | décidé : corridor de 50 m et chapitre reconnu à 80 % ; corpus pour vérifier les cas limites sans durcir la règle | implémentation/data, lot 1 |
 | Dédoublonnage | multi-source attendu | une trace canonique, une appartenance voyage | produit, lot 2 |
 | Boucle complète | badge demandé au MVP et pratique réelle en plusieurs sorties | progression du compte sur tous ses voyages, toutes les sections reconnues, aucune limite de durée, badge privé par défaut | seuils data, lot 2 |
 | Fraîcheur terrain | une fenêtre glissante ne reflète pas l’hiver | barrière hivernale éditoriale globale avec surcharge par chapitre | administration initiale, lot 4 |
@@ -1205,6 +1221,12 @@ réversibilité au moins équivalent.
 
 - chaque résultat conserve `chapterKey`, direction, SHA-256 officiel,
   intervalles, couverture, confiance, statut, date et version d’algorithme ;
+- seuls les segments situés à 50 mètres ou moins du GPX officiel contribuent à
+  la couverture ;
+- une trace ou une union de traces obtient `recognized` dès que 80 % du
+  linéaire officiel du chapitre est couvert ;
+- les 20 % manquants ne bloquent ni le chapitre, ni la progression de boucle ;
+- aucune vitesse, continuité parfaite ou durée maximale n’est requise ;
 - une intersection ponctuelle ne produit pas `recognized` ;
 - AB et BA sont testés comme sources distinctes ;
 - deux traces quotidiennes peuvent reconnaître ensemble un chapitre ;
@@ -1454,6 +1476,8 @@ et infrastructure.
 - GPX et Strava au premier lot ;
 - AB et BA analysés séparément ;
 - SHA-256 officiel et version d’algorithme conservés ;
+- corridor de reconnaissance fixé à 50 mètres autour du GPX officiel ;
+- chapitre reconnu à partir de 80 % de couverture, sans critère de vitesse ;
 - une trace canonique dans au plus un voyage actif ;
 - consentements distincts et versionnés ;
 - projection publique par copie nettoyée ;
@@ -1473,16 +1497,16 @@ et infrastructure.
 2. dépôt, langage final et ownership du domaine voyageur ;
 3. offre, région, sauvegarde et politique du stockage privé ;
 4. queue PostgreSQL ou broker dédié après mesure ;
-5. seuils de matching issus du corpus ;
+5. paramètres de projection complémentaires pour les cas ambigus, sans modifier
+   le corridor de 50 mètres ni le seuil de 80 % ;
 6. durées de conservation et besoin d’analyse d’impact ;
 7. validation DPO du seuil de confidentialité k=5 ;
 8. acteur et procédure d’activation de la première barrière hivernale, ainsi que
    les éventuelles surcharges par chapitre ;
-9. seuils géographiques exacts du badge boucle dans les cas ambigus ;
-10. rôles et personnes habilitées à voir les retours précis ;
-11. coût et taille du pilote, y compris la capacité Strava ;
-12. forme du package géographique partagé ;
-13. SLO définitifs de retrait, purge et reprise.
+9. rôles et personnes habilitées à voir les retours précis ;
+10. coût et taille du pilote, y compris la capacité Strava ;
+11. forme du package géographique partagé ;
+12. SLO définitifs de retrait, purge et reprise.
 
 ## 35. Définition de terminé
 
