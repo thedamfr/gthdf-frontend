@@ -14,6 +14,7 @@ import {
   formatKilometres,
   selectRepresentativeCities,
 } from '@/lib/itineraries/presentation';
+import { isItineraryBasemapEnabled } from '@/lib/itineraries/map';
 import type { PublicItinerary } from '@/lib/itineraries/types';
 import styles from './page.module.css';
 
@@ -255,6 +256,8 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
         elevationAvailable={itinerary.elevationAvailable}
         departureName={itinerary.departure.name}
         arrivalName={itinerary.arrival.name}
+        distanceMetres={itinerary.distanceMetres}
+        basemapEnabled={isItineraryBasemapEnabled(process.env.ITINERARY_BASEMAP_ENABLED)}
       />
 
       <p className={styles.updatedAt}>

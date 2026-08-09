@@ -1,63 +1,29 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { geometryBounds } from '@/lib/itineraries/geometry';
 import type {
   ItineraryDisplayGeometry,
   ItineraryElevationPoint,
   ItineraryElevationSequence,
 } from '@/lib/itineraries/types';
+import InteractiveRouteMap from './InteractiveRouteMap';
 import styles from './RouteVisualization.module.css';
+import SchematicRouteMap from './SchematicRouteMap';
 
 interface RouteVisualizationProps {
   geometry: ItineraryDisplayGeometry;
   elevationAvailable: boolean;
   departureName: string;
   arrivalName: string;
+  distanceMetres: number;
+  basemapEnabled: boolean;
 }
 
-const MAP_WIDTH = 1_000;
-const MAP_HEIGHT = 480;
-const MAP_PADDING = 48;
 const PROFILE_WIDTH = 1_000;
 const PROFILE_HEIGHT = 300;
 const PROFILE_PADDING_X = 64;
 const PROFILE_PADDING_Y = 42;
-
-function projectedSequences(geometry: ItineraryDisplayGeometry): string[] {
-  const bounds = geometryBounds(geometry);
-  const averageLatitude = (bounds.minLatitude + bounds.maxLatitude) / 2;
-  const longitudeFactor = Math.max(Math.cos(averageLatitude * Math.PI / 180), 0.1);
-  const rawWidth = Math.max((bounds.maxLongitude - bounds.minLongitude) * longitudeFactor, 1e-9);
-  const rawHeight = Math.max(bounds.maxLatitude - bounds.minLatitude, 1e-9);
-  const scale = Math.min(
-    (MAP_WIDTH - MAP_PADDING * 2) / rawWidth,
-    (MAP_HEIGHT - MAP_PADDING * 2) / rawHeight
-  );
-  const renderedWidth = rawWidth * scale;
-  const renderedHeight = rawHeight * scale;
-  const offsetX = (MAP_WIDTH - renderedWidth) / 2;
-  const offsetY = (MAP_HEIGHT - renderedHeight) / 2;
-
-  return geometry.sequences.map((sequence) => sequence.coordinates
-    .map(([longitude, latitude]) => {
-      const x = offsetX + (longitude - bounds.minLongitude) * longitudeFactor * scale;
-      const y = offsetY + (bounds.maxLatitude - latitude) * scale;
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(' '));
-}
-
-function endpoint(
-  points: string[],
-  sequenceIndex: number,
-  atEnd: boolean
-): { x: number; y: number } {
-  const sequence = points[sequenceIndex].split(' ');
-  const point = sequence[atEnd ? sequence.length - 1 : 0].split(',').map(Number);
-  return { x: point[0], y: point[1] };
-}
 
 interface ProfilePointReference {
   sequenceIndex: number;
@@ -204,48 +170,73 @@ export default function RouteVisualization({
   elevationAvailable,
   departureName,
   arrivalName,
+  distanceMetres,
+  basemapEnabled,
 }: RouteVisualizationProps) {
-  const sequencePoints = useMemo(() => projectedSequences(geometry), [geometry]);
-  const departure = endpoint(sequencePoints, 0, false);
-  const arrival = endpoint(sequencePoints, sequencePoints.length - 1, true);
+  const sequenceCount = geometry.sequences.length;
+  const gapCount = Math.max(0, sequenceCount - 1);
+  const [basemapState, setBasemapState] = useState<'disabled' | 'loading' | 'ready' | 'unavailable'>(
+    basemapEnabled ? 'loading' : 'disabled'
+  );
+  const distance = `${(distanceMetres / 1_000).toLocaleString('fr-FR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })} km`;
+  const continuity = sequenceCount === 1
+    ? 'une séquence continue et aucun écart connu'
+    : `${sequenceCount} séquences séparées et ${gapCount} ${gapCount > 1 ? 'écarts connus' : 'écart connu'}`;
+  const handleBasemapReady = useCallback(() => setBasemapState('ready'), []);
+  const handleBasemapUnavailable = useCallback(() => setBasemapState('unavailable'), []);
 
   return (
     <div className={styles.loaded}>
+      <p className={styles.mapSummary}>
+        Carte de la portion de {departureName} à {arrivalName}. Distance : {distance}.{' '}
+        Le tracé comporte {continuity}.
+      </p>
+      <a className={styles.skipMapLink} href="#itinerary-map-legend">Passer la carte</a>
       <figure className={styles.mapFigure}>
-        <svg
-          className={styles.map}
-          viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-          role="img"
-          aria-labelledby="route-map-title route-map-description"
-        >
-          <title id="route-map-title">Tracé de {departureName} à {arrivalName}</title>
-          <desc id="route-map-description">
-            La portion comporte {sequencePoints.length} {sequencePoints.length > 1 ? 'segments séparés' : 'segment continu'}.
-          </desc>
-          <rect className={styles.mapBackground} width={MAP_WIDTH} height={MAP_HEIGHT} rx="24" />
-          {sequencePoints.map((points, index) => (
-            <polyline
-              key={index}
-              className={`${styles.routeLine} ${styles[`routePattern${index % 3}`]}`}
-              points={points}
-              vectorEffect="non-scaling-stroke"
-            >
-              <title>Segment {index + 1}</title>
-            </polyline>
-          ))}
-          <circle className={styles.departureMarker} cx={departure.x} cy={departure.y} r="11" />
-          <circle className={styles.arrivalMarker} cx={arrival.x} cy={arrival.y} r="11" />
-        </svg>
-        <figcaption className={styles.mapCaption}>
+        <div className={styles.mapViewport}>
+          <div hidden={basemapState === 'ready'}>
+            <SchematicRouteMap
+              geometry={geometry}
+              departureName={departureName}
+              arrivalName={arrivalName}
+            />
+          </div>
+          {basemapEnabled && (
+            <InteractiveRouteMap
+              geometry={geometry}
+              departureName={departureName}
+              arrivalName={arrivalName}
+              ready={basemapState === 'ready'}
+              onReady={handleBasemapReady}
+              onUnavailable={handleBasemapUnavailable}
+            />
+          )}
+        </div>
+        {basemapState === 'loading' && (
+          <p className={styles.mapStatus} role="status">Chargement du fond de carte…</p>
+        )}
+        {basemapState === 'unavailable' && (
+          <p className={styles.mapFallback} role="status">
+            Le fond de carte n’est pas disponible pour le moment. Le tracé officiel reste
+            visible et le GPX peut toujours être téléchargé.
+          </p>
+        )}
+        <figcaption id="itinerary-map-legend" className={styles.mapCaption} tabIndex={-1}>
           <span><i className={styles.departureSwatch} aria-hidden="true" /> Départ : {departureName}</span>
           <span><i className={styles.arrivalSwatch} aria-hidden="true" /> Arrivée : {arrivalName}</span>
         </figcaption>
-        {sequencePoints.length > 1 && (
-          <ol className={styles.segmentLegend} aria-label="Segments séparés du tracé">
-            {sequencePoints.map((_, index) => (
+        {gapCount > 0 && (
+          <ol className={styles.segmentLegend} aria-label="Écarts connus du tracé">
+            {Array.from({ length: gapCount }, (_, index) => (
               <li key={index}>
-                <i className={`${styles.segmentSwatch} ${styles[`swatchPattern${index % 3}`]}`} aria-hidden="true" />
-                Segment {index + 1}{index > 0 ? ' — reprise après une rupture connue' : ''}
+                <strong>Écart {index + 1}.</strong>{' '}
+                <span>
+                  À cet endroit, les deux fichiers officiels ne se rejoignent pas exactement.
+                  Le GPX conserve ce décalage au lieu d’inventer un raccord.
+                </span>
               </li>
             ))}
           </ol>
