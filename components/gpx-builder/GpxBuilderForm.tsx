@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 
+import type { CatalogueItineraryLink } from '@/lib/gpx-builder/catalogue-link-core';
 import type { GpxBuilderSummary } from '@/lib/gpx-builder/generate';
 import type {
   PublicGpxBuilderManifest,
@@ -21,6 +22,7 @@ interface GpxBuilderFormProps {
 }
 
 type RequestStatus = 'idle' | 'previewing' | 'downloading';
+const SAFE_CATALOGUE_HREF = /^\/itineraires-velo\/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
 
 interface CityComboboxProps {
   id: string;
@@ -198,10 +200,37 @@ async function responsePayload(response: Response): Promise<unknown> {
   }
 }
 
+function readCatalogueItineraryLink(payload: unknown): CatalogueItineraryLink | null {
+  if (
+    typeof payload !== 'object'
+    || payload === null
+    || !('catalogueItineraryLink' in payload)
+    || typeof payload.catalogueItineraryLink !== 'object'
+    || payload.catalogueItineraryLink === null
+  ) {
+    return null;
+  }
+  const link = payload.catalogueItineraryLink as Record<string, unknown>;
+  if (
+    link.label !== 'Découvrir cet itinéraire'
+    || typeof link.href !== 'string'
+    || !SAFE_CATALOGUE_HREF.test(link.href)
+  ) {
+    return null;
+  }
+  return {
+    href: link.href as CatalogueItineraryLink['href'],
+    label: 'Découvrir cet itinéraire',
+  };
+}
+
 export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
   const [departureId, setDepartureId] = useState('');
   const [arrivalId, setArrivalId] = useState('');
   const [summary, setSummary] = useState<GpxBuilderSummary | null>(null);
+  const [catalogueItineraryLink, setCatalogueItineraryLink] = useState<
+    CatalogueItineraryLink | null
+  >(null);
   const [status, setStatus] = useState<RequestStatus>('idle');
   const [announcement, setAnnouncement] = useState('');
   const [hasError, setHasError] = useState(false);
@@ -225,6 +254,7 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
 
   function resetResult(): void {
     setSummary(null);
+    setCatalogueItineraryLink(null);
     setAnnouncement('');
     setHasError(false);
   }
@@ -252,6 +282,7 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
 
     setStatus('previewing');
     setSummary(null);
+    setCatalogueItineraryLink(null);
     setAnnouncement('Calcul du parcours en cours.');
     setHasError(false);
     try {
@@ -270,6 +301,7 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
         throw new Error(errorMessage(payload));
       }
       setSummary(payload.summary as GpxBuilderSummary);
+      setCatalogueItineraryLink(readCatalogueItineraryLink(payload));
       setAnnouncement('Parcours prêt à être téléchargé.');
       setHasError(false);
     } catch (error) {
@@ -418,6 +450,14 @@ export default function GpxBuilderForm({ manifest }: GpxBuilderFormProps) {
           >
             {status === 'downloading' ? 'Préparation…' : 'Télécharger mon GPX'}
           </button>
+          {catalogueItineraryLink && (
+            <div className={styles.catalogueLink}>
+              <a href={catalogueItineraryLink.href}>
+                {catalogueItineraryLink.label}
+              </a>
+              <p>Retrouvez sa carte, les villes traversées et son GPX officiel.</p>
+            </div>
+          )}
         </section>
       )}
     </form>

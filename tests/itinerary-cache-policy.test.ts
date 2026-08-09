@@ -10,6 +10,7 @@ import {
 test('publication guards never cache beyond sixty seconds', () => {
   assert.deepEqual(itineraryStrapiCacheOptions('feature-switch'), { cache: 'no-store' });
   assert.deepEqual(itineraryStrapiCacheOptions('guard'), { next: { revalidate: 60 } });
+  assert.deepEqual(itineraryStrapiCacheOptions('builder-lookup'), { cache: 'no-store' });
   assert.match(guardedPublicCacheControl(), /s-maxage=60/);
 });
 

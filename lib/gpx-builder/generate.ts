@@ -7,6 +7,11 @@ import type {
   GpxBuilderMedia,
   GpxBuilderStop,
 } from './manifest.ts';
+import {
+  GTHF_CATALOGUE_ROUTE_KEY,
+  type BuilderCatalogueAnchorMatch,
+  type BuilderCatalogueMatch,
+} from './catalogue-link-core.ts';
 import { GpxSourceError } from './source-loader-core.ts';
 
 const MAXIMUM_CHAPTERS = 10;
@@ -66,6 +71,7 @@ export interface GpxBuilderSummary {
 
 export interface GeneratedGpxSelection {
   summary: GpxBuilderSummary;
+  catalogueMatch: BuilderCatalogueMatch;
   filename: string;
   gpx: string;
 }
@@ -90,6 +96,25 @@ function findStop(stops: readonly GpxBuilderStop[], id: string): GpxBuilderStop 
     throw new GpxBuilderError('invalid_selection', 'La ville sélectionnée est indisponible.');
   }
   return stop;
+}
+
+function catalogueAnchorMatch(
+  manifest: GpxBuilderManifest,
+  directionValue: GpxDirection,
+  member: GpxBuilderStop['members'][number]
+): BuilderCatalogueAnchorMatch {
+  const chapter = manifest.directions[directionValue].chapters[member.chapterIndex];
+  if (!chapter) {
+    throw new GpxBuilderError('invalid_manifest', 'Une ancre référence un chapitre absent.');
+  }
+  return {
+    chapterDocumentId: chapter.documentId,
+    sourceSha256: member.anchor.sourceSha256,
+    trackIndex: member.anchor.trackIndex,
+    segmentIndex: member.anchor.segmentIndex,
+    pointIndex: member.anchor.pointIndex,
+    fraction: member.anchor.fraction,
+  };
 }
 
 function visitIndexes(
@@ -311,6 +336,48 @@ export async function generateDirectionalGpxSelection(
       // cannot represent a crossing of the original manifest loop boundary.
       usesLoopOrigin: selectionCrossesLoopOrigin,
       warnings: portion.warnings,
+    },
+    catalogueMatch: {
+      routeKey: GTHF_CATALOGUE_ROUTE_KEY,
+      direction: selection.direction,
+      departureCityDocumentId: departure.cityDocumentId,
+      arrivalCityDocumentId: arrival.cityDocumentId,
+      departureAnchor: catalogueAnchorMatch(
+        manifest,
+        selection.direction,
+        departureMember
+      ),
+      arrivalAnchor: catalogueAnchorMatch(
+        manifest,
+        selection.direction,
+        arrivalMember
+      ),
+      chapters: selectedVisitIndexes.map((chapterIndex, visitIndex) => {
+        const chapter = direction.chapters[chapterIndex];
+        if (
+          chapter.junctionAfter.status !== 'exact'
+          && chapter.junctionAfter.status !== 'accepted_gap'
+        ) {
+          throw new GpxBuilderError(
+            'invalid_manifest',
+            'Une jonction du parcours officiel n’est pas qualifiée.'
+          );
+        }
+        return {
+          chapterDocumentId: chapter.documentId,
+          sourceSha256: chapter.sourceSha256,
+          junctionAfter: visitIndex < selectedVisitIndexes.length - 1
+            ? {
+                status: chapter.junctionAfter.status,
+                sourceSha256: chapter.junctionAfter.sourceSha256,
+                nextSourceSha256: chapter.junctionAfter.nextSourceSha256,
+                gapMetres: chapter.junctionAfter.gapMetres,
+              }
+            : null,
+        };
+      }),
+      usesLoopOrigin: selectionCrossesLoopOrigin,
+      warnings: portion.warnings.map((warning) => ({ ...warning })),
     },
     filename: safeGpxFilename(departure.name, arrival.name, selection.direction),
     gpx,

@@ -149,6 +149,14 @@ coordonnées d’ancrage, ni empreinte de source. Les endpoints serveur sont :
 - `POST /api/gpx-builder/preview` pour le résumé ;
 - `POST /api/gpx-builder/download` pour le GPX 1.1.
 
+Après une prévisualisation valide, la réponse peut aussi fournir le lien
+secondaire `Découvrir cet itinéraire` lorsqu’une fiche catalogue publique
+représente exactement le même parcours AB, les mêmes villes ordonnées, les
+mêmes ancres, sources et jonctions. Le rapprochement réutilise la garde
+publique côté serveur. Une correspondance partielle ou inversée et une panne
+du catalogue n’affichent aucun lien, sans empêcher la prévisualisation ni le
+téléchargement du GPX.
+
 Avant une recette locale, déployer ou démarrer le schéma CMS, préparer et
 publier les ancrages et jonctions relus, puis activer
 `Global.gpxBuilderEnabled`. Tant que cette valeur reste à `false`, la page

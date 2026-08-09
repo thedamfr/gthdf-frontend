@@ -39,6 +39,30 @@ export interface ItineraryReferenceRoute {
   algorithmVersion?: string;
   currentInputFingerprint?: string;
   publishedAt?: string | null;
+  segments?: ItineraryReferenceSegment[];
+}
+
+export interface ItineraryReferenceSegment {
+  id?: number;
+  direction?: 'ab' | 'ba';
+  sourceSha256?: string;
+  nextSourceSha256?: string;
+  junctionAfterStatus?: 'proposed' | 'exact' | 'accepted_gap' | 'blocked' | 'stale';
+  junctionAfterGapMetres?: number | null;
+  chapter?: ItineraryChapter | null;
+}
+
+export interface ItineraryRouteAnchor {
+  documentId?: string;
+  sourceSegmentIndex?: number;
+  trackIndex?: number;
+  sourceTrackSegmentIndex?: number;
+  sourcePointIndex?: number;
+  sourceFraction?: number;
+  sourceHash?: string;
+  validationStatus?: 'proposed' | 'validated' | 'ambiguous' | 'stale' | 'rejected';
+  sourceDirection?: 'ab' | 'ba';
+  chapter?: ItineraryChapter | null;
 }
 
 export interface ItineraryChapterOnRoute {
@@ -77,6 +101,8 @@ export interface ItineraryRevision {
   itinerary?: ItineraryRevisionRelation | null;
   departure?: ItineraryCity | null;
   arrival?: ItineraryCity | null;
+  departureAnchor?: ItineraryRouteAnchor | null;
+  arrivalAnchor?: ItineraryRouteAnchor | null;
   distanceMetres?: number | null;
   asTheCrowFliesMetres?: number | null;
   elevationGainMetres?: number | null;

@@ -4,6 +4,8 @@ import {
   generateGpxSelection,
   GpxBuilderError,
 } from './generate.ts';
+import { loadOptionalCatalogueItineraryLink } from './catalogue-link-core.ts';
+import { getCatalogueItineraryLink } from './catalogue-link-server.ts';
 import { readGpxBuilderRequest, GpxBuilderRequestError } from './request.ts';
 import { getGpxBuilderManifest } from './server.ts';
 import { loadOfficialGpxSource } from './source-loader.ts';
@@ -62,7 +64,13 @@ export async function handleGpxBuilderPost(
     });
 
     if (mode === 'preview') {
-      return jsonResponse({ summary: generated.summary }, 200);
+      const catalogueItineraryLink = await loadOptionalCatalogueItineraryLink(
+        () => getCatalogueItineraryLink(generated.catalogueMatch)
+      );
+      return jsonResponse({
+        summary: generated.summary,
+        catalogueItineraryLink,
+      }, 200);
     }
     return new Response(generated.gpx, {
       status: 200,

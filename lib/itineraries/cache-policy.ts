@@ -1,5 +1,6 @@
 export type ItineraryRequestKind =
   | 'feature-switch'
+  | 'builder-lookup'
   | 'guard'
   | 'editorial'
   | 'immutable-media';
@@ -8,7 +9,7 @@ export function itineraryStrapiCacheOptions(
   kind: ItineraryRequestKind,
   preview = false
 ): { cache: 'no-store' } | { next: { revalidate: number } } {
-  if (preview || kind === 'feature-switch') {
+  if (preview || kind === 'feature-switch' || kind === 'builder-lookup') {
     return { cache: 'no-store' };
   }
 
