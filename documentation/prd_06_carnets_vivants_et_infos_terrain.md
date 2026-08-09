@@ -1,6 +1,6 @@
 # PRD 06 — Carnets vivants, traces reconnues et informations terrain
 
-**Version :** 0.3\
+**Version :** 0.4\
 **Date :** 9 août 2026\
 **Statut :** prêt pour revue produit, sécurité et architecture\
 **Source produit :** `PRD_04_carnets_vivants_et_infos_terrain.md` transmis le 9 août 2026 ; renuméroté pour éviter une collision avec les PRD déjà attribués\
@@ -26,8 +26,9 @@ livrable. Il préserve les quatre principes non négociables du document source 
 
 L’audit conduit à recommander une séparation ferme entre deux domaines :
 
-- **Strapi reste le CMS éditorial public** : chapitres, GPX officiels,
-  informations terrain éditorialisées, récits approuvés et médias publics ;
+- **Strapi reste le CMS éditorial public et l'outil de modération des récits** :
+  chapitres, GPX officiels, récits candidats puis publiés, informations terrain
+  éditorialisées et médias publics ;
 - **un domaine voyageur privé distinct** porte les comptes, sessions, traces,
   voyages, géométries, médias privés, consentements, tokens tiers,
   reconnaissances, agrégats et signalements bruts ;
@@ -50,8 +51,8 @@ La livraison est progressive :
   reconnaissance ;
 - lot 2 : voyages, agrégation multi-traces et badge de boucle complète ;
 - lot 3 : retours terrain privés et triage ;
-- lot 4 : récits volontaires, projections publiques et signal agrégé après la
-  dernière barrière hivernale ;
+- lot 4 : récits volontaires créés et modérés dans Strapi, affichage sur les
+  chapitres et signal agrégé après la dernière barrière hivernale ;
 - lot 5 : FIT, après validation des chaînes GPX et Strava ;
 - lot 6 : Garmin seulement après validation du programme partenaire ;
 - lot 7 : éventuelle célébration publique « Le temps pris », sans classement
@@ -230,9 +231,10 @@ géométrie preuve.
 
 ### 7.4 Projection, jamais changement d’ACL
 
-Publier une photo ou un texte crée une copie dérivée, nettoyée et modérée dans
-le domaine public. Le système ne rend jamais public l’objet privé d’origine en
-changeant son ACL.
+Soumettre un récit crée dans Strapi un contenu candidat non publié. Publier une
+photo crée une copie dérivée nettoyée dans le stockage public. Le système ne
+rend jamais public une trace, un voyage ou un média privé d'origine en changeant
+son ACL.
 
 ### 7.5 Pas d’inférence négative
 
@@ -261,8 +263,9 @@ flowchart LR
   W --> D
   W --> O
   W -->|lecture GPX officiels et empreintes| S[Strapi éditorial]
-  M[Console équipe privée] --> V
-  V -->|promotion nettoyée en brouillon| S
+  M[Console terrain privée] --> V
+  E[Équipe éditoriale] -->|modération des récits| S
+  V -->|récit candidat, chapitres et médias dérivés| S
   S -->|contenus publiés uniquement| N
   V -->|projection agrégée sans identité| N
 ~~~
@@ -281,9 +284,11 @@ flowchart LR
 **`gthdf-cms`**
 
 - identité éditoriale des chapitres et parcours officiels ;
-- nouveaux modèles publics de récit approuvé et d’information terrain ;
+- modèle de récit candidat puis publié, relié à un ou plusieurs chapitres ;
+- file, états et décisions de modération éditoriale des récits ;
+- modèle public d'information terrain ;
 - médias publics dérivés ;
-- Draft & Publish, aperçu, modération éditoriale et SEO ;
+- Draft & Publish, aperçu et SEO ;
 - aucun modèle de trace, voyage, consentement, token OAuth ou retour brut.
 
 **Service voyageur privé**
@@ -293,7 +298,9 @@ flowchart LR
 - métadonnées, consentements, déduplication, voyages et états ;
 - URLs pré-signées courtes pour le bucket privé ;
 - API idempotente et journal d’audit ;
-- projections publiques sans PII ;
+- vérification des chapitres reconnus avant création d'un récit candidat ;
+- lien opaque entre consentement privé et document Strapi pour le retrait ;
+- agrégats publics sans PII ;
 - demandes d’export et de suppression.
 
 **Worker**
@@ -397,10 +404,10 @@ sont contractuelles.
 | `TravelerRouteProgress` | propriétaire, parcours de référence, union des passages reconnus de tous ses voyages, chapitres couverts, badge, nombre de voyages et jours à vélo |
 | `ConsentEvent` | propriétaire, finalité, `granted/withdrawn`, version de notice, horodatage, source de preuve |
 | `OAuthConnection` | fournisseur, identifiant externe, scopes accordés, tokens chiffrés, expiration, révocation, dernier curseur |
-| `StorySubmission` | voyage, auteur public choisi, texte public, chapitres sélectionnés, état de modération |
-| `StoryMediaSelection` | média privé source, dérivé public, ordre, texte alternatif, preuve de sélection |
+| `StoryPublicationLink` | voyage, consentement, `documentId` Strapi opaque, version soumise, chapitres reconnus autorisés, état de retrait ; aucun corps éditorial |
+| `StoryMediaSelection` | média privé source, dérivé public Strapi, ordre, texte alternatif, preuve de sélection |
 | `TerrainReport` | voyage, chapitre, passage, type, niveau, date observée, commentaire, position facultative, photo privée et statut interne |
-| `ModerationDecision` | objet, acteur équipe, décision, motif, dates et référence de projection |
+| `TerrainModerationDecision` | retour terrain, acteur équipe, décision, motif, dates et référence de promotion éditoriale |
 | `RecentPassageContribution` | propriétaire, passage reconnu, finalité consentie, barrière hivernale et état d’éligibilité |
 | `WinterFreshnessBarrier` | portée globale ou chapitre, instant de coupure, libellé de saison, état, acteur et version |
 | `DeletionRequest` | périmètre, état, étapes, erreurs, dates et preuve de purge |
@@ -441,14 +448,19 @@ Sorties possibles : `duplicate_pending_confirmation`, `ignored`, `rejected`,
 Chaque transition possède un acteur, une date et un code raison. Rejouer un job
 avec la même clé d’idempotence ne crée ni trace, ni couverture supplémentaire.
 
-### 11.2 Récit
+### 11.2 Récit Strapi
 
-`private_draft → submitted → under_review → changes_requested → approved →
-published`.
+Le contenu éditorial et son workflow vivent dans Strapi :
+`draft → submitted → under_review → changes_requested → approved → published`.
 
 Sorties : `rejected`, `withdrawal_pending`, `withdrawn`, `unpublished_by_team`.
-Un récit retiré échoue fermé : la projection publique est d’abord masquée,
-puis les objets sont supprimés selon la politique de rétention.
+`Draft & Publish` contrôle la visibilité publique ; un champ de workflow
+distinct conserve l'état de modération. Le domaine privé conserve seulement le
+lien vers le `documentId`, la preuve de consentement et l'état de retrait.
+
+Un récit retiré échoue fermé : Strapi le dépublie d'abord, les pages chapitre
+sont revalidées, puis les médias dérivés sont supprimés selon la politique de
+rétention.
 
 ### 11.3 Retour terrain
 
@@ -705,9 +717,10 @@ récupération de compte, portabilité et absence de dépendance irréversible.
 Chaque finalité possède des événements append-only. L’état courant est dérivé
 du dernier événement valide. La notice exacte est versionnée.
 
-Le consentement de publication porte sur une version du texte, une liste de
-médias, un nom public et des chapitres. Modifier l’un de ces éléments crée une
-nouvelle version soumise à modération.
+Le consentement de publication porte sur une version Strapi du texte, une liste
+de médias, un nom public et des chapitres. Le domaine privé en conserve la
+preuve et le hash de version, sans dupliquer le corps éditorial. Modifier l’un
+de ces éléments crée dans Strapi une nouvelle version soumise à modération.
 
 ### 16.2 Retrait
 
@@ -747,7 +760,7 @@ L’utilisateur peut exporter :
 - métadonnées du compte ;
 - voyages, traces sources disponibles et métriques ;
 - consentements ;
-- récits et retours ;
+- récits récupérés depuis Strapi et retours privés ;
 - sources connectées.
 
 L’archive est générée en job, chiffrée au repos, téléchargeable par URL signée
@@ -818,16 +831,29 @@ L’action « créer une info terrain » produit un brouillon Strapi nettoyé :
 
 La publication reste une décision Strapi distincte.
 
-### 18.3 Récits
+### 18.3 Récits Strapi
 
-Le voyageur choisit texte, nom public, photos et chapitres reconnus. L’équipe
-peut approuver, refuser ou demander une correction. Une correction du texte ou
-des médias après approbation repasse en revue.
+Le voyageur choisit texte, nom public, photos et chapitres reconnus depuis
+l'espace privé. Lors de la soumission, le service vérifie consentement et
+passages reconnus, produit les éventuels médias publics nettoyés, puis crée ou
+met à jour un récit non publié dans Strapi. Le texte destiné au public, les
+médias dérivés, les relations aux chapitres et tout le workflow de modération
+ont Strapi pour source de vérité.
 
-Un récit multi-chapitres possède une projection publique unique et des
-relations vers les chapitres choisis. La sélection doit être un sous-ensemble
-des `TripChapterPassage.recognized` courants ou déclarés compatibles au moment
-de la soumission. Le remplacement ultérieur d’un GPX officiel ne dépublie pas
+L'équipe travaille dans Strapi : elle peut approuver, refuser ou demander une
+correction. Le voyageur répond depuis son espace ; le backend applique la
+modification au document Strapi sans exposer de jeton CMS. Une correction du
+texte, du nom, des chapitres ou des médias après approbation repasse en revue.
+
+Un récit multi-chapitres est un document Strapi unique relié à tous les
+chapitres choisis. Il apparaît dans le bloc « Carnets de voyageurs » de chacune
+de ces pages seulement lorsqu'il est publié. La sélection doit être un
+sous-ensemble des `TripChapterPassage.recognized` courants ou déclarés
+compatibles au moment de la soumission.
+
+Le domaine privé conserve uniquement `StoryPublicationLink`, le consentement
+et les références nécessaires au retrait ; il ne duplique pas le corps du
+récit. Le remplacement ultérieur d’un GPX officiel ne dépublie pas
 automatiquement un récit déjà modéré ; il ouvre une alerte éditoriale si la
 modification est matérielle. Cette tolérance historique ne s’applique pas au
 signal récent.
@@ -979,8 +1005,9 @@ Le service lit un manifeste officiel minimal avec token serveur :
 - directions GPX, URL de média autorisée, empreinte et état ;
 - version d’algorithme géographique.
 
-La promotion écrit uniquement des brouillons publics nettoyés via un token
-technique à portée minimale ou une commande d’équipe explicite. Aucun token
+Le service crée ou met à jour les récits candidats et les brouillons
+d'information terrain via un token technique à portée minimale. Strapi refuse
+la publication d'un récit sans relation vers au moins un chapitre. Aucun token
 Strapi n’est exposé au navigateur.
 
 ## 22. Expérience utilisateur et accessibilité
@@ -1157,7 +1184,7 @@ Chaque étape possède un coupe-circuit indépendant :
 | 1 — Traces + Strava | compte, upload GPX, OAuth, historique borné, webhooks, déduplication, matching | fichier et activité Strava deviennent des traces privées sans voyage automatique |
 | 2 — Voyages + badge | association unique, agrégation par voyage puis progression compte, métriques, badge boucle, export/suppression | plusieurs voyages peuvent compléter la boucle sans double compte ni limite arbitraire |
 | 3 — Terrain | formulaire privé, console, états et audit | un retour partiel est trié sans apparaître dans Strapi |
-| 4 — Public volontaire | récit, médias dérivés, modération, barrière hivernale et agrégat k-anonyme | retrait public dans le SLO et aucune géométrie exposée |
+| 4 — Public volontaire | récit candidat et workflow dans Strapi, médias dérivés, affichage chapitre, barrière hivernale et agrégat k-anonyme | un récit se modère dans Strapi, apparaît sur ses chapitres et se retire dans le SLO sans géométrie exposée |
 | 5 — FIT | parseur et parité de métriques | une trace FIT suit le même contrat de matching |
 | 6 — Garmin | étude, accès partenaire et connecteur | connecteur activé seulement si le programme est approuvé |
 | 7 — Temps pris public | célébration volontaire sans classement | aucune pause artificielle transformée en record |
@@ -1181,7 +1208,8 @@ lot doit être divisé davantage.
 | Fraîcheur terrain | une fenêtre glissante ne reflète pas l’hiver | barrière hivernale éditoriale globale avec surcharge par chapitre | administration initiale, lot 4 |
 | Confidentialité du signal | risque de réidentification après la barrière | k=5 utilisateurs distincts, aucun compteur ni date précise | DPO/produit, lot 4 |
 | Conservation | aucune politique existante | tableau section 16 comme base | DPO/sécurité, avant pilote |
-| Modération | Strapi ne doit pas voir le brut | console privée puis brouillon Strapi nettoyé | équipe éditoriale, lot 3 |
+| Modération récit | le contenu est destiné aux pages chapitre | décidé : candidat, workflow, décisions et publication dans Strapi ; preuve et consentement dans le domaine privé | CMS/éditorial, lot 4 |
+| Modération terrain | Strapi ne doit pas voir position et retour bruts | console privée puis brouillon d'information Strapi nettoyé | équipe éditoriale, lot 3 |
 | Médias publics | changement d’ACL dangereux | copie réencodée sans EXIF | sécurité/éditorial, lot 4 |
 | FIT | dépendances absentes | après qualification GPX et Strava | technique, lot 5 |
 | Strava | capacité et rate limits soumis à revue | décidé MVP : OAuth, webhooks et import borné ; approbation comme dépendance externe | partenariat/technique, lot 1 |
@@ -1252,7 +1280,11 @@ réversibilité au moins équivalent.
 ### 29.5 Publication
 
 - récit, photo et contribution récente nécessitent chacun une action explicite ;
+- le récit candidat, ses états de modération et sa version publiée vivent dans
+  Strapi ;
 - les chapitres publiables sont un sous-ensemble des passages reconnus ;
+- chaque récit publié apparaît dans le bloc « Carnets de voyageurs » de tous
+  les chapitres Strapi auxquels il est relié, et d'aucun autre ;
 - une photo publique est un dérivé sans EXIF ;
 - aucune trace, position, heure ou date précise n’est publique ;
 - une correction post-approbation repasse en revue ;
@@ -1386,8 +1418,9 @@ Mesures obligatoires :
 ### `gthdf-cms`
 
 - `src/api/chapter/content-types/chapter/schema.json` pour `chapterKey` ;
-- modèles publics de récit et information terrain ;
-- relations chapitre et médias publics ;
+- modèle de récit candidat/publié et modèle d'information terrain ;
+- relations récit–chapitres et médias publics ;
+- états, file et décisions de modération des récits dans Strapi ;
 - validations de publication et garde de cohérence dans `src/index.ts` ou
   domaine dédié ;
 - token/rôle technique de promotion à portée minimale ;
@@ -1480,7 +1513,10 @@ et infrastructure.
 - chapitre reconnu à partir de 80 % de couverture, sans critère de vitesse ;
 - une trace canonique dans au plus un voyage actif ;
 - consentements distincts et versionnés ;
-- projection publique par copie nettoyée ;
+- texte public, modération et publication des récits dans Strapi, avec
+  relations vers les chapitres ;
+- seules la preuve de consentement et la référence opaque du récit restent dans
+  le domaine privé ;
 - aucune page récit indexable au MVP ;
 - aucun compteur public exact ;
 - badge privé de boucle complète au MVP, agrégé sur tous les voyages du compte
@@ -1518,8 +1554,9 @@ requises, il reçoit son badge privé de boucle complète. Le voyageur peut
 exporter et supprimer ses données. Aucun élément n’est public sans action
 distincte.
 
-Le périmètre public est terminé lorsqu’un récit sélectionné et modéré apparaît
-uniquement sur les chapitres reconnus, qu’une photo publique ne contient plus
+Le périmètre public est terminé lorsqu’un récit candidat est modéré dans
+Strapi puis apparaît dans le bloc « Carnets de voyageurs » de chacun de ses
+chapitres reconnus, et d'aucun autre, qu’une photo publique ne contient plus
 de métadonnées privées, qu’un retour brut devient au besoin une information
 éditoriale séparée et que le signal récent reste absent sous son seuil. Le
 retrait ferme toutes les surfaces dans le SLO.
