@@ -83,7 +83,8 @@ describe('ItineraryPage related links', () => {
       '/itineraires-velo/calais-destination-3',
     ]);
     expect(mocks.getRelatedDepartureItineraries).toHaveBeenCalledWith(
-      expect.objectContaining({ documentId: current.documentId })
+      current.departure.documentId,
+      current.documentId
     );
   });
 });

@@ -126,7 +126,10 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
   }
 
   const itinerary = resolution.itinerary.dto;
-  const relatedItineraries = await getRelatedDepartureItineraries(itinerary);
+  const relatedItineraries = await getRelatedDepartureItineraries(
+    itinerary.departure.documentId,
+    itinerary.documentId
+  );
   const representativeCities = selectRepresentativeCities(itinerary.cities);
   const customTitle = itinerary.title.trim();
   const defaultHeading = `De ${itinerary.departure.name} à ${itinerary.arrival.name} à vélo sur le GTHF`;

@@ -18,6 +18,8 @@ import {
   type CatalogueItineraryResolution,
 } from './server-core';
 import {
+  CITY_PAGE_ITINERARY_LIMIT,
+  RELATED_DEPARTURE_ITINERARY_LIMIT,
   selectCityPageItineraries,
   selectRelatedDepartureItineraries,
 } from './recommendations-core';
@@ -31,6 +33,13 @@ const STRAPI_RESPONSE_LIMIT_BYTES = 6 * 1024 * 1024;
 const STRAPI_REQUEST_TIMEOUT_MILLISECONDS = 10_000;
 const PAGE_SIZE = 100;
 const MAX_CATALOGUE_PAGES = 100;
+const RECOMMENDATION_SORTS = [
+  'featuredOnCityPages:desc',
+  'editorialOrder:asc',
+  'activeRevision.distanceMetres:asc',
+  'title:asc',
+  'slug:asc',
+] as const;
 const SAFE_SLUG_PATTERN = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
 const SAFE_DOCUMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -269,17 +278,19 @@ async function fetchItineraryRecords(
   preview: boolean,
   paginate = false,
   includeBuilderMatch = false,
-  requestKind: ItineraryRequestKind = 'guard'
+  requestKind: ItineraryRequestKind = 'guard',
+  options: { limit?: number; sorts?: readonly string[] } = {}
 ): Promise<CityItineraryRecord[]> {
   const records: CityItineraryRecord[] = [];
+  const sorts = options.sorts ?? ['slug:asc'];
   let page = 1;
 
   while (page <= MAX_CATALOGUE_PAGES) {
     const query = buildGuardQuery(preview, includeBuilderMatch);
     Object.entries(filters).forEach(([key, value]) => query.set(key, value));
     query.set('pagination[page]', String(page));
-    query.set('pagination[pageSize]', String(paginate ? PAGE_SIZE : 2));
-    query.set('sort[0]', 'slug:asc');
+    query.set('pagination[pageSize]', String(options.limit ?? (paginate ? PAGE_SIZE : 2)));
+    sorts.forEach((sort, index) => query.set(`sort[${index}]`, sort));
 
     const payload = await requestStrapiJson<{
       data?: CityItineraryRecord[];
@@ -291,6 +302,9 @@ async function fetchItineraryRecords(
     }
 
     records.push(...payload.data);
+    if (options.limit !== undefined && records.length >= options.limit) {
+      break;
+    }
     if (!paginate) {
       break;
     }
@@ -310,7 +324,7 @@ async function fetchItineraryRecords(
     throw new Error('catalogue_pagination_limit');
   }
 
-  return records;
+  return options.limit === undefined ? records : records.slice(0, options.limit);
 }
 
 async function fetchEditorialRecord(
@@ -428,7 +442,8 @@ export const resolveCatalogueItinerary = cache(async (
 });
 
 async function getPublicGuardedItineraries(
-  filters: Record<string, string> = {}
+  filters: Record<string, string> = {},
+  options: { limit?: number; sorts?: readonly string[] } = {}
 ): Promise<GuardedItinerary[]> {
   if (!await featureIsOpen(false)) {
     return [];
@@ -438,7 +453,7 @@ async function getPublicGuardedItineraries(
     'filters[publicationNext][$eq]': 'true',
     'filters[reviewStatus][$eq]': 'approved',
     ...filters,
-  }, false, true);
+  }, false, true, false, 'guard', options);
 
   return records.flatMap((record) => {
     const guarded = guardCityItinerary(record, { catalogueEnabled: true });
@@ -488,6 +503,9 @@ export const getCityPageItineraries = cache(async (
       'filters[seoStatus][$eq]': 'indexable',
       'filters[$or][0][cityA][documentId][$eq]': cityDocumentId,
       'filters[$or][1][cityB][documentId][$eq]': cityDocumentId,
+    }, {
+      limit: CITY_PAGE_ITINERARY_LIMIT,
+      sorts: RECOMMENDATION_SORTS,
     }),
     (error) => console.error('Catalogue city hub unavailable:', error)
   );
@@ -499,12 +517,12 @@ export const getCityPageItineraries = cache(async (
 });
 
 export const getRelatedDepartureItineraries = cache(async (
-  currentItinerary: PublicItinerary
+  departureCityDocumentId: string,
+  currentItineraryDocumentId: string
 ): Promise<PublicItinerary[]> => {
-  const departureCityDocumentId = currentItinerary.departure.documentId;
   if (
     !SAFE_DOCUMENT_ID_PATTERN.test(departureCityDocumentId)
-    || !SAFE_DOCUMENT_ID_PATTERN.test(currentItinerary.documentId)
+    || !SAFE_DOCUMENT_ID_PATTERN.test(currentItineraryDocumentId)
   ) {
     return [];
   }
@@ -513,12 +531,17 @@ export const getRelatedDepartureItineraries = cache(async (
     () => getPublicGuardedItineraries({
       'filters[seoStatus][$eq]': 'indexable',
       'filters[activeRevision][departure][documentId][$eq]': departureCityDocumentId,
+      'filters[documentId][$ne]': currentItineraryDocumentId,
+    }, {
+      limit: RELATED_DEPARTURE_ITINERARY_LIMIT,
+      sorts: RECOMMENDATION_SORTS,
     }),
     (error) => console.error('Related catalogue itineraries unavailable:', error)
   );
 
   return selectRelatedDepartureItineraries(
     guarded.map((entry) => entry.dto),
-    currentItinerary
+    departureCityDocumentId,
+    currentItineraryDocumentId
   );
 });

@@ -45,13 +45,14 @@ export function selectCityPageItineraries(
 
 export function selectRelatedDepartureItineraries(
   itineraries: readonly PublicItinerary[],
-  currentItinerary: PublicItinerary
+  departureCityDocumentId: string,
+  currentItineraryDocumentId: string
 ): PublicItinerary[] {
   return itineraries
     .filter((itinerary) => (
-      itinerary.documentId !== currentItinerary.documentId
+      itinerary.documentId !== currentItineraryDocumentId
       && isPublicIndexable(itinerary)
-      && itinerary.departure.documentId === currentItinerary.departure.documentId
+      && itinerary.departure.documentId === departureCityDocumentId
     ))
     .sort(compareRecommendations)
     .slice(0, RELATED_DEPARTURE_ITINERARY_LIMIT);

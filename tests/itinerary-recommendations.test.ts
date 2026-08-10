@@ -85,7 +85,11 @@ test('itinerary pages link three other public routes with the exact same departu
   ];
 
   assert.deepEqual(
-    selectRelatedDepartureItineraries(source, current).map((entry) => entry.slug),
+    selectRelatedDepartureItineraries(
+      source,
+      current.departure.documentId,
+      current.documentId
+    ).map((entry) => entry.slug),
     ['featured', 'fallback-10', 'fallback-20']
   );
   assert.equal(source[0].slug, 'fallback-30');

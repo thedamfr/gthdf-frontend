@@ -33,9 +33,12 @@ nouvelle saisie CMS.
    et hors preview après la garde publique existante.
 5. Les liens canoniques sont rendus dans le HTML serveur initial. Aucun
    JavaScript n’est requis pour les découvrir.
-6. Ces lectures restent optionnelles : une indisponibilité du catalogue omet
+6. Les requêtes Strapi appliquent le même tri et sont elles-mêmes bornées à
+   cinq ou trois documents ; la fiche courante est exclue dès la requête de
+   rapprochement par ville de départ.
+7. Ces lectures restent optionnelles : une indisponibilité du catalogue omet
    la section concernée sans faire échouer la page ville ou itinéraire.
-7. Aucun schéma, droit public, contenu ou script de migration CMS n’est ajouté.
+8. Aucun schéma, droit public, contenu ou script de migration CMS n’est ajouté.
 
 Si moins de cinq ou trois candidats sont disponibles, la page affiche la liste
 plus courte et ne crée aucun emplacement vide.
@@ -55,8 +58,8 @@ plus courte et ne crée aucun emplacement vide.
   éditoriale ;
 - une ville intermédiaire non choisie comme extrémité ne devient pas un critère
   de rapprochement ;
-- les sélections nécessitent une lecture serveur filtrée supplémentaire, mais
-  le HTML rendu reste limité à cinq ou trois liens.
+- les sélections nécessitent une lecture serveur filtrée supplémentaire, dont
+  la réponse comme le HTML rendu restent limités à cinq ou trois documents.
 
 ## Retour arrière
 
