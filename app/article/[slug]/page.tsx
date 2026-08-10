@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getArticleBySlug, getArticles } from "@/lib/strapi";
 import { renderSafeMarkdown } from "@/lib/safe-markdown";
+import ArticleMedia from "@/components/ArticleMedia";
 import ImageSlider from "@/components/ImageSlider";
 import { notFound } from "next/navigation";
 import styles from "./page.module.css";
@@ -139,14 +140,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
                 case 'shared.media':
                   return block.file?.url ? (
-                    <div key={index} className={styles.mediaBlock}>
-                      <Image
-                        src={toAbsoluteMediaUrl(block.file.url, strapiUrl) || ""}
-                        alt={block.file.alternativeText || ''}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
-                    </div>
+                    <ArticleMedia
+                      key={index}
+                      src={toAbsoluteMediaUrl(block.file.url, strapiUrl) || ""}
+                      alt={block.file.alternativeText || block.file.name || ''}
+                      caption={block.file.caption || undefined}
+                      width={block.file.width}
+                      height={block.file.height}
+                    />
                   ) : null;
 
                 case 'shared.quote':
