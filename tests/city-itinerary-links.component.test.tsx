@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   getChaptersForCity: vi.fn(),
   getCityBySlug: vi.fn(),
   getCityPageItineraries: vi.fn(),
-  getFeaturedItinerariesForCity: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -34,7 +33,6 @@ vi.mock('@/lib/cities', () => ({
 }));
 vi.mock('@/lib/itineraries/server', () => ({
   getCityPageItineraries: mocks.getCityPageItineraries,
-  getFeaturedItinerariesForCity: mocks.getFeaturedItinerariesForCity,
 }));
 
 import CityPage from '../app/villes/[slug]/page';
@@ -78,7 +76,6 @@ beforeEach(() => {
     }],
   }]);
   mocks.getCityPageItineraries.mockResolvedValue([1, 2, 3, 4, 5].map(itinerary));
-  mocks.getFeaturedItinerariesForCity.mockResolvedValue([]);
 });
 
 describe('CityPage itinerary links', () => {
