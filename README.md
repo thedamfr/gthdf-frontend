@@ -162,6 +162,14 @@ Le bloc « À savoir » conduit vers `/itineraires-velo`. Cet index serveur list
 dans son HTML initial toutes les fiches publiques indexables afin de fournir un
 chemin de navigation et de crawl indépendant du sitemap XML.
 
+Le maillage interne du catalogue reste volontairement borné et rendu côté
+serveur. Une page ville affiche au plus cinq itinéraires qui ont cette ville
+pour extrémité : les choix `featuredOnCityPages` et `editorialOrder` passent en
+premier, puis les places restantes sont complétées automatiquement dans un
+ordre stable. Chaque fiche itinéraire propose au plus trois autres portions
+publiques et indexables ayant exactement la même ville de départ. La fiche
+courante, les previews et les pages `noindex` sont toujours exclues.
+
 Avant une recette locale, déployer ou démarrer le schéma CMS, préparer et
 publier les ancrages et jonctions relus, puis activer
 `Global.gpxBuilderEnabled`. Tant que cette valeur reste à `false`, la page

@@ -17,6 +17,10 @@ import {
   type CatalogueFeatureState,
   type CatalogueItineraryResolution,
 } from './server-core';
+import {
+  selectCityPageItineraries,
+  selectRelatedDepartureItineraries,
+} from './recommendations-core';
 import type {
   CityItineraryRecord,
   GuardedItinerary,
@@ -472,17 +476,15 @@ export async function getGuardedBuilderItineraries(
   });
 }
 
-export const getFeaturedItinerariesForCity = cache(async (
-  cityDocumentId: string,
-  limit = 6
+export const getCityPageItineraries = cache(async (
+  cityDocumentId: string
 ): Promise<PublicItinerary[]> => {
-  if (!cityDocumentId || limit <= 0) {
+  if (!SAFE_DOCUMENT_ID_PATTERN.test(cityDocumentId)) {
     return [];
   }
 
   const guarded = await loadOptionalCatalogueEntries(
     () => getPublicGuardedItineraries({
-      'filters[featuredOnCityPages][$eq]': 'true',
       'filters[seoStatus][$eq]': 'indexable',
       'filters[$or][0][cityA][documentId][$eq]': cityDocumentId,
       'filters[$or][1][cityB][documentId][$eq]': cityDocumentId,
@@ -490,15 +492,33 @@ export const getFeaturedItinerariesForCity = cache(async (
     (error) => console.error('Catalogue city hub unavailable:', error)
   );
 
-  return guarded
-    .map((entry) => entry.dto)
-    .sort((left, right) => {
-      const leftOrder = left.editorialOrder ?? Number.POSITIVE_INFINITY;
-      const rightOrder = right.editorialOrder ?? Number.POSITIVE_INFINITY;
-      return leftOrder - rightOrder
-        || left.distanceMetres - right.distanceMetres
-        || left.title.localeCompare(right.title, 'fr', { sensitivity: 'base' })
-        || left.slug.localeCompare(right.slug, 'fr');
-    })
-    .slice(0, Math.min(limit, 12));
+  return selectCityPageItineraries(
+    guarded.map((entry) => entry.dto),
+    cityDocumentId
+  );
+});
+
+export const getRelatedDepartureItineraries = cache(async (
+  currentItinerary: PublicItinerary
+): Promise<PublicItinerary[]> => {
+  const departureCityDocumentId = currentItinerary.departure.documentId;
+  if (
+    !SAFE_DOCUMENT_ID_PATTERN.test(departureCityDocumentId)
+    || !SAFE_DOCUMENT_ID_PATTERN.test(currentItinerary.documentId)
+  ) {
+    return [];
+  }
+
+  const guarded = await loadOptionalCatalogueEntries(
+    () => getPublicGuardedItineraries({
+      'filters[seoStatus][$eq]': 'indexable',
+      'filters[activeRevision][departure][documentId][$eq]': departureCityDocumentId,
+    }),
+    (error) => console.error('Related catalogue itineraries unavailable:', error)
+  );
+
+  return selectRelatedDepartureItineraries(
+    guarded.map((entry) => entry.dto),
+    currentItinerary
+  );
 });
