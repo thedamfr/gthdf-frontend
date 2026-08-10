@@ -21,37 +21,39 @@ vi.mock('next/image', () => ({
   },
 }));
 
-const originalShowModalDescriptor = Object.getOwnPropertyDescriptor(
-  HTMLDialogElement.prototype,
-  'showModal',
-);
-const originalCloseDescriptor = Object.getOwnPropertyDescriptor(
-  HTMLDialogElement.prototype,
-  'close',
-);
+type DialogPrototype = HTMLElement &
+  Partial<Pick<HTMLDialogElement, 'showModal' | 'close'>>;
+
+const dialogPrototype = (
+  typeof HTMLDialogElement === 'undefined'
+    ? HTMLElement.prototype
+    : HTMLDialogElement.prototype
+) as DialogPrototype;
+const originalShowModalDescriptor = Object.getOwnPropertyDescriptor(dialogPrototype, 'showModal');
+const originalCloseDescriptor = Object.getOwnPropertyDescriptor(dialogPrototype, 'close');
 
 function restoreDialogMethod(
   name: 'showModal' | 'close',
   descriptor: PropertyDescriptor | undefined,
 ) {
   if (descriptor) {
-    Object.defineProperty(HTMLDialogElement.prototype, name, descriptor);
+    Object.defineProperty(dialogPrototype, name, descriptor);
     return;
   }
 
-  Reflect.deleteProperty(HTMLDialogElement.prototype, name);
+  Reflect.deleteProperty(dialogPrototype, name);
 }
 
 describe('ArticleMedia', () => {
   beforeEach(() => {
-    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+    Object.defineProperty(dialogPrototype, 'showModal', {
       configurable: true,
       writable: true,
       value: vi.fn(function showModal(this: HTMLDialogElement) {
         this.setAttribute('open', '');
       }),
     });
-    Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+    Object.defineProperty(dialogPrototype, 'close', {
       configurable: true,
       writable: true,
       value: vi.fn(function close(this: HTMLDialogElement) {
@@ -96,7 +98,7 @@ describe('ArticleMedia', () => {
     fireEvent.click(trigger);
 
     const dialog = view.getByRole('dialog', { hidden: true });
-    expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalledOnce();
+    expect(dialogPrototype.showModal).toHaveBeenCalledOnce();
     expect(dialog.hasAttribute('open')).toBe(true);
     expect(document.body.style.overflow).toBe('hidden');
   });
@@ -114,7 +116,7 @@ describe('ArticleMedia', () => {
     fireEvent.click(view.getByRole('button', { name: 'Agrandir : Capture du GPX Builder' }));
     fireEvent.click(view.getByRole('button', { name: 'Fermer l’image agrandie' }));
 
-    expect(HTMLDialogElement.prototype.close).toHaveBeenCalledOnce();
+    expect(dialogPrototype.close).toHaveBeenCalledOnce();
     expect(document.body.style.overflow).toBe('');
   });
 
