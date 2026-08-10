@@ -12,7 +12,7 @@ import {
   type CityChapter,
 } from '@/lib/cities';
 import { getCityRoleLabel } from '@/lib/city-content';
-import { getFeaturedItinerariesForCity } from '@/lib/itineraries/server';
+import { getCityPageItineraries } from '@/lib/itineraries/server';
 import styles from './page.module.css';
 
 export const revalidate = 60;
@@ -127,7 +127,7 @@ export default async function CityPage({ params }: CityPageProps) {
     notFound();
   }
 
-  const featuredItineraries = await getFeaturedItinerariesForCity(city.documentId);
+  const cityItineraries = await getCityPageItineraries(city.documentId);
 
   return (
     <main className={styles.page}>
@@ -166,11 +166,11 @@ export default async function CityPage({ params }: CityPageProps) {
         </section>
       )}
 
-      {featuredItineraries.length > 0 && (
+      {cityItineraries.length > 0 && (
         <section className={styles.itineraries} aria-labelledby="city-itineraries-title">
           <h2 id="city-itineraries-title">Itinéraires à vélo</h2>
           <ul className={styles.itineraryGrid}>
-            {featuredItineraries.map((itinerary) => (
+            {cityItineraries.map((itinerary) => (
               <li key={itinerary.documentId}>
                 <Link href={`/itineraires-velo/${itinerary.slug}`}>
                   <strong>{itinerary.departure.name} → {itinerary.arrival.name}</strong>

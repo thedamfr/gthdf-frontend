@@ -1,8 +1,8 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.8\
-**Date :** 6 août 2026\
-**Statut :** prêt pour revue produit et technique\
+**Version :** 0.9\
+**Date :** 10 août 2026\
+**Statut :** livré en production ; suivi de maillage interne implémenté côté frontend\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendances fonctionnelles :**\
 PRD 01 — Référentiel des villes et pages hubs ;\
@@ -1376,6 +1376,28 @@ La page reste utile si JavaScript ou la carte échoue.
 Le PRD 04 complète les pages `/villes/[slug]` avec une section serveur
 `Itinéraires à vélo` limitée aux itinéraires explicitement mis en avant. Le
 tri utilise `editorialOrder`, puis distance et titre comme fallback stable.
+
+### 22.4 Suivi post-livraison — maillage interne borné
+
+La décision du 10 août 2026 est consignée dans
+[`adr_internal_itinerary_linking.md`](adr_internal_itinerary_linking.md). Elle
+remplace uniquement la contrainte de la section 22.3 qui exigeait un flag
+`featuredOnCityPages=true` pour chaque lien de hub :
+
+- une page ville expose au plus cinq itinéraires publics et indexables dont la
+  ville est une extrémité ; les flags et l’ordre éditoriaux restent
+  prioritaires, puis un complément automatique déterministe remplit les places
+  disponibles ;
+- une fiche itinéraire expose au plus trois autres fiches publiques et
+  indexables dont `activeRevision.departure` désigne exactement la même ville ;
+- la fiche courante, les previews et les fiches `noindex` restent exclues ;
+- tous les liens sont présents dans le HTML serveur initial et les erreurs de
+  cette recommandation optionnelle ne rendent jamais la page principale
+  indisponible.
+
+Ce suivi ne crée aucun champ, droit, endpoint public ou script de migration
+CMS. Il ne transforme pas les villes intermédiaires en extrémités et ne crée
+aucune page de facette.
 
 ## 23. SEO et URL canonique
 

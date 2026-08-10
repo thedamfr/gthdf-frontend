@@ -7,6 +7,7 @@ import CityBlocks from '@/components/CityBlocks';
 import DeferredRouteVisualizations from '@/components/itineraries/DeferredRouteVisualizations';
 import {
   getPublicCatalogueEntries,
+  getRelatedDepartureItineraries,
   resolveCatalogueItinerary,
 } from '@/lib/itineraries/server';
 import {
@@ -125,6 +126,10 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
   }
 
   const itinerary = resolution.itinerary.dto;
+  const relatedItineraries = await getRelatedDepartureItineraries(
+    itinerary.departure.documentId,
+    itinerary.documentId
+  );
   const representativeCities = selectRepresentativeCities(itinerary.cities);
   const customTitle = itinerary.title.trim();
   const defaultHeading = `De ${itinerary.departure.name} à ${itinerary.arrival.name} à vélo sur le GTHF`;
@@ -266,6 +271,29 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
           {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(new Date(itinerary.revisionUpdatedAt))}
         </time>.
       </p>
+
+      {relatedItineraries.length > 0 && (
+        <section
+          className={styles.relatedItineraries}
+          aria-labelledby="related-itineraries-title"
+        >
+          <h2 id="related-itineraries-title">
+            Voir aussi au départ de {itinerary.departure.name}
+          </h2>
+          <ul className={styles.relatedItineraryList}>
+            {relatedItineraries.map((relatedItinerary) => (
+              <li key={relatedItinerary.documentId}>
+                <Link href={`/itineraires-velo/${relatedItinerary.slug}`}>
+                  <strong>
+                    De {relatedItinerary.departure.name} à {relatedItinerary.arrival.name} à vélo
+                  </strong>
+                  <span>{formatKilometres(relatedItinerary.distanceMetres)} sur le GTHF</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }
