@@ -10,7 +10,7 @@ export function catalogueIndexEntries(
 ): PublicItinerary[] {
   return itineraries
     .filter((itinerary) => itinerary.seoStatus === 'indexable' && !itinerary.isPreview)
-    .toSorted((first, second) => (
+    .sort((first, second) => (
       frenchCollator.compare(first.departure.name, second.departure.name)
       || frenchCollator.compare(first.arrival.name, second.arrival.name)
       || frenchCollator.compare(first.slug, second.slug)

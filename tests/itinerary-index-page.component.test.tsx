@@ -59,6 +59,6 @@ describe('ItineraryIndexPage', () => {
       '/itineraires-velo/arras-a-douai',
       '/itineraires-velo/lens-a-lievin',
     ]);
-    expect(screen.queryByText(/route privée/i)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'De Amiens à Arras à vélo' })).toBeNull();
   });
 });
