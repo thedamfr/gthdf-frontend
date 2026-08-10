@@ -212,6 +212,51 @@ test('generateGpxSelection uses each direction official geometry and elevation',
   assert.equal(ab.filename, 'gthf-lille-vers-arras-ab.gpx');
 });
 
+test('directional generation keeps the exact private identity used for catalogue matching', async () => {
+  const manifest = fixture();
+  const generated = await generateDirectionalGpxSelection({
+    manifest,
+    selection: {
+      direction: 'AB',
+      departureId: manifest.directions.AB.stops[0].id,
+      arrivalId: manifest.directions.AB.stops[1].id,
+      revision: manifest.revision,
+    },
+    generatedAt: new Date('2026-08-06T10:00:00Z'),
+    loadSource: async () => gpx([0, 10, 20]),
+  });
+
+  assert.deepEqual(generated.catalogueMatch, {
+    routeKey: 'gthf-main-loop',
+    direction: 'AB',
+    departureCityDocumentId: 'city-lille',
+    arrivalCityDocumentId: 'city-arras',
+    departureAnchor: {
+      chapterDocumentId: 'chapter-one',
+      sourceSha256: HASH_AB,
+      trackIndex: 0,
+      segmentIndex: 0,
+      pointIndex: 0,
+      fraction: 0,
+    },
+    arrivalAnchor: {
+      chapterDocumentId: 'chapter-one',
+      sourceSha256: HASH_AB,
+      trackIndex: 0,
+      segmentIndex: 0,
+      pointIndex: 2,
+      fraction: 0,
+    },
+    chapters: [{
+      chapterDocumentId: 'chapter-one',
+      sourceSha256: HASH_AB,
+      junctionAfter: null,
+    }],
+    usesLoopOrigin: false,
+    warnings: [],
+  });
+});
+
 test('generateGpxSelection rejects stale, identical and unknown selections', async () => {
   const manifest = fixture();
   const stopId = manifest.directions.AB.stops[0].id;

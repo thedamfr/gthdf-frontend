@@ -1,8 +1,15 @@
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import GpxBuilderForm from '../components/gpx-builder/GpxBuilderForm';
 import type { PublicGpxBuilderManifest } from '../lib/gpx-builder/manifest';
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href} data-next-link="true">{children}</a>
+  ),
+}));
 
 const manifest: PublicGpxBuilderManifest = {
   enabled: true,
@@ -117,6 +124,77 @@ describe('GpxBuilderForm', () => {
       arrivalId: manifest.directions.AB.stops[2].id,
       revision: manifest.revision,
     });
+  });
+
+  it('shows the canonical catalogue page as a secondary link when the server proves an exact match', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        summary: {
+          departureName: 'Lille',
+          arrivalName: 'Arras',
+          direction: 'AB',
+          distanceMetres: 42_600,
+          elevationAvailable: true,
+          elevationGainMetres: 310,
+          elevationLossMetres: 280,
+          chapterCount: 1,
+          chapterTitles: ['Lille → Arras'],
+          sequenceCount: 1,
+          usesLoopOrigin: false,
+          warnings: [],
+        },
+        catalogueItineraryLink: {
+          href: '/itineraires-velo/lille-a-arras',
+          label: 'Découvrir cet itinéraire',
+        },
+      }),
+    }));
+    const view = render(<GpxBuilderForm manifest={manifest} />);
+
+    chooseCity(view, 'Ville de départ', 'Lille');
+    chooseCity(view, 'Ville d’arrivée', 'Arras');
+    fireEvent.click(view.getByRole('button', { name: 'Prévisualiser mon parcours' }));
+
+    const link = await view.findByRole('link', { name: 'Découvrir cet itinéraire' });
+    expect(link.getAttribute('href')).toBe('/itineraires-velo/lille-a-arras');
+    expect(link.getAttribute('data-next-link')).toBe('true');
+    expect(view.getByText('Retrouvez sa carte, les villes traversées et son GPX officiel.')).toBeTruthy();
+    expect(view.getByRole('button', { name: 'Télécharger mon GPX' })).toBeTruthy();
+  });
+
+  it('ignores a catalogue link that is not a safe internal itinerary URL', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        summary: {
+          departureName: 'Lille',
+          arrivalName: 'Arras',
+          direction: 'AB',
+          distanceMetres: 42_600,
+          elevationAvailable: false,
+          elevationGainMetres: null,
+          elevationLossMetres: null,
+          chapterCount: 1,
+          chapterTitles: ['Lille → Arras'],
+          sequenceCount: 1,
+          usesLoopOrigin: false,
+          warnings: [],
+        },
+        catalogueItineraryLink: {
+          href: 'https://example.test/admin',
+          label: 'Découvrir cet itinéraire',
+        },
+      }),
+    }));
+    const view = render(<GpxBuilderForm manifest={manifest} />);
+
+    chooseCity(view, 'Ville de départ', 'Lille');
+    chooseCity(view, 'Ville d’arrivée', 'Arras');
+    fireEvent.click(view.getByRole('button', { name: 'Prévisualiser mon parcours' }));
+
+    await view.findByText('42,6 km');
+    expect(view.queryByRole('link', { name: 'Découvrir cet itinéraire' })).toBeNull();
   });
 
   it('announces preview errors assertively', async () => {

@@ -28,6 +28,7 @@ const STRAPI_REQUEST_TIMEOUT_MILLISECONDS = 10_000;
 const PAGE_SIZE = 100;
 const MAX_CATALOGUE_PAGES = 100;
 const SAFE_SLUG_PATTERN = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
+const SAFE_DOCUMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 export {
   CatalogueUnavailableError,
@@ -121,7 +122,40 @@ function addCityPopulation(query: URLSearchParams, relation: string): void {
   ]);
 }
 
-function buildGuardQuery(preview: boolean): URLSearchParams {
+function addBuilderMatchPopulation(query: URLSearchParams): void {
+  addFields(query, 'populate[route][populate][segments][fields]', [
+    'direction',
+    'sourceSha256',
+    'nextSourceSha256',
+    'junctionAfterStatus',
+    'junctionAfterGapMetres',
+  ]);
+  addFields(
+    query,
+    'populate[route][populate][segments][populate][chapter][fields]',
+    ['documentId']
+  );
+  for (const relation of ['departureAnchor', 'arrivalAnchor']) {
+    addFields(query, `populate[activeRevision][populate][${relation}][fields]`, [
+      'documentId',
+      'sourceSegmentIndex',
+      'trackIndex',
+      'sourceTrackSegmentIndex',
+      'sourcePointIndex',
+      'sourceFraction',
+      'sourceHash',
+      'validationStatus',
+      'sourceDirection',
+    ]);
+    addFields(
+      query,
+      `populate[activeRevision][populate][${relation}][populate][chapter][fields]`,
+      ['documentId']
+    );
+  }
+}
+
+function buildGuardQuery(preview: boolean, includeBuilderMatch = false): URLSearchParams {
   const query = new URLSearchParams({ status: preview ? 'draft' : 'published' });
 
   addFields(query, 'fields', [
@@ -219,19 +253,25 @@ function buildGuardQuery(preview: boolean): URLSearchParams {
     ['documentId', 'name', 'slug', 'hasPublicPage', 'publishedAt']
   );
 
+  if (includeBuilderMatch) {
+    addBuilderMatchPopulation(query);
+  }
+
   return query;
 }
 
 async function fetchItineraryRecords(
   filters: Record<string, string>,
   preview: boolean,
-  paginate = false
+  paginate = false,
+  includeBuilderMatch = false,
+  requestKind: ItineraryRequestKind = 'guard'
 ): Promise<CityItineraryRecord[]> {
   const records: CityItineraryRecord[] = [];
   let page = 1;
 
   while (page <= MAX_CATALOGUE_PAGES) {
-    const query = buildGuardQuery(preview);
+    const query = buildGuardQuery(preview, includeBuilderMatch);
     Object.entries(filters).forEach(([key, value]) => query.set(key, value));
     query.set('pagination[page]', String(page));
     query.set('pagination[pageSize]', String(paginate ? PAGE_SIZE : 2));
@@ -240,7 +280,7 @@ async function fetchItineraryRecords(
     const payload = await requestStrapiJson<{
       data?: CityItineraryRecord[];
       meta?: { pagination?: { page?: number; pageCount?: number } };
-    }>('/api/city-itineraries', query, 'guard', preview);
+    }>('/api/city-itineraries', query, requestKind, preview);
 
     if (!Array.isArray(payload.data)) {
       throw new Error('invalid_itinerary_list');
@@ -405,6 +445,32 @@ async function getPublicGuardedItineraries(
 export const getPublicCatalogueEntries = cache(async (): Promise<PublicItinerary[]> => {
   return (await getPublicGuardedItineraries()).map((entry) => entry.dto);
 });
+
+export async function getGuardedBuilderItineraries(
+  departureCityDocumentId: string,
+  arrivalCityDocumentId: string
+): Promise<GuardedItinerary[]> {
+  if (
+    !SAFE_DOCUMENT_ID_PATTERN.test(departureCityDocumentId)
+    || !SAFE_DOCUMENT_ID_PATTERN.test(arrivalCityDocumentId)
+    || departureCityDocumentId === arrivalCityDocumentId
+    || !await featureIsOpen(false)
+  ) {
+    return [];
+  }
+
+  const records = await fetchItineraryRecords({
+    'filters[publicationNext][$eq]': 'true',
+    'filters[reviewStatus][$eq]': 'approved',
+    'filters[activeRevision][departure][documentId][$eq]': departureCityDocumentId,
+    'filters[activeRevision][arrival][documentId][$eq]': arrivalCityDocumentId,
+  }, false, true, true, 'builder-lookup');
+
+  return records.flatMap((record) => {
+    const guarded = guardCityItinerary(record, { catalogueEnabled: true });
+    return guarded.ok ? [guarded.value] : [];
+  });
+}
 
 export const getFeaturedItinerariesForCity = cache(async (
   cityDocumentId: string,
