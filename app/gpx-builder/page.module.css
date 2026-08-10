@@ -21,7 +21,8 @@
 }
 
 .backLink:focus-visible,
-.unavailable a:focus-visible {
+.unavailable a:focus-visible,
+.note a:focus-visible {
   outline: 4px solid var(--color-bleu);
   outline-offset: 3px;
 }
@@ -91,4 +92,14 @@
 
 .note p {
   margin: 0;
+}
+
+.note p + p {
+  margin-top: 0.5rem;
+}
+
+.note a {
+  color: var(--color-charbon);
+  font-weight: 800;
+  text-underline-offset: 0.2em;
 }

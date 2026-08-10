@@ -83,6 +83,9 @@ export default async function GpxBuilderPage() {
         <p>
           Le fichier est créé à partir des traces officielles du GTHF pour la portion choisie.
         </p>
+        <p>
+          <Link href="/itineraires-velo">Voir tous les itinéraires à vélo</Link>
+        </p>
       </aside>
     </main>
   );

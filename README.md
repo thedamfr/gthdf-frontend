@@ -70,6 +70,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `/villes/[slug]` : Hub d'une ville publiée et activée dans Strapi
 - `/checkpoints` : Page checkpoints CMS + accordéon
 - `/gpx-builder` : Générateur d’une portion officielle entre deux villes
+- `/itineraires-velo` : Liste HTML des itinéraires publiés et indexables
 - `/itineraires-velo/[slug]` : Itinéraire ville à ville publié et vérifié
 - `/blog` : Liste des articles avec filtre par catégorie (`?category=slug`)
 - `/article/[slug]` : Détail article
@@ -156,6 +157,10 @@ mêmes ancres, sources et jonctions. Le rapprochement réutilise la garde
 publique côté serveur. Une correspondance partielle ou inversée et une panne
 du catalogue n’affichent aucun lien. Le lookup est plafonné à une seconde afin
 de ne retarder ni la prévisualisation ni le téléchargement du GPX.
+
+Le bloc « À savoir » conduit vers `/itineraires-velo`. Cet index serveur liste
+dans son HTML initial toutes les fiches publiques indexables afin de fournir un
+chemin de navigation et de crawl indépendant du sitemap XML.
 
 Avant une recette locale, déployer ou démarrer le schéma CMS, préparer et
 publier les ancrages et jonctions relus, puis activer
