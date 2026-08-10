@@ -25,11 +25,17 @@ export default function ArticleMedia({
 }: ArticleMediaProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const previousOverflowRef = useRef('');
+  const scrollLockActiveRef = useRef(false);
   const captionId = useId();
   const accessibleName = alt || 'Image de l’article';
 
   const restorePageScroll = () => {
+    if (!scrollLockActiveRef.current) {
+      return;
+    }
+
     document.body.style.overflow = previousOverflowRef.current;
+    scrollLockActiveRef.current = false;
   };
 
   const openLightbox = () => {
@@ -41,6 +47,7 @@ export default function ArticleMedia({
 
     previousOverflowRef.current = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    scrollLockActiveRef.current = true;
     dialog.showModal();
   };
 

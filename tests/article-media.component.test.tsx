@@ -21,20 +21,51 @@ vi.mock('next/image', () => ({
   },
 }));
 
+const originalShowModalDescriptor = Object.getOwnPropertyDescriptor(
+  HTMLDialogElement.prototype,
+  'showModal',
+);
+const originalCloseDescriptor = Object.getOwnPropertyDescriptor(
+  HTMLDialogElement.prototype,
+  'close',
+);
+
+function restoreDialogMethod(
+  name: 'showModal' | 'close',
+  descriptor: PropertyDescriptor | undefined,
+) {
+  if (descriptor) {
+    Object.defineProperty(HTMLDialogElement.prototype, name, descriptor);
+    return;
+  }
+
+  Reflect.deleteProperty(HTMLDialogElement.prototype, name);
+}
+
 describe('ArticleMedia', () => {
   beforeEach(() => {
-    HTMLDialogElement.prototype.showModal = vi.fn(function showModal(this: HTMLDialogElement) {
-      this.setAttribute('open', '');
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(function showModal(this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+      }),
     });
-    HTMLDialogElement.prototype.close = vi.fn(function close(this: HTMLDialogElement) {
-      this.removeAttribute('open');
-      this.dispatchEvent(new Event('close'));
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(function close(this: HTMLDialogElement) {
+        this.removeAttribute('open');
+        this.dispatchEvent(new Event('close'));
+      }),
     });
   });
 
   afterEach(() => {
     cleanup();
     document.body.style.overflow = '';
+    restoreDialogMethod('showModal', originalShowModalDescriptor);
+    restoreDialogMethod('close', originalCloseDescriptor);
     vi.restoreAllMocks();
   });
 
@@ -85,5 +116,21 @@ describe('ArticleMedia', () => {
 
     expect(HTMLDialogElement.prototype.close).toHaveBeenCalledOnce();
     expect(document.body.style.overflow).toBe('');
+  });
+
+  it('preserves an existing page scroll lock when unmounted without opening', () => {
+    document.body.style.overflow = 'clip';
+    const view = render(
+      <ArticleMedia
+        src="https://media.example/capture.png"
+        alt="Capture du GPX Builder"
+        width={1280}
+        height={900}
+      />,
+    );
+
+    view.unmount();
+
+    expect(document.body.style.overflow).toBe('clip');
   });
 });
