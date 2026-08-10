@@ -287,9 +287,10 @@ async function fetchItineraryRecords(
 
   while (page <= MAX_CATALOGUE_PAGES) {
     const query = buildGuardQuery(preview, includeBuilderMatch);
+    const requestedPageSize = options.limit ?? (paginate ? PAGE_SIZE : 2);
     Object.entries(filters).forEach(([key, value]) => query.set(key, value));
     query.set('pagination[page]', String(page));
-    query.set('pagination[pageSize]', String(options.limit ?? (paginate ? PAGE_SIZE : 2)));
+    query.set('pagination[pageSize]', String(requestedPageSize));
     sorts.forEach((sort, index) => query.set(`sort[${index}]`, sort));
 
     const payload = await requestStrapiJson<{
@@ -314,7 +315,7 @@ async function fetchItineraryRecords(
       if (page >= pageCount) {
         break;
       }
-    } else if (payload.data.length < PAGE_SIZE) {
+    } else if (payload.data.length < requestedPageSize) {
       break;
     }
     page += 1;

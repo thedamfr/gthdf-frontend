@@ -15,17 +15,17 @@ describe('itinerary recommendation queries', () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = new URL(String(input));
       if (url.pathname === '/api/global') {
-        return Response.json({
+        return new Response(JSON.stringify({
           data: { publishCityItinerariesToNext: true },
-        });
+        }), { headers: { 'content-type': 'application/json' } });
       }
 
-      return Response.json({
+      return new Response(JSON.stringify({
         data: Array.from({ length: 5 }, (_, index) => ({
           documentId: `invalid-candidate-${index}`,
         })),
         meta: { pagination: { page: 1, pageCount: 2 } },
-      });
+      }), { headers: { 'content-type': 'application/json' } });
     });
     vi.stubGlobal('fetch', fetchMock);
 
