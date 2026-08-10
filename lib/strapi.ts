@@ -19,7 +19,10 @@ interface StrapiRequestOptions {
 export interface StrapiMedia {
   url: string;
   alternativeText?: string | null;
+  caption?: string | null;
   name?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface ArticleCategory {

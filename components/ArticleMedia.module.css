@@ -1,0 +1,145 @@
+.figure {
+  margin: 2rem 0;
+}
+
+.imageButton {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  border: 3px solid var(--color-charbon);
+  background: var(--color-beige);
+  color: var(--color-charbon);
+  box-shadow: 8px 8px 0 var(--color-charbon);
+  cursor: zoom-in;
+}
+
+.imageButton:focus-visible,
+.closeButton:focus-visible {
+  outline: 3px solid var(--color-bleu);
+  outline-offset: 3px;
+}
+
+.inlineImage {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 75vh;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.zoomHint {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  padding: 0.35rem 0.65rem;
+  border: 2px solid var(--color-creme);
+  background: var(--color-charbon);
+  color: var(--color-creme);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.caption,
+.dialogCaption {
+  margin: 0;
+  color: var(--color-charbon);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.caption {
+  padding: 0.75rem 0.25rem 0;
+}
+
+.dialog {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  border: 0;
+  background: color-mix(in srgb, var(--color-charbon) 94%, transparent);
+}
+
+.dialog[open] {
+  display: grid;
+  place-items: center;
+}
+
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--color-charbon) 94%, transparent);
+}
+
+.dialogPanel {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: min(96vw, 1600px);
+  height: min(94dvh, 1100px);
+  border: 3px solid var(--color-charbon);
+  background: var(--color-creme);
+}
+
+.dialogImageFrame {
+  position: relative;
+  min-height: 0;
+  margin: 0.75rem;
+}
+
+.dialogImage {
+  object-fit: contain;
+}
+
+.closeButton {
+  position: absolute;
+  z-index: 2;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.55rem 0.8rem;
+  border: 2px solid var(--color-creme);
+  background: var(--color-charbon);
+  color: var(--color-creme);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dialogCaption {
+  padding: 0.75rem 1rem;
+  border-top: 2px solid var(--color-charbon);
+  background: var(--color-beige);
+}
+
+@media (max-width: 768px) {
+  .figure {
+    margin: 1.5rem 0;
+  }
+
+  .imageButton {
+    padding: 0.3rem;
+    border-width: 2px;
+  }
+
+  .zoomHint {
+    right: 0.65rem;
+    bottom: 0.65rem;
+  }
+
+  .dialogPanel {
+    width: 100%;
+    height: 100%;
+    border-width: 2px;
+  }
+
+  .dialogImageFrame {
+    margin: 0.5rem;
+  }
+}
