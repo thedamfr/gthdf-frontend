@@ -19,6 +19,8 @@ export interface ItineraryMedia {
 export interface ItineraryCity {
   documentId?: string;
   name?: string;
+  fromLabel?: string | null;
+  toLabel?: string | null;
   slug?: string | null;
   hasPublicPage?: boolean;
   publishedAt?: string | null;
@@ -163,6 +165,8 @@ export interface CityItineraryRecord {
 export interface PublicItineraryCity {
   documentId: string;
   name: string;
+  fromLabel?: string | null;
+  toLabel?: string | null;
   href: string | null;
 }
 
@@ -197,13 +201,9 @@ export interface PublicItinerary {
   departure: PublicItineraryCity;
   arrival: PublicItineraryCity;
   distanceMetres: number;
-  asTheCrowFliesMetres: number;
   elevationGainMetres: number | null;
   elevationLossMetres: number | null;
   elevationAvailable: boolean;
-  eligibleByRoute: boolean;
-  eligibleByDirect: boolean;
-  detourRatio: number | null;
   usesLoopOrigin: boolean;
   junctionWarnings: PublicJunctionWarning[];
   chapters: PublicItineraryChapter[];

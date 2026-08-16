@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { catalogueIndexEntries } from '@/lib/itineraries/index-core';
-import { formatKilometres } from '@/lib/itineraries/presentation';
+import { formatItineraryDirection, formatKilometres } from '@/lib/itineraries/presentation';
 import { getPublicCatalogueEntries } from '@/lib/itineraries/server';
 
 import styles from './index.module.css';
@@ -65,7 +65,11 @@ export default async function ItineraryIndexPage() {
               <li key={itinerary.documentId}>
                 <Link href={`/itineraires-velo/${itinerary.slug}`}>
                   <strong>
-                    De {itinerary.departure.name} à {itinerary.arrival.name} à vélo
+                    {formatItineraryDirection(
+                      itinerary.departure,
+                      itinerary.arrival,
+                      { capitalize: true }
+                    )} à vélo
                   </strong>
                   <span>{formatKilometres(itinerary.distanceMetres)} sur le GTHF</span>
                 </Link>

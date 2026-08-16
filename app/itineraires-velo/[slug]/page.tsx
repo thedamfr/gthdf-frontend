@@ -11,7 +11,9 @@ import {
   resolveCatalogueItinerary,
 } from '@/lib/itineraries/server';
 import {
+  formatDepartureLabel,
   formatElevation,
+  formatItineraryDirection,
   formatKilometres,
   selectRepresentativeCities,
 } from '@/lib/itineraries/presentation';
@@ -45,11 +47,18 @@ function absoluteMediaUrl(url: string | null): string | null {
   }
 }
 
-function fallbackDescription(itinerary: PublicItinerary): string {
-  const chapterText = itinerary.chapters.length === 1
-    ? `le chapitre ${itinerary.chapters[0].title}`
-    : `${itinerary.chapters.length} chapitres du GTHF`;
-  return `${formatKilometres(itinerary.distanceMetres)} sur le parcours entre ${itinerary.departure.name} et ${itinerary.arrival.name}, à travers ${chapterText}, avec GPX à télécharger.`;
+function generatedTitle(itinerary: PublicItinerary): string {
+  return `${itinerary.departure.name} – ${itinerary.arrival.name} à vélo : itinéraire GPX de ${formatKilometres(itinerary.distanceMetres)}`;
+}
+
+function generatedDescription(itinerary: PublicItinerary): string {
+  const availableFeatures = itinerary.elevationAvailable
+    ? 'Carte, dénivelé et GPX.'
+    : 'Carte et GPX.';
+  return `L’itinéraire cyclotouristique ${formatItineraryDirection(
+    itinerary.departure,
+    itinerary.arrival
+  )} fait ${formatKilometres(itinerary.distanceMetres)} sur une portion du Grand Tour des Hauts-de-France. ${availableFeatures}`;
 }
 
 export async function generateStaticParams() {
@@ -81,9 +90,8 @@ export async function generateMetadata({ params }: ItineraryPageProps): Promise<
   }
 
   const itinerary = resolution.itinerary.dto;
-  const title = itinerary.seo.metaTitle
-    || `${itinerary.departure.name} – ${itinerary.arrival.name} à vélo : GPX du GTHF`;
-  const description = itinerary.seo.metaDescription || fallbackDescription(itinerary);
+  const title = generatedTitle(itinerary);
+  const description = generatedDescription(itinerary);
   const canonical = canonicalUrl(itinerary.slug);
   const shareImage = absoluteMediaUrl(itinerary.seo.shareImageUrl);
   const indexable = !itinerary.isPreview && itinerary.seoStatus === 'indexable';
@@ -131,8 +139,13 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
     itinerary.documentId
   );
   const representativeCities = selectRepresentativeCities(itinerary.cities);
-  const customTitle = itinerary.title.trim();
-  const defaultHeading = `De ${itinerary.departure.name} à ${itinerary.arrival.name} à vélo sur le GTHF`;
+  const directionLabel = formatItineraryDirection(itinerary.departure, itinerary.arrival);
+  const headingDirection = formatItineraryDirection(
+    itinerary.departure,
+    itinerary.arrival,
+    { capitalize: true }
+  );
+  const distance = formatKilometres(itinerary.distanceMetres);
 
   return (
     <main className={styles.page}>
@@ -147,14 +160,16 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
       )}
 
       <header className={styles.header}>
-        <p className={styles.eyebrow}>{itinerary.routeName}</p>
-        <h1>{defaultHeading}</h1>
-        {customTitle !== defaultHeading && <p className={styles.editorialTitle}>{customTitle}</p>}
+        <p className={styles.eyebrow}>Itinéraire cyclotouristique</p>
+        <h1>{headingDirection} à vélo : {distance}</h1>
         <p className={styles.routeContext}>
-          Cet itinéraire cyclotouristique suit le tracé officiel du Grand Tour des
-          Hauts-de-France et privilégie, autant que possible, un parcours confortable pour les
-          familles. La distance affichée suit ce tracé : elle ne correspond pas à une ligne
-          droite entre les deux villes.
+          L’itinéraire cyclotouristique {directionLabel} fait {distance}. Cette distance est
+          mesurée le long du tracé GPX téléchargeable ci-dessous.
+        </p>
+        <p className={styles.routeContext}>
+          Ce parcours constitue une portion du Grand Tour des Hauts-de-France, une boucle
+          cyclotouristique de 1 400 km pensée pour découvrir la région à vélo. Il peut être
+          parcouru seul ou intégré à un voyage plus long.
         </p>
       </header>
 
@@ -165,12 +180,8 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
         </div>
         <dl className={styles.metrics}>
           <div>
-            <dt>Distance sur le GTHF</dt>
-            <dd>{formatKilometres(itinerary.distanceMetres)}</dd>
-          </div>
-          <div>
-            <dt>Distance à vol d’oiseau</dt>
-            <dd>{formatKilometres(itinerary.asTheCrowFliesMetres)}</dd>
+            <dt>Distance du tracé GPX</dt>
+            <dd>{distance}</dd>
           </div>
           <div>
             <dt>Dénivelé positif</dt>
@@ -186,7 +197,7 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
           href={itinerary.downloadPath}
           download
         >
-          Télécharger le GPX de {itinerary.departure.name} à {itinerary.arrival.name}
+          Télécharger le GPX {directionLabel} — {distance}
         </a>
         <p className={styles.downloadNote}>
           Fichier GPX officiel de la portion, à importer dans une application de navigation compatible.
@@ -252,7 +263,7 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
 
       <CityBlocks
         blocks={itinerary.blocks}
-        cityName={`${itinerary.departure.name} à ${itinerary.arrival.name}`}
+        cityName={`l’itinéraire ${directionLabel}`}
         strapiUrl={PUBLIC_STRAPI_URL}
       />
 
@@ -261,6 +272,7 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
         elevationAvailable={itinerary.elevationAvailable}
         departureName={itinerary.departure.name}
         arrivalName={itinerary.arrival.name}
+        directionLabel={directionLabel}
         distanceMetres={itinerary.distanceMetres}
         basemapEnabled={isItineraryBasemapEnabled(process.env.ITINERARY_BASEMAP_ENABLED)}
       />
@@ -278,14 +290,18 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
           aria-labelledby="related-itineraries-title"
         >
           <h2 id="related-itineraries-title">
-            Voir aussi au départ de {itinerary.departure.name}
+            Voir aussi au départ {formatDepartureLabel(itinerary.departure)}
           </h2>
           <ul className={styles.relatedItineraryList}>
             {relatedItineraries.map((relatedItinerary) => (
               <li key={relatedItinerary.documentId}>
                 <Link href={`/itineraires-velo/${relatedItinerary.slug}`}>
                   <strong>
-                    De {relatedItinerary.departure.name} à {relatedItinerary.arrival.name} à vélo
+                    {formatItineraryDirection(
+                      relatedItinerary.departure,
+                      relatedItinerary.arrival,
+                      { capitalize: true }
+                    )} à vélo
                   </strong>
                   <span>{formatKilometres(relatedItinerary.distanceMetres)} sur le GTHF</span>
                 </Link>

@@ -30,6 +30,7 @@ export type ItineraryGuardResult =
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/i;
 const SAFE_SLUG_PATTERN = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
+const MAX_CITY_LABEL_LENGTH = 180;
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -61,6 +62,14 @@ function isValidDate(value: unknown): value is string {
   return isNonEmptyString(value) && Number.isFinite(Date.parse(value));
 }
 
+function publicEditorialLabel(value: unknown): string | null {
+  if (!isNonEmptyString(value)) {
+    return null;
+  }
+  const label = value.trim();
+  return label.length <= MAX_CITY_LABEL_LENGTH ? label : null;
+}
+
 function publicCity(city: ItineraryCity): PublicItineraryCity | null {
   if (!isNonEmptyString(city.documentId) || !isNonEmptyString(city.name)) {
     return null;
@@ -74,6 +83,8 @@ function publicCity(city: ItineraryCity): PublicItineraryCity | null {
   return {
     documentId: city.documentId,
     name: city.name,
+    fromLabel: publicEditorialLabel(city.fromLabel),
+    toLabel: publicEditorialLabel(city.toLabel),
     href: hasPublicHub ? `/villes/${city.slug}` : null,
   };
 }
@@ -340,13 +351,9 @@ function buildPublicDto(
     departure,
     arrival,
     distanceMetres: revision.distanceMetres,
-    asTheCrowFliesMetres: revision.asTheCrowFliesMetres,
     elevationGainMetres: elevationAvailable ? revision.elevationGainMetres! : null,
     elevationLossMetres: elevationAvailable ? revision.elevationLossMetres! : null,
     elevationAvailable,
-    eligibleByRoute: revision.eligibleByRoute === true,
-    eligibleByDirect: revision.eligibleByDirect === true,
-    detourRatio: revision.detourRatio,
     usesLoopOrigin: revision.usesLoopOrigin,
     junctionWarnings,
     chapters: publicChapters,

@@ -170,6 +170,19 @@ ordre stable. Chaque fiche itinéraire propose au plus trois autres portions
 publiques et indexables ayant exactement la même ville de départ. La fiche
 courante, les previews et les pages `noindex` sont toujours exclues.
 
+Les fiches `/itineraires-velo/[slug]` publient une seule distance : celle de
+la géométrie GPX active. La distance à vol d’oiseau reste un critère interne
+d’éligibilité et n’entre ni dans le DTO public, ni dans le HTML, ni dans les
+metadata. Le H1, le CTA, les cartes, les pages-ville et les recommandations
+utilisent le même formateur de direction française et le même arrondi au
+dixième de kilomètre. Les champs CMS optionnels `City.fromLabel` et
+`City.toLabel` permettent de traiter une exception éditoriale ; le fallback
+gère les articles `Le`/`Les`, les voyelles et les cas ordinaires.
+
+Cette version du frontend doit être déployée après le schéma CMS qui ajoute
+ces deux champs. Aucune migration de contenu n’est requise. En rollback,
+redéployer l’ancien frontend et conserver les champs CMS additifs.
+
 Avant une recette locale, déployer ou démarrer le schéma CMS, préparer et
 publier les ancrages et jonctions relus, puis activer
 `Global.gpxBuilderEnabled`. Tant que cette valeur reste à `false`, la page

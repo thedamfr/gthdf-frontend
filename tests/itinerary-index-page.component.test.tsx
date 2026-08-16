@@ -44,7 +44,7 @@ afterEach(() => {
 describe('ItineraryIndexPage', () => {
   it('renders crawlable links for every indexable public itinerary', async () => {
     mocks.getPublicCatalogueEntries.mockResolvedValue([
-      itinerary('lens-a-lievin', 'Lens', 'Liévin'),
+      itinerary('le-touquet-a-camiers', 'Le Touquet-Paris-Plage', 'Camiers'),
       itinerary('arras-a-douai', 'Arras', 'Douai'),
       itinerary('route-privee', 'Amiens', 'Arras', 'noindex'),
     ]);
@@ -57,8 +57,10 @@ describe('ItineraryIndexPage', () => {
     ));
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       '/itineraires-velo/arras-a-douai',
-      '/itineraires-velo/lens-a-lievin',
+      '/itineraires-velo/le-touquet-a-camiers',
     ]);
+    expect(screen.getByText('Du Touquet-Paris-Plage à Camiers à vélo')).toBeTruthy();
+    expect(screen.queryByText('De Le Touquet-Paris-Plage à Camiers à vélo')).toBeNull();
     expect(document.querySelector('a[href="/itineraires-velo/route-privee"]')).toBeNull();
   });
 });

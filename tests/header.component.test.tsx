@@ -29,4 +29,13 @@ describe('Header', () => {
         .getAttribute('href')
     ).toBe('/gpx-builder');
   });
+
+  it('expands the GTHF name for assistive technologies', () => {
+    const view = render(<Header />);
+
+    expect(
+      view.getByRole('link', { name: 'Grand Tour des Hauts-de-France — accueil' })
+        .getAttribute('href')
+    ).toBe('/');
+  });
 });

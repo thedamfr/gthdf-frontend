@@ -124,8 +124,7 @@ it('initializes the audited map, renders separate features and cleans it up', as
   const { unmount } = render(
     <InteractiveRouteMap
       geometry={geometry}
-      departureName="Calais"
-      arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       ready={false}
       onReady={onReady}
       onUnavailable={onUnavailable}
@@ -194,8 +193,7 @@ it('initializes MapLibre with WebGL 1 when WebGL 2 is unavailable', async () => 
   render(
     <InteractiveRouteMap
       geometry={geometry}
-      departureName="Calais"
-      arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       ready={false}
       onReady={vi.fn()}
       onUnavailable={vi.fn()}
@@ -212,8 +210,7 @@ it('falls back before importing MapLibre when WebGL is unavailable', () => {
   render(
     <InteractiveRouteMap
       geometry={geometry}
-      departureName="Calais"
-      arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       ready={false}
       onReady={vi.fn()}
       onUnavailable={onUnavailable}
@@ -229,8 +226,7 @@ it('removes the map once when the initial style reports an error', async () => {
   const { unmount } = render(
     <InteractiveRouteMap
       geometry={geometry}
-      departureName="Calais"
-      arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       ready={false}
       onReady={vi.fn()}
       onUnavailable={onUnavailable}
@@ -253,8 +249,7 @@ it('times out an initial style that never becomes ready', async () => {
   render(
     <InteractiveRouteMap
       geometry={geometry}
-      departureName="Calais"
-      arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       ready={false}
       onReady={vi.fn()}
       onUnavailable={onUnavailable}

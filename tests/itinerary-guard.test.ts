@@ -17,6 +17,8 @@ function fixture(): CityItineraryRecord {
   const departure = {
     documentId: 'city-calais',
     name: 'Calais',
+    fromLabel: 'de Calais',
+    toLabel: 'à Calais',
     slug: 'calais',
     hasPublicPage: true,
     publishedAt: NOW,
@@ -24,6 +26,8 @@ function fixture(): CityItineraryRecord {
   const arrival = {
     documentId: 'city-boulogne',
     name: 'Boulogne-sur-Mer',
+    fromLabel: 'de Boulogne-sur-Mer',
+    toLabel: 'à Boulogne-sur-Mer',
     slug: 'boulogne-sur-mer',
     hasPublicPage: false,
     publishedAt: NOW,
@@ -140,12 +144,28 @@ test('the cumulative guard accepts a fully verified public itinerary', () => {
   if (!result.ok) return;
 
   assert.equal(result.value.dto.departure.name, 'Calais');
+  assert.equal(result.value.dto.departure.fromLabel, 'de Calais');
+  assert.equal(result.value.dto.arrival.toLabel, 'à Boulogne-sur-Mer');
   assert.equal(result.value.dto.departure.href, '/villes/calais');
   assert.equal(result.value.dto.arrival.href, null);
   assert.equal(result.value.dto.chapters[0].direction, 'ab');
   assert.match(result.value.dto.junctionWarnings[0].message, /rupture connue/i);
   assert.equal('reviewNote' in result.value.dto.junctionWarnings[0], false);
   assert.equal('generatedGpx' in result.value.dto, false);
+  assert.equal('asTheCrowFliesMetres' in result.value.dto, false);
+  assert.equal('eligibleByDirect' in result.value.dto, false);
+  assert.equal('detourRatio' in result.value.dto, false);
+});
+
+test('the public DTO drops oversized editorial direction labels', () => {
+  const record = fixture();
+  record.activeRevision!.departure!.fromLabel = 'd'.repeat(181);
+
+  const result = guardCityItinerary(record, { catalogueEnabled: true });
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+
+  assert.equal(result.value.dto.departure.fromLabel, null);
 });
 
 test('the aggregate artifact hash matches the exact CMS canonical fixture', () => {
@@ -184,6 +204,9 @@ test('every publication layer fails closed', () => {
     }, 'artifact_unavailable'],
     ['route order', (record) => {
       record.activeRevision!.chaptersOnRoute![0].routeOrder = 5;
+    }, 'invalid_public_data'],
+    ['chapter distance sum', (record) => {
+      record.activeRevision!.chaptersOnRoute![0].distanceMetres = 50_000;
     }, 'invalid_public_data'],
     ['missing ready approval flag', (record) => {
       record.activeRevision!.warningApproved = undefined;

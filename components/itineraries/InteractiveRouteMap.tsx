@@ -17,8 +17,7 @@ import styles from './RouteVisualization.module.css';
 
 interface InteractiveRouteMapProps {
   geometry: ItineraryDisplayGeometry;
-  departureName: string;
-  arrivalName: string;
+  directionLabel: string;
   ready: boolean;
   onReady: () => void;
   onUnavailable: () => void;
@@ -96,8 +95,7 @@ class RecenterControl implements IControl {
 
 export default function InteractiveRouteMap({
   geometry,
-  departureName,
-  arrivalName,
+  directionLabel,
   ready,
   onReady,
   onUnavailable,
@@ -314,7 +312,7 @@ export default function InteractiveRouteMap({
       className={styles.interactiveMapLayer}
       data-ready={ready ? 'true' : 'false'}
       role="region"
-      aria-label={`Carte interactive de la portion de ${departureName} à ${arrivalName}`}
+      aria-label={`Carte interactive de la portion ${directionLabel}`}
       aria-busy={!ready}
     />
   );

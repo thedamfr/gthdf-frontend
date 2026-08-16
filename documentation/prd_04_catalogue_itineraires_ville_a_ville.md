@@ -1,8 +1,8 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.10\
+**Version :** 0.11\
 **Date :** 16 août 2026\
-**Statut :** livré en production ; exclusion des artefacts techniques préparée côté frontend\
+**Statut :** livré en production ; optimisation SEO des fiches implémentée, déploiement à valider\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendances fonctionnelles :**\
 PRD 01 — Référentiel des villes et pages hubs ;\
@@ -516,10 +516,18 @@ France et à la Belgique :
 | `municipalityCode` | string | code national conservé comme texte ; code INSEE en France |
 | `administrativeArea` | string | département ou province, sans promesse de fraîcheur |
 | `coordinateSource` | JSON ou composant | source, date et nature de la coordonnée |
+| `fromLabel` | string optionnelle, 180 caractères max. | libellé prépositionnel complet au départ, ex. `du Touquet-Paris-Plage` ou `d’Abbeville` |
+| `toLabel` | string optionnelle, 180 caractères max. | libellé prépositionnel complet à l’arrivée, ex. `au Crotoy` ou `à Camiers` |
 
 Ces champs restent administratifs. `name`, `slug`, contenu et
 `hasPublicPage` demeurent éditoriaux. Une donnée importée ne remplace jamais
 silencieusement une valeur relue.
+
+Les deux libellés directionnels ne sont pas requis. Next applique un fallback
+centralisé pour `Le`, `Les`, les voyelles et les cas ordinaires ; un éditeur
+peut renseigner les champs pour les exceptions linguistiques, notamment les
+toponymes commençant par un h aspiré. Le champ stocke la préposition avec le
+nom, pas le seul nom de ville.
 
 ## 12. Modèle Strapi du parcours et des ancres
 
@@ -1148,7 +1156,12 @@ L’éditeur contrôle :
 - jonctions et avertissements ;
 - chapitres et villes traversés ;
 - différence avec la révision active ;
-- titre, introduction et métadonnées.
+- titre, introduction et image de partage.
+
+Le title et la description des fiches publiques sont générés depuis les deux
+villes et la distance de la révision active afin de garantir un résultat
+unique et cohérent avec le GPX. Les anciens textes `shared.seo` ne les
+surchargent plus ; l’image de partage éditoriale reste utilisée.
 
 Il associe ensuite explicitement la révision à `activeRevision`, passe
 `reviewStatus=approved`, publie le document Strapi, puis choisit
@@ -1238,12 +1251,12 @@ nom de la ville peut être lié à `/villes/[slug]`.
 
 - slug, titre et contenu éditorial ;
 - villes de départ/arrivée et possibilité de lien hub ;
-- métriques brutes nécessaires à l’affichage ;
+- distance GPX et métriques de dénivelé nécessaires à l’affichage ;
 - disponibilité du dénivelé ;
 - avertissements publics de jonction ;
 - chapitres et villes publiques traversés ;
 - URLs same-origin de géométrie et téléchargement ;
-- SEO ;
+- image SEO de partage ;
 - date de mise à jour de la révision.
 
 Les URLs Cellar internes ne sont pas exposées directement dans le HTML si une
@@ -1251,6 +1264,11 @@ route same-origin les protège.
 
 Les empreintes nécessaires à la garde restent dans le fetch serveur et ne sont
 pas transmises aux Client Components.
+
+La distance à vol d’oiseau, les booléens d’éligibilité et le rapport de détour
+restent disponibles au calcul et à la garde serveur, mais sont exclus du DTO
+public. Ils ne doivent apparaître ni dans le HTML, ni dans les metadata, ni
+dans les props des Client Components.
 
 ## 21. Routes et cache Next
 
@@ -1345,14 +1363,16 @@ Avant d’ajouter `CityItinerary` à `config/admin.ts` :
 Avant toute carte interactive :
 
 1. retour vers le GTHF ou le chapitre pertinent ;
-2. H1 `De {départ} à {arrivée} à vélo sur le GTHF` ;
-3. distance sur le parcours, D+ et D− disponibles ;
-4. mention explicite que la distance suit le GTHF ;
-5. avertissement de jonction le cas échéant ;
-6. bouton de téléchargement GPX ;
-7. introduction éditoriale ou contexte factuel ;
-8. chapitres concernés ;
-9. principales villes traversées dans l’ordre.
+2. libellé `Itinéraire cyclotouristique` ;
+3. H1 `{Direction française} à vélo : {distance GPX}` ;
+4. réponse immédiate indiquant que cette distance suit le tracé GPX ;
+5. présentation en toutes lettres du Grand Tour des Hauts-de-France ;
+6. distance GPX unique, D+ et D− disponibles ;
+7. avertissement de jonction le cas échéant ;
+8. bouton de téléchargement GPX avec direction et distance ;
+9. introduction éditoriale ou contexte factuel ;
+10. chapitres concernés ;
+11. principales villes traversées dans l’ordre.
 
 La page reste utile si JavaScript ou la carte échoue.
 
@@ -1429,14 +1449,18 @@ Si une nouvelle source inverse la direction optimale :
 
 Fallbacks factuels :
 
-- title : `{Départ} – {Arrivée} à vélo : GPX du GTHF` ;
-- description : distance sur le parcours, chapitres et téléchargement, sans
-  promettre gare, commerce ou hébergement ;
+- title : `{Départ} – {Arrivée} à vélo : itinéraire GPX de {distance}` ;
+- description : `L’itinéraire cyclotouristique {direction française} fait
+  {distance} sur une portion du Grand Tour des Hauts-de-France`, puis les
+  fonctions réellement disponibles (`Carte, dénivelé et GPX` ou
+  `Carte et GPX`) ;
 - canonical : URL publique unique ;
 - Open Graph : image SEO si présente, sans fabriquer une carte distante.
 
-Une surcharge `shared.seo` reste possible. Les metadata n’énumèrent pas toutes
-les villes traversées.
+Les title et description `shared.seo` historiques ne surchargent plus ces
+gabarits ; l’image de partage reste éditoriale. Les metadata n’énumèrent pas
+toutes les villes traversées et n’emploient pas l’acronyme seul comme argument
+principal de clic.
 
 ### 23.3 Indexation
 
@@ -1468,6 +1492,35 @@ Le handler partagé ajoute désormais `X-Robots-Tag: noindex, nofollow` à tous
 les artefacts publics et de prévisualisation, y compris aux réponses
 conditionnelles `304`. Les pages canoniques `/itineraires-velo/[slug]`
 conservent leurs règles `index, follow` et restent inchangées.
+
+### 23.5 Suivi post-livraison — intention distance et GPX
+
+L’export Search Console du 18 juillet au 14 août 2026 montre 23 requêtes
+visibles contenant `distance`, pour 114 impressions et aucun clic. Les quatre
+variantes Camiers–Le Touquet concentrent 61 impressions entre les positions
+moyennes 8,62 et 10,11. La page Le Touquet–Camiers totalise 119 impressions,
+un clic, 0,84 % de CTR et une position moyenne de 9,55. Le moteur comprend
+donc déjà l’intention ; cette itération travaille la réponse et l’extrait de
+résultat sans changer les URL.
+
+Le contrat public devient :
+
+- une seule distance, celle mesurée sur la géométrie GPX de la révision
+  active et arrondie par le même formateur partout ;
+- aucun affichage ni transfert client de la distance à vol d’oiseau ;
+- un H1 et une première phrase répondant à l’intention `distance + à vélo` ;
+- le nom Grand Tour des Hauts-de-France développé avant l’acronyme dans le
+  contenu principal ;
+- title et description uniques, générés depuis villes, distance et fonctions
+  réellement disponibles ;
+- libellés directionnels français communs au H1, au CTA, aux cartes, aux
+  pages-ville et aux recommandations ;
+- aucune promesse générique de confort familial sans champ éditorial vérifié.
+
+La mise en ligne est annotée dans Search Console. Pendant quatre semaines, le
+suivi compare le CTR des requêtes contenant `distance`, tout en séparant les
+variations de position moyenne. Cette formulation peut améliorer le snippet,
+mais ne constitue aucune promesse de featured snippet.
 
 ## 24. Accessibilité, responsive et performance
 
@@ -1609,6 +1662,19 @@ générique sans coordonnées ni contenu GPX utilisateur.
 - ne supprimer aucune collection ni colonne dans le rollback immédiat ;
 - exécuter tout nettoyage média ultérieurement et séparément.
 
+### 27.5 Déploiement de l’optimisation SEO
+
+Les champs `City.fromLabel` et `City.toLabel` sont additifs, optionnels et ne
+nécessitent aucun backfill. Le fallback couvre les articles, les voyelles et
+les cas ordinaires ; les exceptions linguistiques demandent une saisie
+éditoriale.
+
+Déployer le CMS avant le frontend : la nouvelle version Next sélectionne ces
+deux champs dans ses requêtes Strapi. L’ancien frontend ignore sans risque les
+colonnes ajoutées. En retour arrière, redéployer le frontend précédent et
+laisser les colonnes en place ; leur suppression n’est ni nécessaire ni
+souhaitable dans l’intervention immédiate.
+
 ## 28. Critères d’acceptation
 
 ### Import et données
@@ -1690,6 +1756,18 @@ générique sans coordonnées ni contenu GPX utilisateur.
 
 ### Page publique
 
+- une seule distance publique est visible et elle provient du GPX actif ;
+- aucune occurrence de `distance à vol d’oiseau` n’entre dans le rendu
+  indexable, les metadata ou les données client ;
+- la somme des portions de chapitre correspond à la distance totale dans la
+  tolérance de garde ;
+- le H1 contient les deux villes, `à vélo` et la distance ;
+- le Grand Tour des Hauts-de-France est présenté en toutes lettres dans le
+  contenu principal ;
+- aucun H1, CTA, libellé de carte ou lien associé ne produit `De Le` ;
+- aucune promesse familiale générique n’est générée ;
+- title et description sont uniques par couple et utilisent la même distance
+  arrondie que la page ;
 - titre, métriques, contexte, téléchargement et liens sont présents avant la
   carte ;
 - la carte affiche la vraie forme simplifiée et les ruptures ;

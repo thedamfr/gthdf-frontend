@@ -47,5 +47,8 @@ describe('itinerary recommendation queries', () => {
     );
     expect(catalogueRequests[0].searchParams.get('sort[3]')).toBe('title:asc');
     expect(catalogueRequests[0].searchParams.get('sort[4]')).toBe('slug:asc');
+    expect(Array.from(catalogueRequests[0].searchParams.values())).toEqual(
+      expect.arrayContaining(['fromLabel', 'toLabel'])
+    );
   });
 });
