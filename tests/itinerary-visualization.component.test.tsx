@@ -38,6 +38,7 @@ it('renders every geometry sequence without joining known gaps', () => {
       elevationAvailable={false}
       departureName="Calais"
       arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       distanceMetres={1_000}
       basemapEnabled={false}
     />
@@ -55,6 +56,7 @@ it('describes the route and keeps only the schematic map when the basemap is dis
       elevationAvailable={false}
       departureName="Calais"
       arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       distanceMetres={1_000}
       basemapEnabled={false}
     />
@@ -79,6 +81,7 @@ it('renders the accessible profile only when altitude is qualified', () => {
       elevationAvailable
       departureName="Calais"
       arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       distanceMetres={1_000}
       basemapEnabled={false}
     />
@@ -109,6 +112,7 @@ it('renders a singleton zero-distance profile without invalid SVG coordinates', 
       elevationAvailable
       departureName="Calais"
       arrivalName="Calais"
+      directionLabel="de Calais à Calais"
       distanceMetres={0}
       basemapEnabled={false}
     />
@@ -129,6 +133,7 @@ it('keeps the schematic and explains the fallback when WebGL2 is unavailable', (
       elevationAvailable={false}
       departureName="Calais"
       arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       distanceMetres={1_000}
       basemapEnabled
     />

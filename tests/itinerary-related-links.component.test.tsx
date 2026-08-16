@@ -39,7 +39,9 @@ vi.mock('@/lib/itineraries/server', () => ({
   resolveCatalogueItinerary: mocks.resolveCatalogueItinerary,
 }));
 
-import ItineraryPage from '../app/itineraires-velo/[slug]/page';
+import ItineraryPage, {
+  generateMetadata,
+} from '../app/itineraires-velo/[slug]/page';
 
 function relatedItinerary(
   current: PublicItinerary,
@@ -70,6 +72,88 @@ beforeEach(() => {
 });
 
 describe('ItineraryPage related links', () => {
+  it('generates intent-led metadata from the verified GPX distance', async () => {
+    const current = verifiedItineraryFixture().guarded;
+    current.dto.departure = {
+      ...current.dto.departure,
+      name: 'Le Touquet-Paris-Plage',
+    };
+    current.dto.arrival = {
+      ...current.dto.arrival,
+      name: 'Camiers',
+    };
+    current.dto.distanceMetres = 7_530.71;
+    current.dto.seo.metaTitle = 'Ancien titre éditorial';
+    current.dto.seo.metaDescription = 'Ancienne description éditoriale';
+    mocks.resolveCatalogueItinerary.mockResolvedValue({ kind: 'found', itinerary: current });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ slug: current.dto.slug }),
+    });
+
+    expect(metadata.title).toBe(
+      'Le Touquet-Paris-Plage – Camiers à vélo : itinéraire GPX de 7,5 km'
+    );
+    expect(metadata.description).toBe(
+      'L’itinéraire cyclotouristique du Touquet-Paris-Plage à Camiers fait 7,5 km sur une portion du Grand Tour des Hauts-de-France. Carte, dénivelé et GPX.'
+    );
+    expect(metadata.openGraph).toMatchObject({
+      title: metadata.title,
+      description: metadata.description,
+    });
+  });
+
+  it('does not promise elevation data in metadata when it is unavailable', async () => {
+    const current = verifiedItineraryFixture().guarded;
+    current.dto.elevationAvailable = false;
+    current.dto.elevationGainMetres = null;
+    current.dto.elevationLossMetres = null;
+    mocks.resolveCatalogueItinerary.mockResolvedValue({ kind: 'found', itinerary: current });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ slug: current.dto.slug }),
+    });
+
+    expect(metadata.description).toMatch(/Carte et GPX\.$/);
+    expect(metadata.description).not.toContain('dénivelé');
+  });
+
+  it('answers the cycling-distance intent with one GPX distance and factual copy', async () => {
+    const current = verifiedItineraryFixture().guarded;
+    current.dto.title = 'Le Touquet-Paris-Plage – Camiers à vélo';
+    current.dto.departure = {
+      ...current.dto.departure,
+      name: 'Le Touquet-Paris-Plage',
+    };
+    current.dto.arrival = {
+      ...current.dto.arrival,
+      name: 'Camiers',
+    };
+    current.dto.distanceMetres = 7_530.71;
+    mocks.resolveCatalogueItinerary.mockResolvedValue({ kind: 'found', itinerary: current });
+    mocks.getRelatedDepartureItineraries.mockResolvedValue([]);
+
+    const view = render(await ItineraryPage({
+      params: Promise.resolve({ slug: current.dto.slug }),
+    }));
+
+    expect(screen.getByRole('heading', {
+      level: 1,
+      name: 'Du Touquet-Paris-Plage à Camiers à vélo : 7,5 km',
+    })).toBeTruthy();
+    expect(screen.getByText(
+      'L’itinéraire cyclotouristique du Touquet-Paris-Plage à Camiers fait 7,5 km. Cette distance est mesurée le long du tracé GPX téléchargeable ci-dessous.'
+    )).toBeTruthy();
+    expect(screen.getByText(/une boucle cyclotouristique de 1 400 km/)).toBeTruthy();
+    expect(screen.getByText('Distance du tracé GPX')).toBeTruthy();
+    expect(screen.getByRole('link', {
+      name: 'Télécharger le GPX du Touquet-Paris-Plage à Camiers — 7,5 km',
+    })).toBeTruthy();
+    expect(view.queryByText('Distance à vol d’oiseau')).toBeNull();
+    expect(view.container.textContent).not.toContain('familles');
+    expect(view.queryByText(current.dto.title)).toBeNull();
+  });
+
   it('renders three crawlable alternatives with the same departure in the initial HTML', async () => {
     const current = verifiedItineraryFixture().guarded.dto;
     render(await ItineraryPage({ params: Promise.resolve({ slug: current.slug }) }));

@@ -3,20 +3,18 @@ import { afterEach, expect, it, vi } from 'vitest';
 
 vi.mock('../components/itineraries/InteractiveRouteMap', () => ({
   default: ({
-    departureName,
-    arrivalName,
+    directionLabel,
     ready,
     onReady,
     onUnavailable,
   }: {
-    departureName: string;
-    arrivalName: string;
+    directionLabel: string;
     ready: boolean;
     onReady: () => void;
     onUnavailable: () => void;
   }) => (
     <div
-      aria-label={`Carte interactive de la portion de ${departureName} à ${arrivalName}`}
+      aria-label={`Carte interactive de la portion ${directionLabel}`}
       data-ready={ready}
     >
       <button type="button" onClick={onReady}>Simuler la carte prête</button>
@@ -44,6 +42,7 @@ function renderVisualization() {
       elevationAvailable={false}
       departureName="Calais"
       arrivalName="Boulogne-sur-Mer"
+      directionLabel="de Calais à Boulogne-sur-Mer"
       distanceMetres={1_000}
       basemapEnabled
     />

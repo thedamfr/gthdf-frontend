@@ -130,6 +130,8 @@ function addCityPopulation(query: URLSearchParams, relation: string): void {
     'documentId',
     'name',
     'slug',
+    'fromLabel',
+    'toLabel',
     'hasPublicPage',
     'publishedAt',
   ]);
@@ -199,6 +201,8 @@ function buildGuardQuery(preview: boolean, includeBuilderMatch = false): URLSear
       'documentId',
       'name',
       'slug',
+      'fromLabel',
+      'toLabel',
       'hasPublicPage',
       'publishedAt',
     ]);
@@ -263,7 +267,7 @@ function buildGuardQuery(preview: boolean, includeBuilderMatch = false): URLSear
   addFields(
     query,
     'populate[activeRevision][populate][citiesOnRoute][populate][city][fields]',
-    ['documentId', 'name', 'slug', 'hasPublicPage', 'publishedAt']
+    ['documentId', 'name', 'slug', 'fromLabel', 'toLabel', 'hasPublicPage', 'publishedAt']
   );
 
   if (includeBuilderMatch) {

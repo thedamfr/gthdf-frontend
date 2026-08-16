@@ -8,8 +8,7 @@ import styles from './RouteVisualization.module.css';
 
 interface SchematicRouteMapProps {
   geometry: ItineraryDisplayGeometry;
-  departureName: string;
-  arrivalName: string;
+  directionLabel: string;
 }
 
 const MAP_WIDTH = 1_000;
@@ -52,8 +51,7 @@ function endpoint(
 
 export default function SchematicRouteMap({
   geometry,
-  departureName,
-  arrivalName,
+  directionLabel,
 }: SchematicRouteMapProps) {
   const sequencePoints = useMemo(() => projectedSequences(geometry), [geometry]);
   const departure = endpoint(sequencePoints, 0, false);
@@ -72,7 +70,7 @@ export default function SchematicRouteMap({
       role="img"
       aria-labelledby="route-map-title route-map-description"
     >
-        <title id="route-map-title">Tracé de {departureName} à {arrivalName}</title>
+        <title id="route-map-title">Tracé {directionLabel}</title>
         <desc id="route-map-description">
           La portion comporte {sequencePoints.length} {sequencePoints.length > 1 ? 'segments séparés' : 'segment continu'}.
         </desc>

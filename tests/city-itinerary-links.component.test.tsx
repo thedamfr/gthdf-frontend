@@ -41,9 +41,15 @@ function itinerary(index: number): PublicItinerary {
   return {
     documentId: `itinerary-${index}`,
     slug: `calais-destination-${index}`,
-    departure: { documentId: 'city-calais', name: 'Calais' },
-    arrival: { documentId: `city-${index}`, name: `Destination ${index}` },
-    distanceMetres: index * 10_000,
+    departure: {
+      documentId: 'city-calais',
+      name: index === 1 ? 'Le Touquet-Paris-Plage' : 'Calais',
+    },
+    arrival: {
+      documentId: `city-${index}`,
+      name: index === 1 ? 'Camiers' : `Destination ${index}`,
+    },
+    distanceMetres: index === 1 ? 7_500 : index * 10_000,
   } as PublicItinerary;
 }
 
@@ -92,6 +98,8 @@ describe('CityPage itinerary links', () => {
       '/itineraires-velo/calais-destination-4',
       '/itineraires-velo/calais-destination-5',
     ]);
+    expect(within(section).getByText('Du Touquet-Paris-Plage à Camiers')).toBeTruthy();
+    expect(within(section).getByText('7,5 km sur le GTHF')).toBeTruthy();
     expect(mocks.getCityPageItineraries).toHaveBeenCalledWith('city-calais');
   });
 });

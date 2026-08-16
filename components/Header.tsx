@@ -29,7 +29,11 @@ export default function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        <Link href="/" className={styles.logo}>
+        <Link
+          href="/"
+          className={styles.logo}
+          aria-label="Grand Tour des Hauts-de-France — accueil"
+        >
           GTHF
         </Link>
 

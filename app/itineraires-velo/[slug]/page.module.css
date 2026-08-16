@@ -50,12 +50,6 @@
   font-size: clamp(2.5rem, 7vw, 5.5rem);
 }
 
-.editorialTitle {
-  margin-top: 1.25rem;
-  font-size: 1.25rem;
-  font-weight: 750;
-}
-
 .routeContext {
   max-width: 760px;
   margin-top: 1.25rem;
@@ -81,7 +75,7 @@
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
 

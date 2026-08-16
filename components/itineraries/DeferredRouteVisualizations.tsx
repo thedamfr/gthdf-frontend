@@ -13,6 +13,7 @@ interface DeferredRouteVisualizationsProps {
   elevationAvailable: boolean;
   departureName: string;
   arrivalName: string;
+  directionLabel: string;
   distanceMetres: number;
   basemapEnabled: boolean;
 }
@@ -26,6 +27,7 @@ export default function DeferredRouteVisualizations({
   elevationAvailable,
   departureName,
   arrivalName,
+  directionLabel,
   distanceMetres,
   basemapEnabled,
 }: DeferredRouteVisualizationsProps) {
@@ -121,6 +123,7 @@ export default function DeferredRouteVisualizations({
             elevationAvailable={elevationAvailable}
             departureName={departureName}
             arrivalName={arrivalName}
+            directionLabel={directionLabel}
             distanceMetres={distanceMetres}
             basemapEnabled={basemapEnabled}
           />

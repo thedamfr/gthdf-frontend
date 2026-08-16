@@ -7,6 +7,7 @@ import type {
   ItineraryElevationPoint,
   ItineraryElevationSequence,
 } from '@/lib/itineraries/types';
+import { formatKilometres } from '@/lib/itineraries/presentation';
 import InteractiveRouteMap from './InteractiveRouteMap';
 import styles from './RouteVisualization.module.css';
 import SchematicRouteMap from './SchematicRouteMap';
@@ -16,6 +17,7 @@ interface RouteVisualizationProps {
   elevationAvailable: boolean;
   departureName: string;
   arrivalName: string;
+  directionLabel: string;
   distanceMetres: number;
   basemapEnabled: boolean;
 }
@@ -170,6 +172,7 @@ export default function RouteVisualization({
   elevationAvailable,
   departureName,
   arrivalName,
+  directionLabel,
   distanceMetres,
   basemapEnabled,
 }: RouteVisualizationProps) {
@@ -178,10 +181,7 @@ export default function RouteVisualization({
   const [basemapState, setBasemapState] = useState<'disabled' | 'loading' | 'ready' | 'unavailable'>(
     basemapEnabled ? 'loading' : 'disabled'
   );
-  const distance = `${(distanceMetres / 1_000).toLocaleString('fr-FR', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })} km`;
+  const distance = formatKilometres(distanceMetres);
   const continuity = sequenceCount === 1
     ? 'une séquence continue et aucun écart connu'
     : `${sequenceCount} séquences séparées et ${gapCount} ${gapCount > 1 ? 'écarts connus' : 'écart connu'}`;
@@ -191,7 +191,7 @@ export default function RouteVisualization({
   return (
     <div className={styles.loaded}>
       <p className={styles.mapSummary}>
-        Carte de la portion de {departureName} à {arrivalName}. Distance : {distance}.{' '}
+        Carte de la portion {directionLabel}. Distance : {distance}.{' '}
         Le tracé comporte {continuity}.
       </p>
       <a className={styles.skipMapLink} href="#itinerary-map-legend">Passer la carte</a>
@@ -200,15 +200,13 @@ export default function RouteVisualization({
           <div hidden={basemapState === 'ready'}>
             <SchematicRouteMap
               geometry={geometry}
-              departureName={departureName}
-              arrivalName={arrivalName}
+              directionLabel={directionLabel}
             />
           </div>
           {basemapEnabled && (
             <InteractiveRouteMap
               geometry={geometry}
-              departureName={departureName}
-              arrivalName={arrivalName}
+              directionLabel={directionLabel}
               ready={basemapState === 'ready'}
               onReady={handleBasemapReady}
               onUnavailable={handleBasemapUnavailable}

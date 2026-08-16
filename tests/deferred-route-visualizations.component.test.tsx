@@ -46,8 +46,9 @@ it('waits for intersection before loading the same-origin geometry', async () =>
     <DeferredRouteVisualizations
       geometryPath="/itineraires-velo/calais-boulogne/geometry"
       elevationAvailable={false}
-      departureName="Calais"
-      arrivalName="Boulogne-sur-Mer"
+      departureName="Le Touquet-Paris-Plage"
+      arrivalName="Camiers"
+      directionLabel="du Touquet-Paris-Plage à Camiers"
       distanceMetres={1_000}
       basemapEnabled={false}
     />
@@ -70,7 +71,7 @@ it('waits for intersection before loading the same-origin geometry', async () =>
     '/itineraires-velo/calais-boulogne/geometry',
     expect.objectContaining({ credentials: 'same-origin' })
   ));
-  expect(await screen.findByText(/Carte de la portion de Calais à Boulogne-sur-Mer/))
+  expect(await screen.findByText(/Carte de la portion du Touquet-Paris-Plage à Camiers/))
     .toBeTruthy();
   expect(screen.queryByLabelText(/Carte interactive/)).toBeNull();
 });

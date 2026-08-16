@@ -12,6 +12,7 @@ import {
   type CityChapter,
 } from '@/lib/cities';
 import { getCityRoleLabel } from '@/lib/city-content';
+import { formatItineraryDirection, formatKilometres } from '@/lib/itineraries/presentation';
 import { getCityPageItineraries } from '@/lib/itineraries/server';
 import styles from './page.module.css';
 
@@ -173,12 +174,15 @@ export default async function CityPage({ params }: CityPageProps) {
             {cityItineraries.map((itinerary) => (
               <li key={itinerary.documentId}>
                 <Link href={`/itineraires-velo/${itinerary.slug}`}>
-                  <strong>{itinerary.departure.name} → {itinerary.arrival.name}</strong>
+                  <strong>
+                    {formatItineraryDirection(
+                      itinerary.departure,
+                      itinerary.arrival,
+                      { capitalize: true }
+                    )}
+                  </strong>
                   <span>
-                    {(itinerary.distanceMetres / 1000).toLocaleString('fr-FR', {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
-                    })} km sur le GTHF
+                    {formatKilometres(itinerary.distanceMetres)} sur le GTHF
                   </span>
                 </Link>
               </li>
