@@ -71,12 +71,10 @@ export async function handleItineraryArtifactGetCore(
       'Content-Type': artifact.contentType,
       ETag: etag,
       'X-Content-Type-Options': 'nosniff',
+      'X-Robots-Tag': 'noindex, nofollow',
     });
     if (kind === 'gpx') {
       headers.set('Content-Disposition', contentDispositionAttachment(artifact.filename));
-    }
-    if (dependencies.preview) {
-      headers.set('X-Robots-Tag', 'noindex, nofollow');
     }
 
     if (matchesIfNoneMatch(request?.headers.get('if-none-match') ?? null, etag)) {

@@ -1,12 +1,14 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.9\
-**Date :** 10 août 2026\
-**Statut :** livré en production ; suivi de maillage interne implémenté côté frontend\
+**Version :** 0.10\
+**Date :** 16 août 2026\
+**Statut :** livré en production ; exclusion des artefacts techniques préparée côté frontend\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendances fonctionnelles :**\
 PRD 01 — Référentiel des villes et pages hubs ;\
 [`PRD 03`](prd_03_gpx_builder_ville_a_ville.md) — ancrages primaires et noyau de découpe GPX\
+**ADR lié :**
+[`adr_itinerary_artifact_indexing.md`](adr_itinerary_artifact_indexing.md) — exclusion des artefacts non HTML\
 **Marque publique :** GTHF
 
 ---
@@ -1289,6 +1291,7 @@ Une Route Handler applique la garde, récupère l’objet immuable et sert :
 
 - `Content-Type: application/gpx+xml` ;
 - `Content-Disposition: attachment` avec nom sûr ;
+- `X-Robots-Tag: noindex, nofollow` sur les réponses `200` et `304` ;
 - ETag ou hash de révision ;
 - cache public nul ou inférieur à 60 secondes, même si l’objet interne est
   immuable ;
@@ -1307,7 +1310,10 @@ elle contournerait le coupe-circuit.
 
 La route sert uniquement l’artefact léger après la même garde. Elle ne
 recalcule rien et ne renvoie jamais le rapport ou les ancres administratives.
-Sa politique de cache respecte le même plafond public de 60 secondes.
+Sa politique de cache respecte le même plafond public de 60 secondes. Ses
+réponses `200` et `304` portent également
+`X-Robots-Tag: noindex, nofollow` : la géométrie reste accessible au navigateur
+sans devenir un document candidat à l’indexation.
 
 ### 21.4 Sitemap et panne Strapi
 
@@ -1446,6 +1452,22 @@ les villes traversées.
 Une page indexable contient au minimum géométrie réelle, métriques,
 téléchargement, contexte GTHF, chapitres et villes utiles. Deux noms et un
 chiffre ne suffisent pas.
+
+### 23.4 Suivi post-livraison — exclusion des artefacts techniques
+
+La décision détaillée et son contrat normatif sont consignés dans
+[`adr_itinerary_artifact_indexing.md`](adr_itinerary_artifact_indexing.md).
+
+L’analyse Search Console du 16 août 2026 a classé comme « explorées,
+actuellement non indexées » 93 routes `/geometry` et cinq routes `/gpx`. Ces
+ressources JSON et GPX ne sont ni des pages éditoriales ni des URL du sitemap,
+mais leurs réponses publiques ne portaient jusque-là aucun signal explicite
+d’exclusion.
+
+Le handler partagé ajoute désormais `X-Robots-Tag: noindex, nofollow` à tous
+les artefacts publics et de prévisualisation, y compris aux réponses
+conditionnelles `304`. Les pages canoniques `/itineraires-velo/[slug]`
+conservent leurs règles `index, follow` et restent inchangées.
 
 ## 24. Accessibilité, responsive et performance
 
@@ -1655,6 +1677,8 @@ générique sans coordonnées ni contenu GPX utilisateur.
 - `publicationNext=false` donne 404 ;
 - `noindex` reste hors sitemap et des listes automatiques ;
 - `indexable` possède canonical, HTML utile et GPX ;
+- les réponses `200` et `304` des GPX et géométries portent
+  `X-Robots-Tag: noindex, nofollow` ;
 - une paire inverse ne crée aucune seconde URL ;
 - changer un slug public exige une redirection explicite ;
 - une révision stale ferme la page jusqu’à activation d’une révision valide ;

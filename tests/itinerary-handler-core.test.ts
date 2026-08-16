@@ -34,6 +34,7 @@ test('the artifact handler sets bounded public cache, ETag and GPX download head
   assert.equal(response.headers.get('content-type'), 'application/gpx+xml');
   assert.match(response.headers.get('content-disposition') ?? '', /^attachment;/);
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow');
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), gpxBytes);
 });
 
@@ -61,6 +62,7 @@ test('If-None-Match returns a bodyless 304 while retaining validation headers', 
   assert.equal(response.status, 304);
   assert.equal(response.headers.get('etag'), `"${digest}"`);
   assert.equal(response.headers.get('content-length'), null);
+  assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow');
   assert.equal(await response.text(), '');
 });
 
