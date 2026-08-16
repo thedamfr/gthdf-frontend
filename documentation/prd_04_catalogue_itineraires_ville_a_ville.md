@@ -1,8 +1,8 @@
 # PRD 04 — Catalogue d’itinéraires vélo ville à ville
 
-**Version :** 0.11\
-**Date :** 16 août 2026\
-**Statut :** livré en production ; optimisation SEO des fiches implémentée, déploiement à valider\
+**Version :** 0.12\
+**Date :** 17 août 2026\
+**Statut :** livré en production ; optimisation SEO des fiches déployée et vérifiée\
 **Dépôts concernés par l’implémentation :** `gthdf-cms`, `gthdf-frontend`\
 **Dépendances fonctionnelles :**\
 PRD 01 — Référentiel des villes et pages hubs ;\
@@ -1517,10 +1517,11 @@ Le contrat public devient :
   pages-ville et aux recommandations ;
 - aucune promesse générique de confort familial sans champ éditorial vérifié.
 
-La mise en ligne est annotée dans Search Console. Pendant quatre semaines, le
-suivi compare le CTR des requêtes contenant `distance`, tout en séparant les
-variations de position moyenne. Cette formulation peut améliorer le snippet,
-mais ne constitue aucune promesse de featured snippet.
+Le suivi prend le déploiement du 17 août 2026 comme point de coupure à annoter
+dans Search Console. Pendant quatre semaines, il compare le CTR des requêtes
+contenant `distance`, tout en séparant les variations de position moyenne.
+Cette formulation peut améliorer le snippet, mais ne constitue aucune promesse
+de featured snippet.
 
 ## 24. Accessibilité, responsive et performance
 
@@ -1674,6 +1675,20 @@ deux champs dans ses requêtes Strapi. L’ancien frontend ignore sans risque le
 colonnes ajoutées. En retour arrière, redéployer le frontend précédent et
 laisser les colonnes en place ; leur suppression n’est ni nécessaire ni
 souhaitable dans l’intervention immédiate.
+
+Le déploiement du 17 août 2026 a respecté cet ordre : CMS avec les champs
+additifs, correction de la matrice DataMaster, puis frontend. La version 3 de
+la matrice n’a jamais été provisionnée et aucune permission RBAC de production
+n’a été modifiée. Clever Cloud exécute les merges CMS `9d9d526` et frontend
+`30414eb`.
+
+La recette de production sur
+`/itineraires-velo/le-touquet-paris-plage-a-camiers` a vérifié : réponse 200,
+title, description, canonical, robots `index, follow`, H1, distance, dénivelés
+et lien GPX présents dans le HTML serveur ; absence de distance à vol d’oiseau
+et de promesse familiale générique ; téléchargement GPX en 200 avec un fichier
+XML valide de 11 449 octets. Le contrôle visuel confirme le nouveau haut de
+page avec les données réelles de 7,5 km.
 
 ## 28. Critères d’acceptation
 
