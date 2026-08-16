@@ -1683,7 +1683,7 @@ n’a été modifiée. Clever Cloud exécute les merges CMS `9d9d526` et fronten
 `30414eb`.
 
 La recette de production sur
-`/itineraires-velo/le-touquet-paris-plage-a-camiers` a vérifié : réponse 200,
+`/itineraires-velo/le-touquet-paris-plage-a-camiers` a confirmé : réponse 200,
 title, description, canonical, robots `index, follow`, H1, distance, dénivelés
 et lien GPX présents dans le HTML serveur ; absence de distance à vol d’oiseau
 et de promesse familiale générique ; téléchargement GPX en 200 avec un fichier
