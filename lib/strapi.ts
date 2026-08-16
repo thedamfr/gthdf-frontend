@@ -168,6 +168,7 @@ export const getArticles = cache(async (category?: string) => {
     query: {
       ...(category && { 'filters[category][slug][$eq]': category }),
       'sort[0]': 'publishedAt:desc',
+      'sort[1]': 'createdAt:desc',
       'populate[0]': 'cover',
       'populate[1]': 'category',
       'populate[2]': 'author.avatar',
