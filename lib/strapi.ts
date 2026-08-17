@@ -9,6 +9,7 @@ const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 interface StrapiRequestOptions {
   endpoint: string;
   query?: Record<string, unknown>;
+  draftQuery?: Record<string, unknown>;
   wrappedByKey?: string;
   wrappedByList?: boolean;
   revalidate?: number;
@@ -82,6 +83,7 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
   const {
     endpoint,
     query = {},
+    draftQuery = {},
     wrappedByKey,
     wrappedByList,
     revalidate = 60,
@@ -101,7 +103,10 @@ export async function fetchAPI<T>(options: StrapiRequestOptions): Promise<T> {
     }
   }
 
-  const requestQuery = withStrapiStatus(query, isDraftPreview);
+  const requestQuery = withStrapiStatus({
+    ...query,
+    ...(isDraftPreview ? draftQuery : {}),
+  }, isDraftPreview);
 
   const mergedOptions = {
     ...(isDraftPreview || cacheMode === 'no-store'
@@ -171,6 +176,9 @@ export const getArticles = cache(async (category?: string) => {
       'populate[0]': 'cover',
       'populate[1]': 'category',
       'populate[2]': 'author.avatar',
+    },
+    draftQuery: {
+      'sort[1]': 'createdAt:desc',
     },
     wrappedByList: true,
   });
