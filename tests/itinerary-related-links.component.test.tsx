@@ -72,6 +72,23 @@ beforeEach(() => {
 });
 
 describe('ItineraryPage related links', () => {
+  it('lets an editor leave preview mode and return to the public itinerary', async () => {
+    const current = verifiedItineraryFixture().guarded;
+    current.dto.isPreview = true;
+    mocks.resolveCatalogueItinerary.mockResolvedValue({ kind: 'found', itinerary: current });
+
+    render(await ItineraryPage({
+      params: Promise.resolve({ slug: current.dto.slug }),
+    }));
+
+    expect(screen.getByRole('status').textContent).toContain('Mode prévisualisation actif');
+    expect(screen.getByRole('link', {
+      name: 'Quitter la prévisualisation',
+    }).getAttribute('href')).toBe(
+      `/api/preview/exit?url=${encodeURIComponent(`/itineraires-velo/${current.dto.slug}`)}`
+    );
+  });
+
   it('generates intent-led metadata from the verified GPX distance', async () => {
     const current = verifiedItineraryFixture().guarded;
     current.dto.departure = {
