@@ -90,6 +90,9 @@ npm run test:integration:prd01
 
 Le smoke test contrôle une ville publique, les 404 des villes privées, le
 résumé serveur d'un chapitre, le sitemap et une preview Draft Mode protégée.
+Sur une fiche itinéraire en Draft Mode, le bandeau signale explicitement la
+prévisualisation et permet de recharger la même URL hors Draft Mode sans
+conserver le cookie de preview.
 
 ## Validation PRD 02 et revue sur téléphone
 

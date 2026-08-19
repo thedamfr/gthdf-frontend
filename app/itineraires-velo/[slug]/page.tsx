@@ -154,9 +154,20 @@ export default async function ItineraryPage({ params }: ItineraryPageProps) {
       </Link>
 
       {itinerary.isPreview && (
-        <p className={styles.previewBanner} role="status">
-          Prévisualisation privée — cette page n’est pas indexable.
-        </p>
+        <div className={styles.previewBanner}>
+          <p role="status">
+            <strong>Mode prévisualisation actif.</strong>{' '}
+            Cette version n’est pas indexée.
+          </p>
+          <a
+            className={styles.previewExitLink}
+            href={`/api/preview/exit?url=${encodeURIComponent(
+              `/itineraires-velo/${itinerary.slug}`
+            )}`}
+          >
+            Quitter la prévisualisation
+          </a>
+        </div>
       )}
 
       <header className={styles.header}>
