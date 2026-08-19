@@ -38,6 +38,28 @@ export function isAllowedPreviewPath(pathname: string): boolean {
     && SAFE_SLUG_PATTERN.test(segments[1]);
 }
 
+export function resolveSafePreviewExitUrl(
+  candidate: string | null | undefined,
+  requestUrl: string
+): URL | null {
+  const redirectPath = candidate || '/';
+  if (
+    !redirectPath.startsWith('/')
+    || redirectPath.startsWith('//')
+    || redirectPath.includes('\\')
+  ) {
+    return null;
+  }
+
+  try {
+    const requestOrigin = new URL(requestUrl);
+    const redirectUrl = new URL(redirectPath, requestOrigin);
+    return redirectUrl.origin === requestOrigin.origin ? redirectUrl : null;
+  } catch {
+    return null;
+  }
+}
+
 function secretDigest(value: string): Buffer {
   return createHash('sha256').update(value, 'utf8').digest();
 }
