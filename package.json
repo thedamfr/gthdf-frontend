@@ -10,6 +10,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "infra:staging:build-frontend": "node infrastructure/scripts/build-staging-frontend.mjs",
+    "infra:production:build-frontend": "node infrastructure/scripts/build-staging-frontend.mjs production",
+    "infra:staging:dump-postgres": "node infrastructure/scripts/dump-clever-postgres.mjs",
+    "infra:ovh:k9s": "node infrastructure/scripts/k9s-ovh-readonly.mjs",
     "postinstall": "next build",
     "test": "npm run test:unit && npm run test:components",
     "test:unit": "node --test tests/*.test.ts",
@@ -20,12 +24,13 @@
   },
   "dependencies": {
     "fast-xml-parser": "^5.10.1",
-    "maplibre-gl": "5.24.0",
+    "maplibre-gl": "^6.8.0",
     "marked": "^17.0.1",
-    "next": "16.3.0",
+    "next": "^16.3.4",
     "react": "19.2.1",
     "react-dom": "19.2.1",
-    "sanitize-html": "^2.17.6"
+    "sanitize-html": "^2.17.7",
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -35,7 +40,7 @@
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.1",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "^16.3.4",
     "jsdom": "^28.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",

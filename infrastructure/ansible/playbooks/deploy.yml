@@ -1,0 +1,134 @@
+---
+- name: Deploy GTHDF into its isolated staging namespace
+  hosts: gthdf_staging
+  become: false
+  gather_facts: false
+  vars:
+    gthdf_namespace: gthdf-staging
+    gthdf_overlay_dir: /home/production/gthdf-staging-prep/frontend/infrastructure/kubernetes/overlays/staging
+    gthdf_secret_file: /home/production/gthdf-staging-prep/secrets.env
+    gthdf_wait_for_frontend: true
+  tasks:
+    - name: Refuse a namespace outside the GTHDF staging boundary
+      ansible.builtin.assert:
+        that:
+          - gthdf_namespace == "gthdf-staging"
+        fail_msg: This playbook may only deploy into gthdf-staging.
+
+    - name: Inspect the Kustomize overlay
+      ansible.builtin.stat:
+        path: "{{ gthdf_overlay_dir }}/kustomization.yaml"
+      register: gthdf_overlay
+
+    - name: Inspect the secret environment file
+      ansible.builtin.stat:
+        path: "{{ gthdf_secret_file }}"
+      register: gthdf_secrets
+      no_log: true
+
+    - name: Require reviewed inputs with private secret permissions
+      ansible.builtin.assert:
+        that:
+          - gthdf_overlay.stat.isreg | default(false)
+          - gthdf_secrets.stat.isreg | default(false)
+          - gthdf_secrets.stat.mode in ["0400", "0600"]
+        fail_msg: The overlay must exist and secrets.env must be a private regular file.
+      no_log: true
+
+    - name: Render the isolated overlay before applying it
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, kustomize, "{{ gthdf_overlay_dir }}"]
+      changed_when: false
+      register: gthdf_rendered_overlay
+
+    - name: Reject references to another tenant
+      ansible.builtin.assert:
+        that:
+          - "'namespace: gthdf-staging' in gthdf_rendered_overlay.stdout"
+          - "'podcast-studio' not in gthdf_rendered_overlay.stdout"
+        fail_msg: The rendered overlay crosses the GTHDF namespace boundary.
+
+    - name: Create the GTHDF staging namespace
+      ansible.builtin.command:
+        argv:
+          - microk8s
+          - kubectl
+          - apply
+          - -f
+          - "{{ gthdf_overlay_dir }}/namespace.yaml"
+      register: gthdf_namespace_apply
+      changed_when: "'created' in gthdf_namespace_apply.stdout or 'configured' in gthdf_namespace_apply.stdout"
+
+    - name: Render the GTHDF secret without logging it
+      ansible.builtin.command:
+        argv:
+          - microk8s
+          - kubectl
+          - create
+          - secret
+          - generic
+          - gthdf-secrets
+          - --namespace
+          - "{{ gthdf_namespace }}"
+          - "--from-env-file={{ gthdf_secret_file }}"
+          - --dry-run=client
+          - -o
+          - yaml
+      changed_when: false
+      register: gthdf_rendered_secret
+      no_log: true
+
+    - name: Apply the GTHDF secret without logging it
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, apply, -f, -]
+        stdin: "{{ gthdf_rendered_secret.stdout }}"
+      register: gthdf_secret_apply
+      changed_when: "'created' in gthdf_secret_apply.stdout or 'configured' in gthdf_secret_apply.stdout"
+      no_log: true
+
+    - name: Apply the GTHDF Kustomize overlay
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, apply, -k, "{{ gthdf_overlay_dir }}"]
+      register: gthdf_overlay_apply
+      changed_when: "'created' in gthdf_overlay_apply.stdout or 'configured' in gthdf_overlay_apply.stdout"
+
+    - name: Restart GTHDF runtimes when their configuration changes
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, rollout, restart, "deployment/{{ item }}", --namespace, "{{ gthdf_namespace }}"]
+      loop:
+        - gthdf-cms
+        - gthdf-frontend
+      when: gthdf_secret_apply is changed or gthdf_overlay_apply is changed
+      changed_when: true
+
+    - name: Wait for the GTHDF database and CMS
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, rollout, status, "{{ item }}", --namespace, "{{ gthdf_namespace }}", --timeout=300s]
+      changed_when: false
+      loop:
+        - statefulset/gthdf-postgres
+        - deployment/gthdf-cms
+
+    - name: Wait for the GTHDF frontend
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, rollout, status, deployment/gthdf-frontend, --namespace, "{{ gthdf_namespace }}", --timeout=300s]
+      changed_when: false
+      when: gthdf_wait_for_frontend | bool
+
+    - name: Show the non-secret GTHDF deployment summary
+      ansible.builtin.command:
+        argv:
+          - microk8s
+          - kubectl
+          - get
+          - pods,services,ingresses
+          - --namespace
+          - "{{ gthdf_namespace }}"
+          - -o
+          - wide
+      changed_when: false
+      register: gthdf_deployment_summary
+
+    - name: Print the non-secret GTHDF deployment summary
+      ansible.builtin.debug:
+        var: gthdf_deployment_summary.stdout_lines
