@@ -217,22 +217,20 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Déploiement
 
-L'application est déployée sur Clever Cloud depuis sa branche de production.
-Le runtime reste sur une instance `nano`, mais le build Next.js utilise une
-instance dédiée `M` afin d'éviter un dépassement mémoire pendant le
-`postinstall`. Vérifier cette configuration avec :
-
-```bash
-clever status --app gthdf-frontend
-```
-
-Si nécessaire, la rétablir avec :
-
-```bash
-clever scale --app gthdf-frontend --build-flavor M
-```
+La production est hébergée sur le serveur OVH Gravelines, dans le namespace
+MicroK8s `gthdf-staging` validé avant la bascule DNS. Clever Cloud reste
+provisoirement disponible comme voie de retour arrière ; ne pas supprimer ses
+applications, sa base ou son bucket tant que les sauvegardes OVH et la période
+d'observation post-bascule ne sont pas validées.
 
 Pour les PRD 01 à 03, déployer d'abord le schéma CMS, exécuter et contrôler
 les migrations manuelles avec les commandes npm documentées dans le README du
 CMS, puis déployer le frontend. Ces migrations ne sont jamais ajoutées au
 démarrage automatique de l'application.
+
+La migration a d'abord été recettée sur le VPS Hetzner, puis répétée et promue
+sur OVH. Elle utilise deux images indépendantes, un PostgreSQL 17 local et un
+bucket S3 OVH Paris dédié. Le choix d'architecture, les commandes
+d'exploitation, le rollback DNS et les résultats vérifiés sont documentés dans
+[`documentation/adr_hebergement_microk8s_partage.md`](documentation/adr_hebergement_microk8s_partage.md)
+et [`infrastructure/README.md`](infrastructure/README.md).

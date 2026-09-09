@@ -1,0 +1,172 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gthdf-cms
+  labels:
+    app.kubernetes.io/name: gthdf
+    app.kubernetes.io/component: cms
+spec:
+  ports:
+    - name: http
+      appProtocol: http
+      port: 1337
+      protocol: TCP
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: gthdf
+    app.kubernetes.io/component: cms
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gthdf-cms
+  labels:
+    app.kubernetes.io/name: gthdf
+    app.kubernetes.io/component: cms
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gthdf
+      app.kubernetes.io/component: cms
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gthdf
+        app.kubernetes.io/component: cms
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      serviceAccountName: gthdf
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: cms
+          image: gthdf-cms:replace-me
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: gthdf-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom: &postgres-password
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_PASSWORD
+              valueFrom: *postgres-password
+            - name: APP_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: APP_KEYS
+            - name: API_TOKEN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: API_TOKEN_SALT
+            - name: ADMIN_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: ADMIN_JWT_SECRET
+            - name: TRANSFER_TOKEN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: TRANSFER_TOKEN_SALT
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: ENCRYPTION_KEY
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: JWT_SECRET
+            - name: PREVIEW_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: PREVIEW_SECRET
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gthdf-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+          ports:
+            - name: http
+              containerPort: 1337
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /_health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /_health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /_health
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: cache
+              mountPath: /app/.cache
+            - name: strapi-tmp
+              mountPath: /app/.tmp
+            - name: uploads
+              mountPath: /app/public/uploads
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: cache
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: strapi-tmp
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: uploads
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi

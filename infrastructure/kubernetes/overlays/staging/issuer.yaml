@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt-production-http01
+  labels:
+    app.kubernetes.io/name: gthdf
+spec:
+  acme:
+    email: devs@saletesincere.fr
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: gthdf-letsencrypt-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: public

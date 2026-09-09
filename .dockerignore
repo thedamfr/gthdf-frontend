@@ -1,0 +1,13 @@
+.git
+.github
+.next
+node_modules
+.env
+.env.*
+!.env.example
+Dockerfile*
+documentation
+infrastructure
+scripts
+tests
+*.log

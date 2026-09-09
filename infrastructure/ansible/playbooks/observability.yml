@@ -1,0 +1,183 @@
+---
+- name: Configure lightweight, read-only OVH observability
+  hosts: gthdf_staging
+  become: false
+  gather_facts: false
+  vars:
+    observer_namespace: vps-observability
+    observer_service_account: vps-observer
+    observer_token_secret: vps-observer-token
+    observer_manifest: /home/production/gthdf-staging-prep/frontend/infrastructure/kubernetes/observability/read-only-observer.yaml
+    observer_kubeconfig: /home/production/gthdf-staging-prep/k9s-readonly.kubeconfig
+  tasks:
+    - name: Refuse any host other than the reviewed OVH VPS
+      ansible.builtin.assert:
+        that:
+          - inventory_hostname == "game-prod-ovh-gra"
+          - ansible_user == "production"
+        fail_msg: This playbook may only configure production@game-prod-ovh-gra.
+
+    - name: Inspect the reviewed observer manifest
+      ansible.builtin.stat:
+        path: "{{ observer_manifest }}"
+      register: observer_manifest_stat
+
+    - name: Require the observer manifest
+      ansible.builtin.assert:
+        that:
+          - observer_manifest_stat.stat.isreg | default(false)
+        fail_msg: The read-only observer manifest is missing on the OVH VPS.
+
+    - name: Verify kubelet token authentication required by Metrics Server
+      ansible.builtin.command:
+        argv: [grep, -F, --, --authentication-token-webhook=true, /var/snap/microk8s/current/args/kubelet]
+      changed_when: false
+
+    - name: Read the node package architecture
+      ansible.builtin.command:
+        argv: [dpkg, --print-architecture]
+      register: node_architecture
+      changed_when: false
+
+    - name: Require an architecture supported by Metrics Server
+      ansible.builtin.assert:
+        that:
+          - node_architecture.stdout in ["amd64", "arm64"]
+        fail_msg: The bundled Metrics Server manifest cannot be rendered for this architecture.
+
+    - name: Read the bundled MicroK8s Metrics Server manifest
+      ansible.builtin.slurp:
+        src: /snap/microk8s/current/addons/core/addons/metrics-server/metrics-server.yaml
+      register: bundled_metrics_manifest
+
+    - name: Compare the rendered Metrics Server manifest
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, diff, -f, -]
+        stdin: "{{ (bundled_metrics_manifest.content | b64decode) | replace('$ARCH', node_architecture.stdout) }}"
+      register: metrics_server_diff
+      changed_when: false
+      failed_when: metrics_server_diff.rc not in [0, 1]
+
+    - name: Apply the rendered MicroK8s Metrics Server manifest when needed
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, apply, -f, -]
+        stdin: "{{ (bundled_metrics_manifest.content | b64decode) | replace('$ARCH', node_architecture.stdout) }}"
+      register: metrics_server_apply
+      when: metrics_server_diff.rc == 1
+      changed_when: true
+
+    - name: Wait for Metrics Server
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, rollout, status, deployment/metrics-server, --namespace, kube-system, --timeout=300s]
+      changed_when: false
+
+    - name: Wait for the Metrics API to become available
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, wait, --for=condition=Available, apiservice/v1beta1.metrics.k8s.io, --timeout=300s]
+      changed_when: false
+
+    - name: Apply the read-only observer identity
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, apply, -f, "{{ observer_manifest }}"]
+      register: observer_apply
+      changed_when: "'created' in observer_apply.stdout or 'configured' in observer_apply.stdout"
+
+    - name: Wait for the observer token controller
+      ansible.builtin.command:
+        argv:
+          - microk8s
+          - kubectl
+          - get
+          - secret
+          - "{{ observer_token_secret }}"
+          - --namespace
+          - "{{ observer_namespace }}"
+          - -o
+          - json
+      register: observer_secret
+      changed_when: false
+      no_log: true
+      until: (observer_secret.stdout | from_json).data.token is defined
+      retries: 30
+      delay: 2
+
+    - name: Read the MicroK8s certificate authority
+      ansible.builtin.slurp:
+        src: /var/snap/microk8s/current/certs/ca.crt
+      register: microk8s_ca
+      no_log: true
+
+    - name: Derive the observer token without logging it
+      ansible.builtin.set_fact:
+        observer_token: "{{ (observer_secret.stdout | from_json).data.token | b64decode }}"
+      no_log: true
+
+    - name: Render the restricted K9s kubeconfig
+      ansible.builtin.copy:
+        dest: "{{ observer_kubeconfig }}"
+        mode: "0600"
+        content: |
+          apiVersion: v1
+          kind: Config
+          clusters:
+            - name: game-prod-ovh-gra
+              cluster:
+                certificate-authority-data: {{ microk8s_ca.content }}
+                server: https://127.0.0.1:16443
+          users:
+            - name: vps-observer
+              user:
+                token: {{ observer_token }}
+          contexts:
+            - name: gthdf-ovh-readonly
+              context:
+                cluster: game-prod-ovh-gra
+                user: vps-observer
+                namespace: gthdf-staging
+          current-context: gthdf-ovh-readonly
+      no_log: true
+
+    - name: Verify observer read access
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, auth, can-i, get, "{{ item }}", --all-namespaces, "--as=system:serviceaccount:{{ observer_namespace }}:{{ observer_service_account }}"]
+      loop:
+        - pods
+        - nodes
+        - pods.metrics.k8s.io
+      register: observer_read_checks
+      changed_when: false
+
+    - name: Verify observer restrictions
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, auth, can-i, "{{ item.verb }}", "{{ item.resource }}", --all-namespaces, "--as=system:serviceaccount:{{ observer_namespace }}:{{ observer_service_account }}"]
+      loop:
+        - { verb: get, resource: secrets }
+        - { verb: create, resource: pods }
+      register: observer_denied_checks
+      changed_when: false
+      failed_when: false
+
+    - name: Assert least-privilege observer permissions
+      ansible.builtin.assert:
+        that:
+          - observer_read_checks.results | map(attribute='stdout') | list | unique == ['yes']
+          - observer_denied_checks.results | map(attribute='stdout') | list | unique == ['no']
+        fail_msg: The observer identity does not match the expected read-only permissions.
+
+    - name: Read current node utilization
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, top, node]
+      register: node_utilization
+      changed_when: false
+
+    - name: Read current container utilization
+      ansible.builtin.command:
+        argv: [microk8s, kubectl, top, pods, --all-namespaces, --containers]
+      register: container_utilization
+      changed_when: false
+
+    - name: Print the non-secret utilization summary
+      ansible.builtin.debug:
+        msg:
+          - "{{ node_utilization.stdout_lines }}"
+          - "{{ container_utilization.stdout_lines }}"
