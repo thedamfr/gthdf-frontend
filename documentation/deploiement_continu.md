@@ -11,6 +11,10 @@ Chaque push sur `main`, y compris après fusion d'une PR, doit produire un
 résultat observable : validation, sélection des composants, livraison et
 vérification de production, ou échec explicite. On doit pouvoir relier le
 commit traité, les images effectivement démarrées et la recette applicative.
+La recette préalable se déroule sur un **staging complet et isolé** ; des
+agents qui travaillent en parallèle peuvent y montrer une version identifiable,
+avec une coordination explicite pour ne pas écraser la démonstration d'un
+autre travail.
 Un changement de documentation seul ne justifie pas une nouvelle image ou un
 redémarrage si les entrées runtime sont prouvées inchangées ; son résultat
 reste enregistré comme « aucun changement runtime ». Cette frontière doit être
@@ -50,6 +54,71 @@ source, **pas des SHA prouvés en production**. Aucun SHA source fiable n'a ét�
 établi à partir des tags actuels. L'absence de workflows
 versionnés ne prouve pas l'absence d'un éventuel automatisme externe non audité.
 
+## Staging complet et isolé à construire
+
+Le partage constaté entre les domaines staging et production est un **écart à
+corriger**, pas une recette suffisante. Tant que cet écart subsiste, aucune
+création, modification, publication, suppression ou migration de test ne doit
+cibler `staging.gthf.fr` ou `staging-cms.gthf.fr`. Le namespace historique
+`gthdf-staging` reste identifié comme production : le renommer ou repointer
+ses domaines ne crée pas une copie indépendante.
+
+Le staging GTHF doit faire fonctionner le produit complet, avec les mêmes
+versions de PostgreSQL et de ses extensions, le vrai CMS, le frontend, les
+contrats API, les fonctionnalités et les protections nécessaires au parcours
+utilisateur. Les données peuvent être un jeu de recette contrôlé ; remplacer
+Strapi, la base, l'upload ou une fonction métier par une réponse factice ne
+constitue pas un staging complet. Dimensionner moins largement les réplicas
+et la rétention est possible si les comportements testés restent identiques.
+
+| Ressource | Isolation attendue pour le staging GTHF |
+|---|---|
+| Workloads | Frontend et CMS dédiés, avec leur PostgreSQL dédié dans un namespace distinct de la production |
+| Données | Base, rôles PostgreSQL, PVC et caches propres ; aucun montage du volume ou connexion à la base de production |
+| Médias | Espace objet dédié, de préférence un bucket distinct, avec identité et droits limités à cet espace ; aucun droit d'écriture dans les médias de production |
+| Configuration | ConfigMaps, Secrets, clés Strapi, comptes de recette et jetons dédiés ; URL frontend, CMS, média, CORS et preview cohérents dans l'environnement |
+| Accès | Routage et accès de recette propres, conservant TLS et authentification ; NetworkPolicies interdisant l'accès non nécessaire aux ressources de production |
+| Capacité | Quotas et limites par environnement, budget disque et nombre maximal d'instances pour préserver la production sur le mono-nœud |
+
+La base retenue est **un staging complet par projet**, ici pour l'ensemble
+frontend/CMS GTHF. Les agents qui développent en parallèle gardent des checkouts
+isolés, puis coordonnent l'utilisation de ce staging partagé : réserver la
+séquence déploiement/recette/démonstration, enregistrer l'agent ou la tâche qui
+l'utilise et les versions précises du couple frontend/CMS, puis libérer la
+réservation. Un autre agent ou workflow attend avant de remplacer une version
+en cours de démonstration. Le verrou d'activation empêche les mutations
+simultanées ; la réservation couvre aussi le temps de revue du résultat.
+Une seule application peut être modifiée, mais le staging contient toujours
+le reste du produit. Des instances supplémentaires par branche/PR peuvent
+être étudiées ensuite selon les ressources et les besoins ; elles ne font
+pas partie du minimum demandé et aucun déploiement automatique par PR n'est
+introduit par ce plan.
+
+Le peuplement utilise des seeds relus ou une copie ponctuelle maîtrisée et
+éventuellement anonymisée de données et médias autorisés. L'import a pour
+cible exclusive le staging, avec URLs média réécrites et vérifiées ; aucun
+secret d'accès production ne reste dans les workloads ou les jobs de recette.
+La production n'est jamais une base à utiliser en écriture pour compléter un
+jeu de test. Les tâches sortantes utilisent des destinations de recette
+fonctionnelles si nécessaire. Nettoyer les données de test appartient à
+l'environnement qui les a créées ; une suppression d'instance et de volumes
+suit une politique explicite, jamais un nettoyage global ou supposé autorisé.
+
+La recette complète couvre connexion à l'administration, création et édition
+d'un brouillon, publication, consultation dans Next.js, preview protégée,
+upload puis lecture du média et suppression des seuls objets de recette.
+Compléter par les parcours GTHF pertinents : chapitre, ville, catalogue et GPX
+avec un jeu de données qualifié. Vérifier leur persistance après redémarrage
+contrôlé des workloads de staging. Avant ces écritures, prouver l'isolation
+des connexions PostgreSQL, des PVC, des identités et des destinations média ;
+contrôler que les mêmes références en production n'ont pas été touchées.
+`/_health`, `/api/health` et les pods Ready ne remplacent pas cette recette.
+
+Un staging n'est déclaré disponible que lorsque l'URL de démonstration, ses
+conditions d'accès, ses versions, les résultats fonctionnels et les limites
+éventuelles sont fournis. La parité fonctionnelle doit permettre au
+propriétaire de juger le changement réellement utilisable.
+
 ## Répartition des responsabilités
 
 Conserver Ansible comme point d'entrée et Kustomize pour les manifests. Helm
@@ -58,10 +127,14 @@ n'est requis ni par le déploiement continu, ni par les builds sélectifs.
 La sélection des composants, les tests et les builds normaux s'exécutent sur
 des **runners hébergés par GitHub Actions**. Chaque dépôt construit sa propre
 image au SHA exact de l'événement, la publie sur **GHCR** avec un tag SHA non
-réaffecté et conserve son digest. Après validations vertes sur un push `main`,
-le workflow déclenche automatiquement le déploiement de cet artefact précis.
-Penthouse reçoit et active les images ; il ne construit pas les applications
-dans le chemin normal de livraison.
+réaffecté et conserve son digest. Le workflow utilise cet artefact précis pour
+la qualification puis la promotion. Penthouse reçoit et active les images ; il ne construit pas les applications
+dans le chemin normal de livraison. Après CI verte sur `main`, le workflow
+qualifie d'abord les versions candidates sur un staging complet, puis active
+automatiquement les artefacts qualifiés en production et vérifie le résultat.
+Une version déployée sur staging pour une démonstration d'agent ne vaut pas
+promotion en production. La qualification automatique de `main` respecte la
+réservation en cours du staging partagé.
 
 Les manifests GTHF restent pour l'instant dans le frontend, leur emplacement
 actuel. `infra-sincere` porte la configuration de l'hôte, de l'accès privé et
@@ -87,8 +160,10 @@ voie automatique concurrente de GitHub Actions.
 Le déployeur vérifie `hostname`, le contexte Kubernetes et le namespace avant
 toute mutation. Le code provenant d'une PR non fusionnée ne reçoit pas les
 secrets de production ni un accès au builder privilégié de l'hôte. Les tests
-et builds de PR utilisent des données et services de recette isolés ; le build
-Next destiné à la production utilise seulement un jeton de lecture dédié.
+et builds de PR utilisent des données et services de recette isolés. Si le
+build Next de production requiert encore un accès au contenu publié, il reçoit
+seulement un jeton de lecture dédié ; les stagings et leurs tests utilisent
+exclusivement leurs propres services et jetons.
 Les secrets runtime restent hors Git ; le build Next utilise le secret BuildKit
 `strapi_api_token`, provenant d'une source privée autorisée indépendante de
 Clever. Aucun jeton ne doit apparaître dans les journaux, arguments de build,
@@ -97,9 +172,11 @@ images ou rapports de release.
 ## Sélection des builds
 
 Le plan doit comparer la cible à la **dernière livraison réussie et vérifiée**
-de chaque dépôt/composant, pas seulement à `HEAD~1` ou au commit précédant le
-push. Cela reprend les modifications manquées après un échec, une annulation
-ou plusieurs commits groupés. Si la référence manque, si l'historique ne permet
+de chaque dépôt/composant **dans l'environnement ciblé**, pas seulement à
+`HEAD~1` ou au commit précédant le push. Les références de staging et de
+production sont distinctes ; un succès de preview ne fait pas avancer l'état
+de production. Cela reprend les modifications manquées après un échec, une
+annulation ou plusieurs commits groupés. Si la référence manque, si l'historique ne permet
 pas la comparaison ou si un chemin est inconnu, reconstruire prudemment les
 composants concernés. Conserver un index des empreintes d'entrées et des images
 déjà validées pour pouvoir les réutiliser.
@@ -121,9 +198,13 @@ contexte et les filtres CI devront être revus ensemble, sans exclure un fichier
 nécessaire à une migration ou au fonctionnement applicatif.
 
 Le workflow démarre sur chaque push `main` et chaque PR. Une PR valide le code
-sans publication ni activation de production ; la publication GHCR et le
-déploiement automatique sont réservés au push `main` validé. Un job de sélection
-produit les décisions ; les jobs inutiles sont sautés. Un statut final stable
+sans publication ni activation de production ; aucun staging éphémère par PR
+n'est imposé. La publication des releases de production sur GHCR et leur
+promotion automatique restent réservées au push `main` validé, après qualification sur le staging
+complet. Montrer une version candidate sur ce staging relève d'un déploiement
+de recette coordonné et traçable avec des artefacts construits par GitHub
+Actions, sans donner aux contributions non fiables des secrets ou droits de
+production. Un job de sélection produit les décisions ; les jobs inutiles sont sautés. Un statut final stable
 s'exécute même quand une dépendance est `skipped`, accepte uniquement les skips
 prévus par le plan et échoue si un job nécessaire a échoué ou a été annulé.
 Ne pas imposer comme statut de fusion un workflow entièrement absent à cause
@@ -140,8 +221,11 @@ en retard ne doit pas remplacer une version plus récente. Un échec du dernier
 commit est signalé et conserve la dernière production saine.
 
 Une clé `concurrency` GitHub ne coordonne que son dépôt : les dépôts CMS et
-frontend doivent partager un verrou côté déployeur pour les opérations GTHF,
+frontend doivent partager un verrou côté déployeur **par environnement GTHF**,
 en complément de la [concurrence GitHub Actions](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
+Le verrou de production est distinct du verrou de staging. Les agents
+coordonnent la version du staging partagé et sa réservation de démonstration,
+en plus du verrou qui protège son activation.
 Un changement CMS vérifie la version de frontend effectivement active sous ce
 verrou ; il ne doit pas écraser sa référence avec celle d'un overlay ancien.
 Si `main` avance pendant une activation, terminer proprement l'opération et
@@ -160,6 +244,33 @@ sans modification runtime, l'image précédente reste correctement en ligne.
 Ne pas réétiqueter artificiellement chaque composant avec le dernier SHA si son
 image n'a pas été reconstruite. Une modification infra conserve également les
 versions applicatives approuvées qui ne sont pas concernées.
+
+## Promotion des images qualifiées
+
+La cible est de construire une fois sur GitHub Actions, qualifier l'image dans
+le staging puis promouvoir **le même digest** lorsque la configuration est
+portable au runtime. Le manifeste de release conserve les digests du CMS et du
+frontend, les révisions de configuration par environnement et les migrations
+requises. Les secrets, contenus de recette, volumes et bases ne sont jamais
+promus avec l'image. Les composants non modifiés réutilisent un digest validé.
+
+Cette portabilité n'est pas démontrée aujourd'hui pour le frontend : son
+Dockerfile fournit `NEXT_PUBLIC_STRAPI_URL`, `NEXT_PUBLIC_SITE_URL` et les
+origines média au build ; `generateStaticParams` lit aussi du contenu CMS.
+Remplacer seulement un Secret ou un ConfigMap après le build peut donc laisser
+des URLs ou contenus de recette dans l'artefact. Il faudra rendre la
+configuration et les accès aux données indépendants de l'environnement au
+build, puis tester réellement le même digest dans les deux contextes.
+
+Tant que cette adaptation n'est pas faite, documenter explicitement des images
+staging/production différentes, produites du même SHA par GitHub Actions avec
+leurs entrées propres ; qualifier également l'artefact candidat production
+dans un environnement isolé et adapté avant son activation. Ne pas présenter
+la recette d'une image staging comme la preuve d'un autre digest. Pour le CMS,
+les secrets sont déjà fournis au runtime, mais la portabilité de l'administration
+Strapi et de ses URLs doit aussi être vérifiée avant de promettre une promotion
+identique. Une impossibilité de qualification bloque la promotion et reste
+visible dans le rapport.
 
 ## Dépendance du frontend au CMS et migrations
 
@@ -195,7 +306,9 @@ ancienne cible et de réconcilier les données écrites depuis la bascule.
 
 ## Validation et boucle de feedback
 
-Une livraison réussie exige :
+Une livraison réussie exige d'abord la recette fonctionnelle complète dans un
+staging dont l'isolation a été vérifiée, puis les contrôles de production
+suivants, limités à la lecture des données réelles :
 
 1. Les validations adaptées au composant (`npm test`, lint frontend, build)
    passent avant activation. Les recettes d'intégration locales existantes
@@ -205,7 +318,8 @@ Une livraison réussie exige :
 3. La santé Next (`/api/health`) et Strapi (`/_health`), TLS et le routage public
    sont contrôlés, puis une page publiée connue, sa lecture CMS et son média
    sont vérifiés par des assertions de contenu en lecture seule. Les hôtes
-   staging ne sont pas un terrain de tests d'écriture indépendant.
+   staging historiques partagés ne sont pas un terrain de tests d'écriture
+   indépendant ; seuls les nouveaux stagings isolés accueillent la recette CRUD.
 4. La version du processus effectivement servi est comparée à la release
    attendue, via un marqueur de version à implémenter et une réponse non mise
    en cache. Vérifier les digests des pods ne suffit pas à vérifier ce que sert
@@ -224,20 +338,26 @@ explicitement autorisée.
 
 ## Travail à implémenter
 
-1. Versionner l'inventaire OVH sans secret et les vérifications d'identité ;
+1. Versionner le staging complet par environnement : namespace, frontend, CMS,
+   PostgreSQL, volumes, médias, configuration, secrets et accès distincts, avec
+   peuplement contrôlé et preuve d'isolation. Préserver la production historique.
+2. Versionner l'inventaire OVH sans secret et les vérifications d'identité ;
    remplacer les chemins de préparation datés par des releases issues du SHA.
-2. Créer les workflows de validation et leur statut final, la sélection basée
+3. Créer les workflows de validation et leur statut final, la sélection basée
    sur la dernière production saine, les builds sur runners GitHub et la
    publication GHCR indépendante de Clever.
-3. Adapter l'activation Ansible aux images immuables et aux seuls composants
+4. Adapter l'activation Ansible aux images immuables et aux seuls composants
    touchés, avec téléchargement GHCR par digest, accès privé, verrou commun et
-   refus des versions dépassées ; la déclencher automatiquement après CI verte
-   sur `main`.
-4. Ajouter la preuve de version, les recettes de production en lecture seule,
+   refus des versions dépassées. Qualifier les candidats dans leur staging,
+   puis promouvoir automatiquement `main` après les validations attendues.
+5. Ajouter la preuve de version, les recettes de production en lecture seule,
    le journal de release et le rollback compatible avec la base.
-5. Valider les scénarios : documentation seule, frontend seul, CMS seul,
-   changement de contrat coordonné, premier déploiement sans baseline, build
-   échoué suivi d'un push documentaire, deux pushes rapprochés et rollback.
+6. Valider les scénarios : deux agents se coordonnant sur une version
+   identifiable du staging sans s'écraser, CRUD et médias complets isolés de
+   la production, documentation seule, frontend seul, CMS seul, contrat
+   coordonné, premier déploiement sans baseline, build échoué suivi d'un push
+   documentaire, pushes rapprochés, promotion et rollback. Une recette staging
+   échouée doit empêcher l'activation en production.
 
 Cette séquence décrit la réalisation recommandée. Aucun build, test applicatif,
 import d'image, migration ou activation de production n'a été effectué pour

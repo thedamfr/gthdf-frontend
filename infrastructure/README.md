@@ -12,7 +12,18 @@ Sur `game-prod-ovh-gra`, contexte `microk8s`, les workloads de
 `gthdf-cms:staging` et PostgreSQL `gthdf-postgres:staging`. Ces tags mutables
 correspondent à l'overlay versionné ; ils ne prouvent pas le SHA Git de leur
 contenu. Les domaines `staging.gthf.fr` et `staging-cms.gthf.fr` sont des alias
-de la même charge et des mêmes données que la production.
+de la même charge et des mêmes données que la production. Cet état est un
+écart à corriger ; il n'autorise pas des tests d'écriture isolés.
+
+La cible est décrite dans la
+[recette complète et isolée](../documentation/deploiement_continu.md#staging-complet-et-isolé-à-construire) :
+frontend, CMS et PostgreSQL dédiés, PVC/caches, espace média, configurations et
+secrets distincts de la production. Les agents travaillant en parallèle
+coordonnent l'occupation et la version du staging GTHF partagé, avec un jeu de
+données contrôlé et des parcours CRUD/médias fonctionnels. Des instances par PR
+restent une option ultérieure, pas une exigence du staging de base. La production
+historique reste dans `gthdf-staging` tant qu'une migration explicite n'est pas
+préparée ; aucune commande de ce runbook ne crée à elle seule cette isolation.
 
 Les sources sont désormais rangées sous `/home/ubuntu/source/gthdf-frontend`
 et `/home/ubuntu/source/gthdf-cms`. Ce rangement ne change pas les chemins

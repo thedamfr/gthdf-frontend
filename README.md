@@ -229,7 +229,15 @@ automatisée et vérifiable depuis ces sources. Les images sont construites puis
 importées dans MicroK8s ; Ansible applique les manifests Kustomize déjà présents
 sur la cible. Les noms `staging` sont historiques : les domaines de staging et
 de production servent les mêmes applications et données, sans environnement
-de recette indépendant.
+de recette indépendant. Ce partage est un écart à corriger avant toute recette
+qui crée, modifie ou supprime des données.
+
+La cible demandée est un **staging complet et isolé pour GTHF** : frontend,
+CMS, PostgreSQL, volumes et médias propres, configuration et secrets distincts.
+Les agents coordonnent la version du staging partagé pour montrer leurs
+changements sans écraser le travail d'un autre. Il doit permettre les vrais parcours
+éditoriaux, CRUD et uploads sans écriture dans la production. La qualification
+sur staging précède la promotion des artefacts construits par GitHub Actions.
 
 La [cible de livraison automatique](documentation/deploiement_continu.md)
 décrit les écarts observés et la direction à implémenter : sélection et builds
