@@ -26,7 +26,7 @@ manifeste sont décrits dans
 ## Getting Started
 
 Le projet requiert Node.js 22.12 ou une version plus récente de Node 22 à 24.
-Cette contrainte est également utilisée par Clever Cloud lors du déploiement.
+L'image de production utilise la version Node 24 épinglée dans le `Dockerfile`.
 
 Create `.env.local` from `.env.example`. `PREVIEW_SECRET` must contain the
 same long random value in the frontend and CMS environments. Keep it
@@ -222,6 +222,22 @@ MicroK8s `gthdf-staging` validé avant la bascule DNS. Clever Cloud reste
 provisoirement disponible comme voie de retour arrière ; ne pas supprimer ses
 applications, sa base ou son bucket tant que les sauvegardes OVH et la période
 d'observation post-bascule ne sont pas validées.
+
+Au 10 septembre 2026, les deux dépôts GTHF ne contiennent aucun workflow
+GitHub Actions : un push sur `main` ne constitue donc pas une livraison OVH
+automatisée et vérifiable depuis ces sources. Les images sont construites puis
+importées dans MicroK8s ; Ansible applique les manifests Kustomize déjà présents
+sur la cible. Les noms `staging` sont historiques : les domaines de staging et
+de production servent les mêmes applications et données, sans environnement
+de recette indépendant.
+
+La [cible de livraison automatique](documentation/deploiement_continu.md)
+décrit les écarts observés et la direction à implémenter : sélection et builds
+sur runners GitHub Actions, publication GHCR par SHA/digest, puis déploiement
+automatique sur Penthouse après CI verte sur chaque push `main`. Les images
+inchangées sont réutilisées et la recette de production prouve la release
+servie. Ansible et Kustomize sont conservés ; Helm n'est pas un prérequis.
+Le builder local reste un moyen de secours explicitement autorisé.
 
 Pour les PRD 01 à 03, déployer d'abord le schéma CMS, exécuter et contrôler
 les migrations manuelles avec les commandes npm documentées dans le README du

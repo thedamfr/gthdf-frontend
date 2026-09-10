@@ -2,6 +2,9 @@
 
 - Statut : recettes Hetzner et OVH validées ; DNS de production basculés
 - Date : 2026-09-09
+- Relecture exploitation : 2026-09-10 ; hébergement OVH confirmé, livraison
+  automatique non implémentée dans les dépôts GTHF. La
+  [cible CI/CD](deploiement_continu.md) complète cette décision.
 - Dépôts concernés : `gthdf-frontend`, `gthdf-cms`
 
 ## Contexte
@@ -85,7 +88,9 @@ Paris. Le 9 septembre 2026, les deux CNAME de production ont été remplacés pa
 des enregistrements A proxifiés, TTL automatique, vers `141.94.98.109`. Les
 Ingress de production n'appliquent pas le middleware `staging-noindex` et leur
 certificat Let's Encrypt séparé est prêt. Les hôtes de staging restent actifs
-comme voie de recette de la même charge.
+comme alias de la même charge et des mêmes données : une écriture via un hôte
+staging modifie donc la production. Ils ne constituent pas un environnement de
+recette isolé.
 
 ## Conséquences
 
