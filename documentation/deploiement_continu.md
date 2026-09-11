@@ -1,7 +1,7 @@
 # Livraison continue GTHF sur OVH
 
-Version 0.2 — 11 septembre 2026. Statut : **implémentation en cours de revue,
-automatisation non activée**. Le constat initial est conservé dans son
+Version 0.3 — 11 septembre 2026. Statut : **première promotion vérifiée ;
+automatisation en attente de l’identité Tailscale**. Le constat initial est conservé dans son
 [snapshot intégral](history/deploiement_continu_2026-09-10.md) ; les décisions nouvelles sont précisées dans
 l'[ADR de livraison](adr_livraison_continue.md).
 Il est la référence GTHF commune au frontend et au CMS ; les conventions de
@@ -9,14 +9,24 @@ plateforme sont portées par `infra-sincere`.
 
 ## Avancement vérifié le 11 septembre 2026
 
-Les deux worktrees de livraison contiennent un workflow GitHub Actions : qualité
-sur PR, publication GHCR sur `main`, puis qualification et promotion uniquement
-si `GTHDF_DELIVERY_ENABLED=true`. Leur publication est suivie dans les PR
-[frontend #33](https://github.com/thedamfr/gthdf-frontend/pull/33) et
-[CMS #23](https://github.com/thedamfr/gthdf-cms/pull/23).
-Aucun run GHCR/CD ni déploiement de ces images n'a encore été validé.
-Les tests et builds applicatifs locaux ont réussi. Le build Next réussit sans
-CMS et sans secret ; la portabilité du même digest doit encore être recettée.
+Les PR [frontend #33](https://github.com/thedamfr/gthdf-frontend/pull/33) et
+[CMS #23](https://github.com/thedamfr/gthdf-cms/pull/23) sont fusionnées.
+Les workflows [frontend](https://github.com/thedamfr/gthdf-frontend/actions/runs/34608587524)
+et [CMS](https://github.com/thedamfr/gthdf-cms/actions/runs/34608608471) ont réussi,
+construit et publié les images GHCR. Une opération SSH autorisée a ensuite
+qualifié le même couple en staging et l’a vérifié en production le 11 septembre à 14:36 UTC.
+
+| Application | Commit de l’image | Digest SHA-256 GHCR |
+|---|---|---|
+| Frontend | `2f926629bc0df46fa39d2a9e3b26cb7c271e9733` | `bc5ac36cfe48188b88ad7236601a90db369a4d5949dd153755c18be9b9a76576` |
+| CMS | `bd7c11222ed03325fe2161d349de0b1286255e18` | `35dd2cdc3bccd4c91db281b79eab4a4efbcda5aa28b404e80c8be1e4ab8972d8` |
+
+Les références `staging.json` et `production.json` sont enregistrées après les
+recettes réelles. La seconde tentative de promotion a passé 468 requêtes
+à l’origine sans erreur, dont au moins 60 secondes après la fin du rollout.
+Les sondes Prometheus sont présentes, récentes et saines ; aucune alerte GTHF
+active ne subsiste. La première tentative a été annulée après des timeouts :
+voir le détail de l’incident ci-dessous. L’automatisation reste désactivée.
 
 Sur `penthouse`, le namespace `gthdf-qualification` et son PostgreSQL sont
 créés. Une copie éditoriale a été restaurée en excluant les comptes, sessions,
@@ -31,8 +41,10 @@ physiquement distincts. Le playbook `prepare-staging.yml` a réussi puis a été
 relancé sans changement. La preuve privée est conservée dans
 `/home/ubuntu/gthdf-delivery/staging-foundation.json`. Les applications, les
 routes et les pods de production n'ont pas été modifiés par cette préparation.
-Les domaines staging restent des alias de production : aucun test d'écriture
-ne doit encore les utiliser.
+Les domaines `staging.gthf.fr` et `staging-cms.gthf.fr` servent désormais les
+applications isolées derrière la passerelle : HTTPS, 401 sans authentification
+et redirection HTTP vers HTTPS vérifiés. La recette administration, brouillon,
+preview, publication, upload et nettoyage passe sans écriture en production.
 
 L'archive éditoriale initiale est conservée pour le diagnostic et la reprise,
 avec un mode 600 dans le dossier privé de livraison et une limite de 100 Mio.
@@ -41,8 +53,7 @@ reprise sur une base non vide est refusée. Ce fichier n'est pas une sauvegarde
 complète de production : les données des tables privées en sont exclues.
 
 Le bucket staging retenu par l'utilisateur est `gthf-staging-media-bis`, région
-`gra`, endpoint `https://s3.gra.io.cloud.ovh.net`. Son origine publique prévue
-est `https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net`. Le bucket historique
+`gra`, endpoint `https://s3.gra.io.cloud.ovh.net`. Son origine publique est `https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net`. Le bucket historique
 `gthdf-staging-media` reste celui de production en région Paris 3-AZ. Il n'est
 pas renommé ni migré par cette livraison. L'utilisateur S3 `gthf` doit servir
 les deux buckets GTHF ; les clés ne sont donc pas une barrière d'isolation
@@ -71,7 +82,7 @@ aucun Secret Kubernetes. L'installation staging a réussi. Le contrôle réel cr
 suppression d'un objet temporaire dans le nouveau bucket a réussi. Le contrôle
 `HeadBucket` de production avec ces clés réussit après correction des droits
 le 11 septembre. Ce contrôle n'écrit pas dans le bucket de production ; ses
-anciennes clés restent actives jusqu'au rollout préparé du CMS.
+nouvelles clés sont installées en production lors de la promotion vérifiée.
 
 La CI attend les secrets GitHub `TS_OAUTH_CLIENT_ID`, `TS_AUDIENCE`,
 `GTHDF_SSH_PRIVATE_KEY` et `GTHDF_SSH_KNOWN_HOSTS` dans chacun des deux dépôts.
@@ -89,9 +100,11 @@ d'Ansible sur le runner GitHub.
 Au contrôle du 11 septembre, le runbook `infra-sincere` renvoie au mécanisme
 Studio mais ne fournit pas encore l'identité OIDC utilisable pour GTHF. Sa
 documentation complémentaire est demandée avant l'activation automatique.
-Aucune URL Tailscale de recette GTHF n'est encore opérationnelle. Les accès
-effectivement vérifiés seront ajoutés aux deux PR ; les domaines staging
-historiques ne constituent pas encore une cible de recette isolée.
+Les accès de recette vérifiés sont les domaines HTTPS authentifiés
+[frontend staging](https://staging.gthf.fr/) et [CMS staging](https://staging-cms.gthf.fr/).
+Ils sont isolés ; aucune URL Tailscale Serve GTHF n’est configurée. Les accès
+privés de recette restent dans `/home/ubuntu/gthdf-delivery/staging-access.json`
+sur le serveur, hors Git et hors des journaux.
 
 Le déployeur s'exécute par `npm run infra:delivery -- ...` dans un checkout
 installé sur le serveur attendu. `status` lit les références vérifiées ;
@@ -101,27 +114,27 @@ minutes) et `release --owner <identifiant>` le libère. `deliver --candidate
 références initiales complètes. L'absence d'état initial provoque un échec,
 jamais une activation présumée correcte.
 
-### Contrôles restant avant activation
+### Contrôles restant avant activation automatique
 
-1. Remplacer les anciennes clés S3 de production lors du rollout CMS préparé ;
-   le contrôle d'accès des nouvelles clés a réussi.
-2. Publier et valider les workflows et les deux premières images GitHub Actions.
-   Installer l'accès privé Tailscale/SSH et la lecture GHCR côté cluster.
-3. Démarrer le couple d'images dans `gthdf-qualification`, activer ses routes
-   authentifiées et vérifier les parcours réels : administration, brouillon,
-   preview, publication, upload, chapitre, ville, catalogue et GPX.
-4. Vérifier la persistance après redémarrage de staging, puis qualifier la
-   première promotion et son retour arrière sans interruption de la production.
-5. Enregistrer les digests réellement exécutés dans les deux manifestes initiaux,
-   activer `GTHDF_DELIVERY_ENABLED=true` et vérifier un cycle `main` complet,
-   y compris un changement documentaire sans redémarrage.
+1. Fournir l’identité OIDC Tailscale autorisant les deux dépôts et installer les
+   secrets GitHub Tailscale/SSH documentés ci-dessus.
+2. Activer `GTHDF_DELIVERY_ENABLED=true`, puis vérifier un cycle `main` complet
+   depuis le runner, dont un changement documentaire sans reconstruction ni
+   redémarrage des applications. Cette chaîne privée n’a pas encore été testée.
 
-Ces étapes restent ouvertes ; les données et médias préparés ne constituent
-pas encore un staging applicatif livré. Les rapports de release ne doivent contenir aucun secret.
+Les images GHCR, le stockage, les recettes, la persistance et les références
+initiales sont vérifiés. Deux CMS ont démarré ensemble en staging, avec les
+14 articles, 20 chapitres et 2 209 fichiers conservés. Un nouveau pod volontairement
+indisponible a laissé le CMS sain servir, puis le digest officiel a été restauré.
+Le déployeur courant a aussi réussi ses deux recettes sur une livraison
+inchangée, avec les cinq pods applicatifs et leurs compteurs de redémarrage
+identiques avant/après. Cette exécution SSH ne valide pas encore le raccordement
+OIDC du runner. Les preuves restent sous le dossier privé `gthdf-delivery/bootstrap/`.
 
 ### Bascule initiale des routes de staging
 
-Cette opération d'amorçage reste à effectuer après qualification des images.
+Cette opération d’amorçage est réalisée. Les étapes ci-dessous décrivent sa
+procédure ; ne pas les rejouer sur les environnements déjà qualifiés.
 La livraison courante refuse toute règle Ingress des deux domaines staging
 qui viserait un autre namespace ou un service autre que la passerelle.
 Elle ne supprime pas implicitement les alias historiques de production.
@@ -193,6 +206,8 @@ d'acceptation complets. L'implémentation locale sépare les responsabilités :
 | `infrastructure/kubernetes/overlays/production/` | Manifests de la production dans son namespace historique |
 
 Le workflow compare les entrées runtime, infrastructure et PostgreSQL. Les
+Markdown narratifs sous `infrastructure/`, y compris les guides PostgreSQL,
+sont classés comme validation : ils ne déclenchent pas de réconciliation. Les
 Markdown narratifs, tests et workflows ne provoquent pas une nouvelle image
 lorsque les entrées runtime sont identiques. Les CSV, scripts de migration et
 chemins inconnus sont conservés dans le calcul runtime. Une évolution de
@@ -248,8 +263,9 @@ Le CMS sérialise `db.schema.sync()` par un verrou transactionnel PostgreSQL
 commun à ses instances. Les anciens pods continuent à servir durant le
 démarrage du nouveau ; le pool conserve au moins trois connexions, dont une
 pour le verrou. La première activation garde le schéma courant, car l'image
-historique ne possède pas ce verrou. La concurrence des démarrages et le
-rollout sans interruption restent à qualifier avec les nouvelles images.
+historique ne possède pas ce verrou. Les démarrages concurrents ont réussi en staging. La promotion initiale
+a nécessité le retrait explicite du trafic décrit ci-dessous ; les instances
+actuelles disposent du délai de drainage prévu pour les rollouts suivants.
 
 L'API interne `http://gthdf-cms:1337` est autorisée explicitement par les
 NetworkPolicy : sortie des pods frontend et entrée des pods CMS du même
@@ -270,8 +286,9 @@ composants, tests CMS, lint frontend et builds Next/Strapi réussis. Les tests
 ciblés couvrent aussi l’ordre qualification/promotion et le déclenchement du retour arrière,
 les empreintes de build, le cookie de staging, le cache privé et les garde-fous
 de peuplement. La syntaxe Python/YAML/Ansible, les liens locaux et
-`git diff --check` sont contrôlés. Aucun test GitHub Actions, image GHCR ou
-rollout applicatif de ces changements n'est encore déclaré réussi.
+`git diff --check` sont contrôlés. Les CI, images GHCR et recettes sont désormais
+vérifiées. Les derniers résultats sont : 174 tests unitaires frontend, 51 tests
+de composants, 18 tests Python et 259 tests CMS, avec les builds Next/Strapi.
 
 La première restauration partielle par stdin a laissé `kubectl` attendre après
 la création du schéma vide. Le transfert a été arrêté, toutes les tables ont
@@ -294,3 +311,35 @@ Les contrôles HTTP du déployeur utilisent le User-Agent `gthdf-delivery`. Un
 contrôle avec le User-Agent Python par défaut a reçu 403 de Cloudflare alors
 que les mêmes endpoints répondaient correctement avec le client du déployeur
 et depuis le Mac.
+
+
+### Incident de la première promotion et reprise
+
+La première tentative du 11 septembre, de 14:22 à 14:24 UTC, a été annulée :
+la preuve publique du frontend a expiré après 30 secondes ; la sonde directe
+CMS a également enregistré un timeout de deux secondes parmi 210 requêtes.
+Les images historiques et leur recette en lecture seule ont été restaurées.
+Aucune base ni donnée média n’a été restaurée ou supprimée. Cette tentative
+ne permet pas d’annoncer une absence d’interruption.
+
+Les anciennes instances ne disposaient pas du délai `preStop` du nouveau
+manifeste. La reprise rend le retrait du trafic explicite : instance temporaire
+prête, sélection exclusive par le Service et contrôle des EndpointSlices,
+attente de 15 secondes, remplacement de l’ancienne instance, puis seconde
+attente avant nettoyage. La procédure a passé 182 contrôles en staging et sa
+recette complète avant la seconde promotion. Les Services retrouvent ensuite
+leurs sélecteurs habituels ; aucun Deployment temporaire n’est conservé.
+
+La seconde tentative utilise les mêmes digests qualifiés, une nouvelle sauvegarde
+PostgreSQL et les schémas CMS identiques (37 fichiers). Les données, PVC,
+StatefulSets, Ingress et certificats de production restent conservés. Le quota
+applicatif passe à 8 CPU/8 Gio de limites pour permettre le remplacement ; il
+ne réserve pas cette capacité en permanence. Les clés S3 sont remplacées par
+l’identité GTHF autorisée. Le retour arrière ne restaure jamais la base automatiquement.
+
+Les preuves privées `bootstrap/production-promotion-proof.json` (échec),
+`bootstrap/production-promotion-proof-2.json` (reprise), leurs échantillons
+`production-origin-samples*.json`, snapshots et sauvegardes sont conservés.
+Les scripts ponctuels `operator-tools/bootstrap-production.py` et
+`operator-tools/traffic-cutover.py` sont consignés sur le serveur avec le journal
+`/home/ubuntu/ops-journal.md` ; la livraison courante reste le déployeur versionné.

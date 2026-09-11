@@ -33,3 +33,9 @@ test('narrative docs and tests do not rebuild runtime; data and unknown files do
   assert.equal(classifyInput('infrastructure/docker/postgres/Dockerfile'), 'postgres');
   assert.equal(classifyInput('infrastructure/kubernetes/base/cms.yaml'), 'infrastructure');
 });
+
+test('infrastructure runbooks do not trigger reconciliation or a database rollout', () => {
+  const initial = fingerprintEntries([['app/page.tsx', 'app']]);
+  const updated = fingerprintEntries([['app/page.tsx', 'app'], ['infrastructure/README.md', 'new-guide'], ['infrastructure/docker/postgres/README.md', 'new-db-guide']]);
+  assert.deepEqual(planDelivery(updated, initial), { build: false, infrastructure: false, postgres: false });
+});

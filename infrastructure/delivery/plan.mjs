@@ -12,6 +12,7 @@ export function planDelivery(current, verified) {
 }
 
 export function classifyInput(path) {
+  if (/^infrastructure\/.*\.md$/.test(path)) return 'validation';
   if (path === 'infrastructure/delivery/staging-gateway.mjs') return 'runtime';
   if (path.startsWith('infrastructure/docker/postgres/')) return 'postgres';
   if (path.startsWith('infrastructure/')) return 'infrastructure';

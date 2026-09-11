@@ -25,11 +25,13 @@ manifeste sont décrits dans
 
 ## Livraison continue OVH
 
-La livraison par GitHub Actions/GHCR et le staging isolé sont en préparation.
-Le [runbook de livraison](documentation/deploiement_continu.md) distingue le
-code local des opérations réellement vérifiées ; l'automatisation n'est pas
-encore activée. Le namespace `gthdf-staging` et le bucket
-`gthdf-staging-media` hébergent la production malgré leur nom historique.
+Les PR de livraison sont fusionnées et les premières images GHCR sont vérifiées
+en staging isolé et en production. Le [runbook](documentation/deploiement_continu.md)
+conserve leurs digests, recettes et l’incident suivi d’une reprise. L’automatisation
+attend encore l’identité Tailscale des runners. Le namespace `gthdf-staging`
+et le bucket `gthdf-staging-media` désignent la production malgré leur nom.
+La recette utilise [le frontend staging](https://staging.gthf.fr/) et
+[le CMS staging](https://staging-cms.gthf.fr/), protégés par authentification.
 
 Le build frontend ne nécessite plus de CMS ni de secret. Au runtime,
 `STRAPI_URL` désigne l'API interne, `PUBLIC_STRAPI_URL` son origine publique,
@@ -240,29 +242,22 @@ provisoirement disponible comme voie de retour arrière ; ne pas supprimer ses
 applications, sa base ou son bucket tant que les sauvegardes OVH et la période
 d'observation post-bascule ne sont pas validées.
 
-Au 10 septembre 2026, les deux dépôts GTHF ne contiennent aucun workflow
-GitHub Actions : un push sur `main` ne constitue donc pas une livraison OVH
-automatisée et vérifiable depuis ces sources. Les images sont construites puis
-importées dans MicroK8s ; Ansible applique les manifests Kustomize déjà présents
-sur la cible. Les noms `staging` sont historiques : les domaines de staging et
-de production servent les mêmes applications et données, sans environnement
-de recette indépendant. Ce partage est un écart à corriger avant toute recette
-qui crée, modifie ou supprime des données.
+Depuis le 11 septembre 2026, GitHub Actions construit et publie les images par
+SHA et digest GHCR. La première paire est qualifiée puis promue sur Penthouse ;
+le [runbook de livraison](documentation/deploiement_continu.md) porte l’état
+vérifié et les prérequis encore nécessaires à l’activation automatique.
 
-La cible demandée est un **staging complet et isolé pour GTHF** : frontend,
-CMS, PostgreSQL, volumes et médias propres, configuration et secrets distincts.
-Les agents coordonnent la version du staging partagé pour montrer leurs
-changements sans écraser le travail d'un autre. Il doit permettre les vrais parcours
-éditoriaux, CRUD et uploads sans écriture dans la production. La qualification
-sur staging précède la promotion des artefacts construits par GitHub Actions.
+Le staging complet utilise `gthdf-qualification` avec ses applications,
+PostgreSQL, volume, médias, configuration et comptes propres. Les domaines
+staging ne partagent plus les applications de production. Les réservations
+protègent les démonstrations sur cet environnement partagé. L’identité S3 est
+partagée entre les seuls buckets GTHF sur instruction du propriétaire ; les
+recettes bornent leurs écritures au stockage staging.
 
-La [cible de livraison automatique](documentation/deploiement_continu.md)
-décrit les écarts observés et la direction à implémenter : sélection et builds
-sur runners GitHub Actions, publication GHCR par SHA/digest, puis déploiement
-automatique sur Penthouse après CI verte sur chaque push `main`. Les images
-inchangées sont réutilisées et la recette de production prouve la release
-servie. Ansible et Kustomize sont conservés ; Helm n'est pas un prérequis.
-Le builder local reste un moyen de secours explicitement autorisé.
+Les tags locaux antérieurs et les commandes Clever restent des références
+historiques ou des moyens de secours. La livraison courante emploie le déployeur
+avec un manifeste candidat par digest ; ne pas appliquer un overlay portant
+les tags historiques pour remplacer les images en ligne.
 
 Pour les PRD 01 à 03, déployer d'abord le schéma CMS, exécuter et contrôler
 les migrations manuelles avec les commandes npm documentées dans le README du
