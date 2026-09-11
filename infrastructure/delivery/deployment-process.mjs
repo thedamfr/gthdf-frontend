@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 
-export function runDeployment(file, args, { spawnProcess = spawn, signals = process, schedule = setTimeout, clear = clearTimeout, onStop = () => {} } = {}) {
+export function runDeployment(file, args, { spawnProcess = spawn, signals = process, schedule = setTimeout, clear = clearTimeout, onStop = () => {}, timeoutMs = 50 * 60 * 1000 } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawnProcess(file, args, { stdio: 'ignore' });
     let stopping = false;
@@ -12,7 +12,7 @@ export function runDeployment(file, args, { spawnProcess = spawn, signals = proc
     };
     // SIGTERM asks the Python deployer to roll back. Never force-kill its child
     // from this watchdog; systemd retains a separate thirty-minute stop budget.
-    const deadline = schedule(stop, 50 * 60 * 1000);
+    const deadline = schedule(stop, timeoutMs);
     signals.once('SIGTERM', stop);
     signals.once('SIGINT', stop);
     const finish = error => {

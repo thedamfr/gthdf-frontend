@@ -1,24 +1,23 @@
 // Penthouse pulls public release intent. GitHub runners never connect to it.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, lstatSync, writeFileSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { gitFingerprints } from './plan.mjs';
 import { requirePublication, readBoundedJson } from './publication.mjs';
-import { localCandidate, requireUnchangedRuntime, waitingState } from './pull-policy.mjs';
+import { localCandidate, requireUnchangedRuntime, waitingState, requirePrivateState, reconcileNext } from './pull-policy.mjs';
 import { runDeployment } from './deployment-process.mjs';
 
 const root = '/home/ubuntu/gthdf-delivery';
 const python = '/home/ubuntu/.cache/infra-sincere/ansible-2.21.4/bin/python';
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const checkOnly = process.argv.includes('--check');
-let stopRequested = false;
+const invocationStarted = Date.now();
 if (process.argv.slice(2).some(value => value !== '--check')) throw new Error('Unsupported reconciler option');
 if (hostname() !== 'game-prod-ovh-gra') throw new Error('Unexpected deployment host');
-const metadata = statSync(root);
-if ((metadata.mode & 0o777) !== 0o700 || metadata.uid !== process.getuid()) throw new Error('Delivery state must be private and owned by the operator');
+requirePrivateState(lstatSync(root), process.getuid());
 const read = path => existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
 function save(path, value) {
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
@@ -110,7 +109,9 @@ async function reconcile(component) {
       return { component, status: 'eligible', revision: publication.revision, image: selected.components[component].image, plan: selected.plan };
     }
     save(statePath, { ...identity, status: 'running', startedAt: new Date().toISOString() });
-    await runDeployment(python, [join(directory, 'infrastructure/delivery/release.py'), 'deliver', '--candidate', selectedPath], { onStop: () => { stopRequested = true; } });
+    const remaining = 50 * 60 * 1000 - (Date.now() - invocationStarted);
+    if (remaining <= 0) throw new Error('Preflight exhausted the service budget before activation');
+    await runDeployment(python, [join(directory, 'infrastructure/delivery/release.py'), 'deliver', '--candidate', selectedPath], { timeoutMs: remaining });
     const verified = read(join(root, 'production.json'));
     if (verified?.status !== 'success' || verified.components[component].processedRevision !== publication.revision) throw new Error('The candidate has no verified production result');
     const result = { ...identity, status: 'success', verifiedAt: verified.finishedAt, image: verified.components[component].image };
@@ -122,8 +123,13 @@ async function reconcile(component) {
   }
 }
 
-for (const component of ['frontend', 'cms']) {
+async function report(component) {
   try { console.log(JSON.stringify(await reconcile(component))); }
   catch (error) { console.error(JSON.stringify({ component, status: 'failed', error: error.message })); process.exitCode = 1; }
-  if (stopRequested) break;
+}
+if (checkOnly) {
+  for (const component of ['frontend', 'cms']) await report(component);
+} else {
+  const cursorPath = join(root, 'pull', 'cursor.json');
+  await reconcileNext(read(cursorPath), cursor => save(cursorPath, cursor), report);
 }

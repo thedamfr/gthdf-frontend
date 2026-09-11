@@ -1,7 +1,25 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { requirePublication, publishCandidate, readBoundedJson, validatedBaseline } from '../infrastructure/delivery/publication.mjs';
-import { localCandidate, requireUnchangedRuntime, waitingState } from '../infrastructure/delivery/pull-policy.mjs';
+import { localCandidate, requireUnchangedRuntime, waitingState, requirePrivateState, reconcileNext } from '../infrastructure/delivery/pull-policy.mjs';
+
+test('the state guard refuses symlinks, files and a different owner', () => {
+  const metadata = { mode: 0o700, uid: 1000, isDirectory: () => true, isSymbolicLink: () => false };
+  assert.doesNotThrow(() => requirePrivateState(metadata, 1000));
+  assert.throws(() => requirePrivateState({ ...metadata, isSymbolicLink: () => true }, 1000));
+  assert.throws(() => requirePrivateState({ ...metadata, isDirectory: () => false }, 1000));
+  assert.throws(() => requirePrivateState(metadata, 1001));
+});
+
+test('one invocation attempts one component and a failure does not starve the other', async () => {
+  let cursor: { next: string } | undefined;
+  const attempted: string[] = [];
+  const save = (value: { next: string }) => { cursor = value; };
+  await assert.rejects(() => reconcileNext(cursor, save, async (component: string) => { attempted.push(component); throw new Error('failed'); }));
+  assert.deepEqual(attempted, ['frontend']);
+  await reconcileNext(cursor, save, async (component: string) => { attempted.push(component); });
+  assert.deepEqual(attempted, ['frontend', 'cms']);
+});
 
 test('pending and superseded candidates back off before another anonymous API request', () => {
   for (const status of ['ci-pending', 'superseded']) {

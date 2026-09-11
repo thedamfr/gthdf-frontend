@@ -1,5 +1,18 @@
 import { planDelivery } from './plan.mjs';
 
+export function requirePrivateState(metadata, uid) {
+  if (!metadata.isDirectory() || metadata.isSymbolicLink() || (metadata.mode & 0o777) !== 0o700 || metadata.uid !== uid) {
+    throw new Error('Delivery state must be a private directory owned by the operator');
+  }
+}
+
+export async function reconcileNext(cursor, saveCursor, reconcile) {
+  const component = cursor?.next ?? 'frontend';
+  if (!['frontend', 'cms'].includes(component)) throw new Error('Invalid reconciliation cursor');
+  saveCursor({ next: component === 'frontend' ? 'cms' : 'frontend' });
+  return reconcile(component);
+}
+
 export function waitingState(identity, status, now) {
   return { ...identity, status, retryAfter: now + 300000 };
 }

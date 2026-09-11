@@ -92,7 +92,10 @@ réussite complète, contrôlée côté serveur. Un statut CI vert atteste donc 
 publication, pas une production déjà vérifiée.
 
 `gthdf-delivery.timer` lance le réconciliateur local après chaque période d’inactivité
-de 60 secondes. Il lit les deux dépôts publics sans identifiant GitHub, vérifie le
+de 60 secondes. Chaque invocation traite au plus un composant ; un curseur alterne
+frontend et CMS, y compris après un échec. La limite de durée couvre ainsi une seule
+livraison, et son délai restant tient compte des contrôles déjà exécutés.
+Il lit les deux dépôts publics sans identifiant GitHub, vérifie le
 run, son origine `main`, sa tentative, les sources Git et le déployeur exact validé.
 Avant tout démarrage en staging, le déployeur lit la configuration OCI du digest
 avec `docker buildx imagetools inspect` et contrôle son label de révision. Le client
