@@ -34,6 +34,12 @@ routes et les pods de production n'ont pas été modifiés par cette préparatio
 Les domaines staging restent des alias de production : aucun test d'écriture
 ne doit encore les utiliser.
 
+L'archive éditoriale initiale est conservée pour le diagnostic et la reprise,
+avec un mode 600 dans le dossier privé de livraison et une limite de 100 Mio.
+Une préparation déjà enregistrée ne génère pas de nouvelle archive ; une
+reprise sur une base non vide est refusée. Ce fichier n'est pas une sauvegarde
+complète de production : les données des tables privées en sont exclues.
+
 Le bucket staging retenu par l'utilisateur est `gthf-staging-media-bis`, région
 `gra`, endpoint `https://s3.gra.io.cloud.ovh.net`. Son origine publique prévue
 est `https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net`. Le bucket historique
@@ -134,6 +140,9 @@ confirmée permet la génération initiale des secrets. L'overlay de qualificati
 remplace l'autorisation réseau héritée de l'ingress public par une autorisation
 depuis les pods de la passerelle du même namespace. Les flux internes
 frontend vers CMS restent autorisés.
+La préparation prend le même verrou `staging.lock` que la livraison avant
+de lire son checkpoint ou ses ressources. Une autre opération active provoque
+un refus immédiat, avant toute génération de secret ou application de ressource.
 
 1. Vérifier l'hôte, le contexte, les digests et les rollouts des trois Deployments
    `gthdf-cms`, `gthdf-frontend` et `gthdf-staging-gateway` dans

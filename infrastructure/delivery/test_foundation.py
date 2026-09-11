@@ -1,4 +1,5 @@
 import importlib.util
+import contextlib
 import pathlib
 import os
 import stat
@@ -15,6 +16,15 @@ spec.loader.exec_module(release)
 
 
 class FoundationTests(unittest.TestCase):
+    def test_foundation_holds_the_shared_staging_lock_and_releases_it_on_failure(self):
+        events = []
+        with patch('builtins.open', return_value=contextlib.nullcontext(object())), patch.object(foundation.fcntl, 'flock', side_effect=lambda handle, operation: events.append(operation)):
+            with self.assertRaisesRegex(RuntimeError, 'fixture failure'):
+                with foundation.staging_lock(pathlib.Path('/private-fixture')):
+                    events.append('preparation')
+                    raise RuntimeError('fixture failure')
+        self.assertEqual(events, [foundation.fcntl.LOCK_EX | foundation.fcntl.LOCK_NB, 'preparation', foundation.fcntl.LOCK_UN])
+
     def test_failed_resource_inspection_is_not_treated_as_absence(self):
         with patch.object(foundation.subprocess, 'run', return_value=SimpleNamespace(returncode=1, stdout=b'')):
             with self.assertRaises(RuntimeError):

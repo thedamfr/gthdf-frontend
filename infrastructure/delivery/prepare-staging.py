@@ -1,5 +1,7 @@
 """Prepare only the isolated database foundation; never switch public routing."""
 import json
+import contextlib
+import fcntl
 import os
 import pathlib
 import secrets
@@ -81,11 +83,29 @@ def require_distinct_volumes(production, staging):
         raise RuntimeError('Database volumes are not isolated')
 
 
+@contextlib.contextmanager
+def staging_lock(directory):
+    with open(directory / 'staging.lock', 'a') as stream:
+        try:
+            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise RuntimeError('Staging is already being prepared or deployed') from None
+        try:
+            yield
+        finally:
+            fcntl.flock(stream, fcntl.LOCK_UN)
+
+
 def main():
     if socket.gethostname() != 'game-prod-ovh-gra' or kube('config', 'current-context').decode().strip() != 'microk8s':
         raise RuntimeError('Unexpected deployment target')
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     require_private_directory(state)
+    with staging_lock(state):
+        prepare()
+
+
+def prepare():
     source_volume = read('gthdf-staging', 'pvc', 'gthdf-postgres')
     existing_volume = read_optional(namespace, 'pvc', 'gthdf-postgres')
     staging_volume = existing_volume['spec'].get('volumeName') if existing_volume else None
