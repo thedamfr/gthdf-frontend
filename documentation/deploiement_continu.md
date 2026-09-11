@@ -124,6 +124,11 @@ La configuration initiale ne reprend que les paramètres applicatifs communs
 explicitement autorisés ; ses endpoints et sa base sont définis pour staging.
 La comparaison des volumes précède toute application de ressource ou attente
 de démarrage, y compris lors d'une reprise.
+Une erreur de lecture Kubernetes interrompt la préparation ; seule une absence
+confirmée permet la génération initiale des secrets. L'overlay de qualification
+remplace l'autorisation réseau héritée de l'ingress public par une autorisation
+depuis les pods de la passerelle du même namespace. Les flux internes
+frontend vers CMS restent autorisés.
 
 1. Vérifier l'hôte, le contexte, les digests et les rollouts des trois Deployments
    `gthdf-cms`, `gthdf-frontend` et `gthdf-staging-gateway` dans

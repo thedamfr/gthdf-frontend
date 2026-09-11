@@ -4,6 +4,7 @@ import os
 import stat
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('foundation', pathlib.Path(__file__).with_name('prepare-staging.py'))
 foundation = importlib.util.module_from_spec(spec)
@@ -14,6 +15,11 @@ spec.loader.exec_module(release)
 
 
 class FoundationTests(unittest.TestCase):
+    def test_failed_resource_inspection_is_not_treated_as_absence(self):
+        with patch.object(foundation.subprocess, 'run', return_value=SimpleNamespace(returncode=1, stdout=b'')):
+            with self.assertRaises(RuntimeError):
+                foundation.read_optional('gthdf-qualification', 'secret', 'gthdf-secrets')
+
     def test_staging_configuration_does_not_inherit_production_endpoints(self):
         config = foundation.staging_configuration({'NODE_ENV': 'production', 'PRODUCTION_ONLY_ENDPOINT': 'https://production.example', 'DATABASE_URL': 'postgres://production', 'DATABASE_HOST': 'production-db'})
         self.assertNotIn('PRODUCTION_ONLY_ENDPOINT', config)

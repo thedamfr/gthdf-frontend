@@ -59,6 +59,22 @@ generatorOptions:
 
 patches:
   - target:
+      kind: NetworkPolicy
+      name: allow-public-ingress
+    patch: |-
+      - op: replace
+        path: /spec/ingress
+        value:
+          - from:
+              - podSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: gateway
+            ports:
+              - protocol: TCP
+                port: 3000
+              - protocol: TCP
+                port: 1337
+  - target:
       kind: Deployment
     patch: |-
       - op: add

@@ -28,6 +28,11 @@ def read(ns, kind, name):
     return json.loads(kube('-n', ns, 'get', kind, name, '-o', 'json'))
 
 
+def read_optional(ns, kind, name):
+    payload = kube('-n', ns, 'get', kind, name, '--ignore-not-found', '-o', 'json')
+    return json.loads(payload) if payload.strip() else None
+
+
 def apply(value):
     kube('apply', '-f', '-', data=json.dumps(value).encode())
 
@@ -82,8 +87,8 @@ def main():
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     require_private_directory(state)
     source_volume = read('gthdf-staging', 'pvc', 'gthdf-postgres')
-    existing_volume = kube('-n', namespace, 'get', 'pvc', 'gthdf-postgres', '--ignore-not-found', '-o', 'json')
-    staging_volume = json.loads(existing_volume)['spec'].get('volumeName') if existing_volume.strip() else None
+    existing_volume = read_optional(namespace, 'pvc', 'gthdf-postgres')
+    staging_volume = existing_volume['spec'].get('volumeName') if existing_volume else None
     require_distinct_volumes(source_volume['spec'].get('volumeName'), staging_volume)
     checkpoint = state / 'staging-foundation.json'
     if checkpoint.exists():
@@ -101,11 +106,11 @@ def main():
     # Require the source to be healthy before taking its non-secret resource definitions.
     kube('-n', 'gthdf-staging', 'rollout', 'status', 'statefulset/gthdf-postgres', '--timeout=60s')
     apply({'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': namespace, 'labels': namespace_labels}})
-    existing = subprocess.run(['sudo', '-n', '/snap/bin/microk8s', 'kubectl', '-n', namespace, 'get', 'secret', 'gthdf-secrets', '-o', 'json'], capture_output=True)
-    if existing.returncode == 0:
-        if json.loads(existing.stdout)['metadata'].get('labels', {}).get('gthdf.fr/provisioner') != 'continuous-delivery':
+    existing = read_optional(namespace, 'secret', 'gthdf-secrets')
+    if existing is not None:
+        if existing['metadata'].get('labels', {}).get('gthdf.fr/provisioner') != 'continuous-delivery':
             raise RuntimeError('Existing staging credentials require inspection; refusing to replace them')
-        require_secret_isolation(json.loads(existing.stdout)['data'], read('gthdf-staging', 'secret', 'gthdf-secrets')['data'])
+        require_secret_isolation(existing['data'], read('gthdf-staging', 'secret', 'gthdf-secrets')['data'])
     else:
         values = {key: secrets.token_hex(48) for key in ['POSTGRES_PASSWORD', 'APP_KEYS', 'API_TOKEN_SALT', 'ADMIN_JWT_SECRET', 'TRANSFER_TOKEN_SALT', 'ENCRYPTION_KEY', 'JWT_SECRET', 'PREVIEW_SECRET', 'STRAPI_API_TOKEN', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']}
         values['APP_KEYS'] = ','.join(secrets.token_hex(32) for _ in range(4))
