@@ -1,7 +1,7 @@
 # Livraison continue GTHF sur OVH
 
-Version 0.3 — 11 septembre 2026. Statut : **première promotion vérifiée ;
-automatisation en attente de l’identité Tailscale**. Le constat initial est conservé dans son
+Version 0.4 — 11 septembre 2026. Statut : **première promotion vérifiée ;
+réconciliation locale en qualification**. Le constat initial est conservé dans son
 [snapshot intégral](history/deploiement_continu_2026-09-10.md) ; les décisions nouvelles sont précisées dans
 l'[ADR de livraison](adr_livraison_continue.md).
 Il est la référence GTHF commune au frontend et au CMS ; les conventions de
@@ -84,22 +84,35 @@ suppression d'un objet temporaire dans le nouveau bucket a réussi. Le contrôle
 le 11 septembre. Ce contrôle n'écrit pas dans le bucket de production ; ses
 nouvelles clés sont installées en production lors de la promotion vérifiée.
 
-La CI attend les secrets GitHub `TS_OAUTH_CLIENT_ID`, `TS_AUDIENCE`,
-`GTHDF_SSH_PRIVATE_KEY` et `GTHDF_SSH_KNOWN_HOSTS` dans chacun des deux dépôts.
-L'accès Tailscale OIDC doit autoriser les identités GitHub de ces dépôts et
-`tag:github-deploy`. La connexion SSH cible
-`ubuntu@penthouse.taild95457.ts.net` ; aucun port public supplémentaire n'est
-ouvert. La publication GHCR utilise `GITHUB_TOKEN` avec `packages: write`.
-Le cluster utilise un Secret `gthdf-ghcr` réservé à la lecture du registre.
-Le playbook utilise le runtime distant de plateforme
-`/home/ubuntu/.cache/infra-sincere/ansible-2.21.4/bin/python` ; cet interpréteur
-et son module PyYAML sont disponibles sur Penthouse au contrôle du 11 septembre.
-Ils constituent un prérequis d'un nouvel hôte, distinct de l'installation
-d'Ansible sur le runner GitHub.
+GitHub Actions utilise uniquement son `GITHUB_TOKEN` pour GHCR (`packages: write`)
+et pour publier `candidate.json` dans `gthdf-release` (`contents: write`). La branche
+n’est mise à jour que par un push en avance rapide après contrôle du `main` courant.
+La publication précède la fin du workflow ; elle ne devient éligible qu’après sa
+réussite complète, contrôlée côté serveur. Un statut CI vert atteste donc la
+publication, pas une production déjà vérifiée.
 
-Au contrôle du 11 septembre, le runbook `infra-sincere` renvoie au mécanisme
-Studio mais ne fournit pas encore l'identité OIDC utilisable pour GTHF. Sa
-documentation complémentaire est demandée avant l'activation automatique.
+`gthdf-delivery.timer` lance le réconciliateur local après chaque période d’inactivité
+de 60 secondes. Chaque invocation traite au plus un composant ; un curseur alterne
+frontend et CMS, y compris après un échec. La limite de durée couvre ainsi une seule
+livraison, et son délai restant tient compte des contrôles déjà exécutés.
+Il lit les deux dépôts publics sans identifiant GitHub, vérifie le
+run, son origine `main`, sa tentative, les sources Git et le déployeur exact validé.
+Avant tout démarrage en staging, le déployeur lit la configuration OCI du digest
+avec `docker buildx imagetools inspect` et contrôle son label de révision. Le client
+Docker sert uniquement à lire le registre ; aucune image n’est construite sur l’hôte.
+Le secret GHCR existant passe par un fichier temporaire privé, supprimé ensuite,
+sans valeur dans les arguments ou journaux. Le contrôle `--check` inclut cette preuve.
+Le cluster conserve le Secret `gthdf-ghcr` de lecture du registre. Aucun secret
+Tailscale ou SSH de runner n’est requis. Le service utilise le compte opérateur
+`ubuntu` existant ; il ne crée ni compte ni clé. Ses opérations privilégiées restent
+celles du déployeur GTHF déjà autorisé, et non un runner généraliste.
+
+Le compte existant possède des droits Kubernetes étendus : l’isolation repose ici
+sur le déployeur, ses destinations fixes et la confiance dans les branches `main`
+validées. Le service n’offre pas une nouvelle frontière RBAC de namespace. Le runbook
+commun `infra-sincere` décrit encore l’audit initial ; le mécanisme actif du site et
+la PR ArgoCD Studio ont été inspectés séparément avant ce choix.
+
 Les accès de recette vérifiés sont les domaines HTTPS authentifiés
 [frontend staging](https://staging.gthf.fr/) et [CMS staging](https://staging-cms.gthf.fr/).
 Ils sont isolés ; aucune URL Tailscale Serve GTHF n’est configurée. Les accès
@@ -114,22 +127,64 @@ minutes) et `release --owner <identifiant>` le libère. `deliver --candidate
 références initiales complètes. L'absence d'état initial provoque un échec,
 jamais une activation présumée correcte.
 
-### Contrôles restant avant activation automatique
+### Installation, activation et diagnostic du service local
 
-1. Fournir l’identité OIDC Tailscale autorisant les deux dépôts et installer les
-   secrets GitHub Tailscale/SSH documentés ci-dessus.
-2. Activer `GTHDF_DELIVERY_ENABLED=true`, puis vérifier un cycle `main` complet
-   depuis le runner, dont un changement documentaire sans reconstruction ni
-   redémarrage des applications. Cette chaîne privée n’a pas encore été testée.
+Depuis un checkout frontend relu :
 
-Les images GHCR, le stockage, les recettes, la persistance et les références
-initiales sont vérifiés. Deux CMS ont démarré ensemble en staging, avec les
-14 articles, 20 chapitres et 2 209 fichiers conservés. Un nouveau pod volontairement
-indisponible a laissé le CMS sain servir, puis le digest officiel a été restauré.
-Le déployeur courant a aussi réussi ses deux recettes sur une livraison
-inchangée, avec les cinq pods applicatifs et leurs compteurs de redémarrage
-identiques avant/après. Cette exécution SSH ne valide pas encore le raccordement
-OIDC du runner. Les preuves restent sous le dossier privé `gthdf-delivery/bootstrap/`.
+```bash
+npm run infra:delivery:install
+```
+
+Le playbook installe les fichiers et recharge systemd, sans démarrer la livraison.
+Il conserve les identifiants, les images en ligne et les états déjà vérifiés.
+Une évolution du programme de réconciliation installé exige de rejouer ce playbook
+après revue, en suspendant les nouveaux cycles. Le service télécharge les révisions
+validées du déployeur applicatif ; il ne remplace pas lui-même son propre exécuteur.
+Sur Penthouse, `node /home/ubuntu/gthdf-delivery/agent/infrastructure/delivery/reconcile.mjs --check`
+contrôle les candidats sans activer de workload. Cette commande directe correspond
+au script npm `infra:delivery:pull -- --check` dans un checkout complet ; l’agent
+installé ne contient que ses fichiers nécessaires, sans application Node à installer.
+
+Après qualification, créer le marqueur privé `gthdf-delivery/pull-enabled`, puis
+activer `gthdf-delivery.timer` avec systemd. Supprimer ce marqueur et arrêter le timer
+suspend les prochains cycles ; laisser toute livraison en cours terminer son
+contrôle ou son retour arrière avant d’arrêter le service.
+
+`systemctl status gthdf-delivery.timer` et `journalctl -u gthdf-delivery.service`
+donnent le statut de l’exécuteur, sans valeurs de secrets. Les résultats par dépôt
+sont dans `/home/ubuntu/gthdf-delivery/pull/`, avec un délai de cinq minutes avant
+reprise d’une erreur, d’une CI en attente ou d’un candidat dépassé. Cette temporisation
+limite les appels à l’API GitHub publique. Une ancienne preuve CI expirée impose une
+nouvelle construction au prochain push, sans bloquer définitivement le publieur.
+Une réservation staging reporte le cycle. Les références
+`staging.json` et `production.json` n’avancent qu’après recette. Les observations
+origine et l’historique privé conservent les échecs et retours arrière.
+
+Le superviseur demande un arrêt gracieux après cinquante minutes. Il transmet
+`SIGTERM` au déployeur, qui passe dans le retour arrière et ignore les interruptions
+suivantes pendant cette récupération. Il attend la fin du processus. Le service
+systemd conserve une limite de démarrage de cinquante-cinq minutes et une fenêtre
+de trente minutes pour l’arrêt ; `flock --no-fork` permet d’adresser le superviseur
+directement. Une récupération qui dépasse aussi cette limite exige une intervention.
+
+La comparaison locale porte sur la production vérifiée, même si le candidat GitHub
+n’a pas reconstruit son image. Les publications obsolètes, runs rouges, empreintes
+incohérentes, archives dangereuses et évolutions PostgreSQL sont refusés. Une image
+équivalente déjà en production est conservée. Les secrets, volumes et données de
+staging ne sont jamais promus. La production reçoit les mêmes digests qualifiés.
+
+Restent à vérifier avant de déclarer ce raccordement actif : publication depuis
+les deux nouveaux workflows, installation et exécution du service réel, recettes
+staging puis production, et cycle documentaire sans build ni redémarrage. Les tests
+unitaires ne remplacent pas ces preuves. La première promotion et ses 468 contrôles
+origine restent une vérification antérieure distincte, avec son incident documenté.
+
+L’installation initiale du service et du timer est passée sur Penthouse, avec sept
+tâches Ansible réussies. Le contrôle `--check` trouve actuellement aucune publication
+dans les nouvelles branches, encore à créer par les workflows fusionnés. Les unités
+sont valides ; le timer est `disabled` et `inactive`, et le marqueur d’activation est
+absent. Les avertissements systemd sur `CPUAccounting` viennent des unités XFS de
+l’hôte, pas des unités GTHF. Aucune application n’a été redémarrée par cette installation.
 
 ### Bascule initiale des routes de staging
 
@@ -197,7 +252,7 @@ d'acceptation complets. L'implémentation locale sépare les responsabilités :
 |---|---|
 | `.github/workflows/delivery.yml` dans chaque dépôt | Qualité, publication, connexion privée, résultat stable `delivery-result` et conservation des preuves |
 | `infrastructure/delivery/plan.mjs` | Empreintes Git comparées à la dernière production vérifiée, reprise des changements après un échec |
-| `infrastructure/delivery/ci.mjs` | Checkout exact, réutilisation ou build GHCR, manifeste candidat et invocation Ansible |
+| `infrastructure/delivery/ci.mjs` | Checkout exact, réutilisation ou build GHCR et publication du candidat public |
 | `infrastructure/ansible/playbooks/delivery.yml` | Installation d'une révision exacte du déployeur dans un dossier privé par candidat |
 | `infrastructure/delivery/release.py` | Verrous communs, compatibilité CMS, rollouts séquentiels, preuve des digests et du SHA servi, rollback et journal de releases |
 | `infrastructure/delivery/recipe.mjs` | Recette CRUD/média uniquement en staging ; lecture des parcours publics en production |

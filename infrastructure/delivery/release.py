@@ -10,9 +10,11 @@ import json
 import os
 import pathlib
 import re
+import signal
 import socket
 import stat
 import subprocess
+import tempfile
 import time
 import urllib.request
 
@@ -32,7 +34,9 @@ def validate_component(name, component):
         raise ValueError('An exact Git revision is required')
 
 
-def promote(activate):
+def promote(activate, verify=None):
+    if verify:
+        verify()
     activate('staging')
     activate('production')
 
@@ -176,7 +180,7 @@ def require_current(candidate):
             raise RuntimeError('Candidate is no longer the current main revision')
 
 
-def require_candidate_images(components, reference):
+def require_candidate_images(components, reference, verify_source=None):
     for name, value in components.items():
         previous = reference[name]
         if value['image'] == previous['image']:
@@ -184,13 +188,35 @@ def require_candidate_images(components, reference):
             if (value['revision'] != previous['revision'] or not runtime
                     or runtime != previous.get('fingerprints', {}).get('runtime')):
                 raise ValueError('Reused images must preserve the verified revision and runtime fingerprint')
-        elif value['revision'] != value['processedRevision']:
+        elif value['revision'] != value['processedRevision'] and (verify_source is None or not verify_source(name, value)):
             raise ValueError('New images must identify the processed Git revision')
+
+
+def source_equivalent(root, name, value):
+    repository = root / 'repositories' / ('gthdf-' + name + '.git')
+    planner = pathlib.Path(__file__).with_name('plan.mjs')
+    def inputs(revision):
+        return json.loads(command(['node', str(planner), str(repository), revision]))['fingerprints']['runtime']
+    return inputs(value['revision']) == inputs(value['processedRevision']) == value['fingerprints']['runtime']
 
 
 def require_image_revision(config, revision):
     if config.get('config', {}).get('Labels', {}).get('org.opencontainers.image.revision') != revision:
         raise ValueError('Image revision does not match its immutable OCI label')
+
+
+def verify_registry_components(root, components):
+    # Use the existing read-only GHCR credential without placing it in argv or logs.
+    secret = json.loads(kubectl('staging', 'get', 'secret', 'gthdf-ghcr', '-o', 'json'))
+    config = base64.b64decode(secret['data']['.dockerconfigjson'])
+    with tempfile.TemporaryDirectory(prefix='registry-', dir=root) as directory:
+        config_file = pathlib.Path(directory) / 'config.json'
+        with open(config_file, 'wb', opener=lambda path, flags: os.open(path, flags, 0o600)) as stream:
+            stream.write(config)
+        for name, value in components.items():
+            validate_component(name, value)
+            image = json.loads(command(['docker', '--config', directory, 'buildx', 'imagetools', 'inspect', value['image'], '--format', '{{json .Image}}'], timeout=120))
+            require_image_revision(image, value['revision'])
 
 
 class NoReleaseRedirect(urllib.request.HTTPRedirectHandler):
@@ -376,7 +402,14 @@ def activate(root, environment, candidate, recipe):
         if not previous or set(previous.get('components', {})) != {'frontend', 'cms'}:
             raise RuntimeError('A reviewed bootstrap release is required before automatic delivery')
         reference = load_json(root / 'production.json') if environment == 'staging' else previous
-        require_candidate_images(candidate['components'], reference['components'])
+        if candidate.get('publication'):
+            plan = {key: any(value['fingerprints'][group] != reference['components'][name]['fingerprints'][group]
+                             for name, value in candidate['components'].items())
+                    for key, group in (('build', 'runtime'), ('infrastructure', 'infrastructure'), ('postgres', 'postgres'))}
+            if plan['postgres']:
+                raise RuntimeError('PostgreSQL changes require a separate reviewed delivery')
+            candidate = {**candidate, 'plan': plan}
+        require_candidate_images(candidate['components'], reference['components'], verify_source=lambda name, value: source_equivalent(root, name, value))
         combined = {**reference['components'], **candidate['components']}
         if combined['cms']['image'] != previous['components']['cms']['image']:
             require_compatible_schema(previous['components']['cms']['schemas'], combined['cms']['schemas'])
@@ -388,9 +421,18 @@ def activate(root, environment, candidate, recipe):
         snapshots = snapshot_components(environment, changed)
         infrastructure_snapshot = []
         report = {'startedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'environment': environment, 'components': combined, 'deployerRevision': candidate['deployerRevision']}
+        monitor = None
         if environment == 'production' and 'cms' in changed:
             report['backup'] = backup_database(root)
         try:
+            if environment == 'production' and candidate.get('publication'):
+                from observation import OriginMonitor, prometheus_proof
+                report['monitoringBefore'] = prometheus_proof()
+                secret = json.loads(kubectl('production', 'get', 'secret', 'gthdf-secrets', '-o', 'json'))
+                monitor = OriginMonitor(base64.b64decode(secret['data']['STRAPI_API_TOKEN']).decode())
+                monitor.thread.start()
+                time.sleep(10)
+                monitor.require_available()
             if candidate.get('plan', {}).get('infrastructure'):
                 infrastructure_snapshot = reconcile_infrastructure(environment, combined)
             for name in ('cms', 'frontend', 'gateway'):
@@ -402,6 +444,18 @@ def activate(root, environment, candidate, recipe):
             if environment == 'staging':
                 verify_components(environment, {'gateway': combined['frontend']})
             command(['node', str(recipe), environment], timeout=600)
+            if monitor:
+                deadline = time.monotonic() + 60
+                while time.monotonic() < deadline:
+                    monitor.require_available()
+                    time.sleep(1)
+                report['monitoringAfter'] = prometheus_proof()
+                monitor.require_available()
+                monitor.stop.set()
+                monitor.thread.join(timeout=5)
+                if monitor.thread.is_alive() or monitor.expired or monitor.errors or monitor.samples < 3:
+                    raise RuntimeError('Origin observation did not finish healthy')
+                report['originObservation'] = {'samples': monitor.samples, 'errors': [], 'expired': False}
             report.update(status='success', finishedAt=datetime.datetime.now(datetime.timezone.utc).isoformat())
             save_json(root / (environment + '.json'), report)
         except Exception:
@@ -418,12 +472,25 @@ def activate(root, environment, candidate, recipe):
             report['rollback'] = 'verified'
             raise
         finally:
+            if monitor:
+                monitor.stop.set()
+                monitor.thread.join(timeout=5)
+                report['originObservation'] = {'samples': monitor.samples, 'errors': monitor.errors, 'expired': monitor.expired}
+                save_json(root / 'history' / (str(time.time_ns()) + '-origin-samples.json'), monitor.records)
             save_json(root / 'history' / (str(time.time_ns()) + '-' + environment + '.json'), report)
 
 
+def interrupt_delivery(_signal, _frame):
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    raise RuntimeError('Delivery interrupted; finish the active rollback before stopping')
+
+
 def main():
+    signal.signal(signal.SIGTERM, interrupt_delivery)
+    signal.signal(signal.SIGINT, interrupt_delivery)
     parser = argparse.ArgumentParser()
-    parser.add_argument('operation', choices=['deliver', 'status', 'reserve', 'release'])
+    parser.add_argument('operation', choices=['deliver', 'check', 'status', 'reserve', 'release'])
     parser.add_argument('--state-dir', default='/home/ubuntu/gthdf-delivery')
     parser.add_argument('--candidate')
     parser.add_argument('--owner', default='operator')
@@ -445,13 +512,19 @@ def main():
         raise ValueError('A complete candidate release is required')
     for name, value in candidate['components'].items():
         validate_component(name, value)
+    if args.operation == 'check':
+        require_private_directory(root)
+        require_current(candidate)
+        verify_registry_components(root, candidate['components'])
+        return
     recipe = pathlib.Path(__file__).with_name('recipe.mjs')
     with environment_lock(root, 'delivery', candidate['owner']):
         with environment_lock(root, 'staging', candidate['owner']):
             old_reservation = load_json(root / 'staging-reservation.json', {})
             save_json(root / 'staging-reservation.json', {'owner': candidate['owner'], 'expires': time.time() + 3600})
         try:
-            promote(lambda environment: activate(root, environment, candidate, recipe))
+            promote(lambda environment: activate(root, environment, candidate, recipe),
+                    verify=lambda: verify_registry_components(root, candidate['components']))
         finally:
             with environment_lock(root, 'staging', candidate['owner']):
                 save_json(root / 'staging-reservation.json', old_reservation)

@@ -25,6 +25,8 @@
     "test:delivery:runtime": "node tests/delivery-runtime.mjs",
     "infra:delivery:plan": "node infrastructure/delivery/plan.mjs",
     "infra:delivery": "python3 infrastructure/delivery/release.py",
+    "infra:delivery:pull": "node infrastructure/delivery/reconcile.mjs",
+    "infra:delivery:install": ".tmp/ansible/bin/ansible-playbook -i infrastructure/ansible/inventories/ovh/hosts.yml infrastructure/ansible/playbooks/install-delivery.yml",
     "infra:ansible:install": "python3 -m venv .tmp/ansible && .tmp/ansible/bin/pip install -r infrastructure/ansible/requirements.txt",
     "infra:staging:prepare": ".tmp/ansible/bin/ansible-playbook -i infrastructure/ansible/inventories/ovh/hosts.yml infrastructure/ansible/playbooks/prepare-staging.yml",
     "infra:credentials:upload": "node infrastructure/scripts/upload-gthf-credentials.mjs",

@@ -1,0 +1,27 @@
+[Unit]
+Description=Qualify and promote validated GTHF images from GHCR
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/home/ubuntu/gthdf-delivery/pull-enabled
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/gthdf-delivery/agent
+ExecStart=/usr/bin/flock --no-fork -n /home/ubuntu/gthdf-delivery/pull.lock /usr/bin/node infrastructure/delivery/reconcile.mjs
+UMask=0077
+PrivateTmp=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+TimeoutStartSec=55min
+TimeoutStopSec=30min
+KillMode=mixed
+MemoryMax=512M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

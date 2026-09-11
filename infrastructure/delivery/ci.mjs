@@ -1,8 +1,9 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { gitFingerprints, planDelivery } from './plan.mjs';
 import { requireImageRevision } from './image-proof.mjs';
+import { publishCandidate, validatedBaseline } from './publication.mjs';
 
 function run(file, args, options = {}) {
   const result = spawnSync(file, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...options });
@@ -18,19 +19,27 @@ if (run('git', ['-C', repository, 'rev-parse', 'HEAD']).trim() !== revision) thr
 const deployerRevision = run('git', ['-C', deployer, 'rev-parse', 'HEAD']).trim();
 const output = resolve(process.env.RUNNER_TEMP ?? '.', 'gthdf-release');
 mkdirSync(output, { recursive: true });
-const enabled = process.env.GTHDF_DELIVERY_ENABLED === 'true';
-const target = process.env.GTHDF_SSH_TARGET;
-if (enabled && !/^[a-z][a-z0-9_-]*@penthouse\.taild95457\.ts\.net$/.test(target ?? '')) throw new Error('Unexpected deployment SSH target');
+const githubRepository = `thedamfr/gthdf-${component}`;
+async function github(path, { method = 'GET', body, allowMissing = false } = {}) {
+  const response = await fetch(`https://api.github.com/repos/${githubRepository}/${path}`, {
+    method, headers: { Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.GH_TOKEN}`, 'X-GitHub-Api-Version': '2022-11-28' },
+    ...(body ? { body: JSON.stringify(body) } : {}), redirect: 'error', signal: AbortSignal.timeout(30000),
+  });
+  if (allowMissing && response.status === 404) return null;
+  if (!response.ok) throw new Error(`GitHub publication request failed (${response.status})`);
+  return response.json();
+}
 let baseline;
-if (enabled) {
-  baseline = JSON.parse(run('ssh', ['-o', 'BatchMode=yes', target, 'cat /home/ubuntu/gthdf-delivery/production.json']));
+const previousFile = await github('contents/candidate.json?ref=gthdf-release', { allowMissing: true });
+if (previousFile) {
+  if (previousFile.size > 262144 || previousFile.encoding !== 'base64') throw new Error('Invalid publication baseline');
+  const published = JSON.parse(Buffer.from(previousFile.content, 'base64').toString('utf8'));
+  const previousRun = await github(`actions/runs/${published.publication?.runId}`, { allowMissing: true });
+  baseline = validatedBaseline(published, previousRun, component);
 }
 const previous = baseline?.components?.[component];
 const fingerprints = gitFingerprints(repository, revision);
 const plan = planDelivery(fingerprints, previous?.fingerprints);
-if (enabled && component === 'frontend' && plan.postgres) {
-  throw new Error('PostgreSQL image changes require a separate reviewed backup and rollout plan');
-}
 const imageName = `ghcr.io/thedamfr/gthdf-${component}`;
 const tag = `${imageName}:sha-${revision}`;
 let image = previous?.image;
@@ -52,6 +61,11 @@ if (plan.build) {
   requireImageRevision(imageConfig, revision);
   image = `${imageName}@${digest}`;
   imageRevision = revision;
+} else {
+  if (!new RegExp(`^${imageName}@sha256:[a-f0-9]{64}$`).test(image ?? '') || !/^[a-f0-9]{40}$/.test(imageRevision ?? '')) throw new Error('Invalid reusable image');
+  const sourceInputs = gitFingerprints(repository, imageRevision);
+  if (sourceInputs.runtime !== fingerprints.runtime) throw new Error('Reusable image sources are not equivalent');
+  requireImageRevision(JSON.parse(run('docker', ['buildx', 'imagetools', 'inspect', image, '--format', '{{json .Image}}'])), imageRevision);
 }
 const schemas = {};
 if (component === 'cms') {
@@ -65,6 +79,7 @@ if (component === 'cms') {
   walk(join(resolve(repository), 'src'));
 }
 const candidate = {
+  publication: { component, repository: githubRepository, revision, runId: Number(process.env.GITHUB_RUN_ID), runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT) },
   owner: `github-${component}-${process.env.GITHUB_RUN_ID}`,
   startedAt,
   deployerRevision,
@@ -73,12 +88,7 @@ const candidate = {
 };
 const candidateFile = join(output, 'candidate.json');
 writeFileSync(candidateFile, JSON.stringify(candidate, null, 2));
-if (enabled) {
-  const archive = join(output, 'deployer.tar');
-  execFileSync('git', ['-C', deployer, 'archive', '--format=tar', '--output', archive, deployerRevision]);
-  run('ansible-playbook', ['-i', `${target},`, join(deployer, 'infrastructure/ansible/playbooks/delivery.yml'), '--extra-vars', JSON.stringify({ gthdf_candidate_file: candidateFile, gthdf_deployer_archive: archive, gthdf_deployer_revision: deployerRevision, gthdf_candidate_id: candidate.owner })], { stdio: 'inherit' });
-  writeFileSync(join(output, 'verified.json'), run('ssh', ['-o', 'BatchMode=yes', target, 'cat /home/ubuntu/gthdf-delivery/production.json']));
-}
-const summary = `GTHF ${component}\n\nSource: ${revision}\nImage: ${image}\nBuild: ${plan.build}\nDelivery: ${enabled ? 'verified' : 'bootstrap: image published, no deployment'}\n`;
+const published = await publishCandidate(github, candidate);
+const summary = `GTHF ${component}\n\nSource: ${revision}\nImage: ${image}\nBuild: ${plan.build}\nPublication: ${published ? 'candidate published; local qualification pending' : 'superseded by a newer main revision'}\nProduction status is recorded by the local reconciler after its recipes.\n`;
 writeFileSync(join(output, 'summary.txt'), summary);
 if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, summary, { flag: 'a' });

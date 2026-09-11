@@ -14,6 +14,34 @@ spec.loader.exec_module(release)
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_shutdown_enters_rollback_and_ignores_further_stop_signals(self):
+        with patch.object(release.signal, 'signal') as configure:
+            with self.assertRaisesRegex(RuntimeError, 'interrupted'):
+                release.interrupt_delivery(release.signal.SIGTERM, None)
+            self.assertIn(unittest.mock.call(release.signal.SIGTERM, release.signal.SIG_IGN), configure.call_args_list)
+
+    def test_no_environment_is_activated_when_registry_proof_fails(self):
+        activated = []
+        def verify():
+            raise ValueError('Wrong immutable image revision')
+        with self.assertRaises(ValueError):
+            release.promote(activated.append, verify=verify)
+        self.assertEqual(activated, [])
+
+    def test_a_previously_built_image_can_catch_up_after_a_documentation_commit(self):
+        previous = {'image': 'old-image', 'revision': 'old-revision', 'fingerprints': {'runtime': 'old-runtime'}}
+        candidate = {'image': 'new-image', 'revision': 'built-revision', 'processedRevision': 'docs-revision', 'fingerprints': {'runtime': 'new-runtime'}}
+        calls = []
+
+        def verify_source(name, value):
+            calls.append((name, value['revision'], value['processedRevision']))
+            return True
+
+        release.require_candidate_images({'cms': candidate}, {'cms': previous}, verify_source=verify_source)
+        self.assertEqual(calls, [('cms', 'built-revision', 'docs-revision')])
+        with self.assertRaises(ValueError):
+            release.require_candidate_images({'cms': candidate}, {'cms': previous}, verify_source=lambda *_: False)
+
     def test_image_revision_must_match_its_immutable_oci_label(self):
         release.require_image_revision({'config': {'Labels': {'org.opencontainers.image.revision': 'expected-revision'}}}, 'expected-revision')
         for config in [{}, {'config': {'Labels': {}}}, {'config': {'Labels': {'org.opencontainers.image.revision': 'other-revision'}}}]:
