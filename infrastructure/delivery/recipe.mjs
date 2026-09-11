@@ -137,8 +137,7 @@ async function writeRecipe(credentials) {
     const upload = await (await request(origins.cms, '/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + adminToken }, body: form })).json();
     uploaded = upload[0];
     assert.ok(uploaded?.id && uploaded.url);
-    const mediaUrl = new URL(uploaded.url, origins.cms);
-    assert.ok(mediaUrl.origin === origins.cms || mediaUrl.hostname === 'gthf-staging-media-bis.s3.gra.io.cloud.ovh.net');
+    const mediaUrl = recipeMediaUrl(uploaded.url, environment);
     const response = await fetch(mediaUrl, { headers: cookies[mediaUrl.origin] ? { Cookie: cookies[mediaUrl.origin] } : {}, signal: AbortSignal.timeout(20000), redirect: 'error' });
     assert.ok(response.ok);
     assert.ok((await response.arrayBuffer()).byteLength > 0);
