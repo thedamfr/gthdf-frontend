@@ -3,6 +3,7 @@ import json
 import os
 import pathlib
 import secrets
+import stat
 import socket
 import subprocess
 
@@ -45,10 +46,17 @@ def require_secret_isolation(staging, production):
             raise RuntimeError('Staging secret isolation failed: ' + key)
 
 
+def require_private_directory(directory):
+    metadata = directory.lstat()
+    if not stat.S_ISDIR(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o700 or metadata.st_uid != os.geteuid():
+        raise RuntimeError('The delivery state directory must be private and owned by the operator')
+
+
 def main():
     if socket.gethostname() != 'game-prod-ovh-gra' or kube('config', 'current-context').decode().strip() != 'microk8s':
         raise RuntimeError('Unexpected deployment target')
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
+    require_private_directory(state)
     checkpoint = state / 'staging-foundation.json'
     if checkpoint.exists():
         require_secret_isolation(read(namespace, 'secret', 'gthdf-secrets')['data'], read('gthdf-staging', 'secret', 'gthdf-secrets')['data'])

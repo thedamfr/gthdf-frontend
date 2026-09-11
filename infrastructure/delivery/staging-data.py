@@ -1,5 +1,6 @@
 """Copy editorial data into the empty qualification database, without production identities."""
 import argparse
+import contextlib
 import datetime
 import os
 import time
@@ -26,6 +27,16 @@ PRIVATE_TABLES = (
 
 def staging_sql(sql):
     return release.kubectl('staging', 'exec', '-i', 'gthdf-postgres-0', '--', 'psql', '-U', 'gthdf', '-d', 'gthdf', '-v', 'ON_ERROR_STOP=1', '-At', data=sql.encode())
+
+
+@contextlib.contextmanager
+def staged_archive(archive):
+    remote_archive = '/tmp/' + archive.name
+    try:
+        release.kubectl('staging', 'cp', str(archive), 'gthdf-postgres-0:' + remote_archive)
+        yield remote_archive
+    finally:
+        release.kubectl('staging', 'exec', 'gthdf-postgres-0', '--', 'rm', '-f', remote_archive)
 
 
 def main():
@@ -69,28 +80,26 @@ END $$;
         archive = root / ('editorial-' + str(time.time_ns()) + '.dump')
         with open(archive, 'wb', opener=lambda path, flags: os.open(path, flags, 0o600)) as stream:
             stream.write(dump)
-        remote_archive = '/tmp/' + archive.name
-        release.kubectl('staging', 'cp', str(archive), 'gthdf-postgres-0:' + remote_archive)
-        # pg_restore can exit before consuming stdin for partial sections; use a file.
-        # All restore commands are hardcoded to the qualification namespace.
-        # An interrupted import is deliberately not retried over a nonempty database.
-        release.kubectl('staging', 'exec', 'gthdf-postgres-0', '--', 'pg_restore', '-U', 'gthdf', '-d', 'gthdf', '--no-owner', '--no-acl', '--clean', '--if-exists', '--exit-on-error', '--section=pre-data', remote_archive)
-        release.kubectl('staging', 'exec', 'gthdf-postgres-0', '--', 'pg_restore', '-U', 'gthdf', '-d', 'gthdf', '--no-owner', '--no-acl', '--exit-on-error', '--section=data', remote_archive)
-        staging_sql("""
-DO $$ DECLARE column_record record; BEGIN
-  FOR column_record IN SELECT table_name, column_name FROM information_schema.columns
-    WHERE table_schema='public' AND column_name IN ('created_by_id', 'updated_by_id')
-  LOOP
-    EXECUTE format('UPDATE %I SET %I = NULL', column_record.table_name, column_record.column_name);
-  END LOOP;
-END $$;
-""")
-        release.kubectl('staging', 'exec', 'gthdf-postgres-0', '--', 'pg_restore', '-U', 'gthdf', '-d', 'gthdf', '--no-owner', '--no-acl', '--exit-on-error', '--section=post-data', remote_archive)
-        for table in PRIVATE_TABLES:
-            exists = staging_sql("SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename='" + table + "';").strip()
-            if exists == b'1' and staging_sql('SELECT count(*) FROM ' + table + ';').strip() != b'0':
-                raise RuntimeError('A private production table was not excluded')
-        release.kubectl('staging', 'exec', 'gthdf-postgres-0', '--', 'rm', remote_archive)
+        with staged_archive(archive) as remote_archive:
+            # pg_restore can exit before consuming stdin for partial sections; use a file.
+            # All restore commands are hardcoded to the qualification namespace.
+            # An interrupted import is deliberately not retried over a nonempty database.
+            release.kubectl('staging', 'exec', 'gthdf-postgres-0', '--', 'pg_restore', '-U', 'gthdf', '-d', 'gthdf', '--no-owner', '--no-acl', '--clean', '--if-exists', '--exit-on-error', '--section=pre-data', remote_archive)
+            release.kubectl('staging', 'exec', 'gthdf-postgres-0', '--', 'pg_restore', '-U', 'gthdf', '-d', 'gthdf', '--no-owner', '--no-acl', '--exit-on-error', '--section=data', remote_archive)
+            staging_sql("""
+    DO $$ DECLARE column_record record; BEGIN
+      FOR column_record IN SELECT table_name, column_name FROM information_schema.columns
+        WHERE table_schema='public' AND column_name IN ('created_by_id', 'updated_by_id')
+      LOOP
+        EXECUTE format('UPDATE %I SET %I = NULL', column_record.table_name, column_record.column_name);
+      END LOOP;
+    END $$;
+    """)
+            release.kubectl('staging', 'exec', 'gthdf-postgres-0', '--', 'pg_restore', '-U', 'gthdf', '-d', 'gthdf', '--no-owner', '--no-acl', '--exit-on-error', '--section=post-data', remote_archive)
+            for table in PRIVATE_TABLES:
+                exists = staging_sql("SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename='" + table + "';").strip()
+                if exists == b'1' and staging_sql('SELECT count(*) FROM ' + table + ';').strip() != b'0':
+                    raise RuntimeError('A private production table was not excluded')
         proof = {'archive': str(archive), 'status': 'editorial data copied; identities absent; media rewriting required', 'namespace': 'gthdf-qualification', 'stagingVolume': stage['spec']['volumeName'], 'productionWrites': 0, 'finishedAt': datetime.datetime.now(datetime.timezone.utc).isoformat()}
         release.save_json(checkpoint, proof)
         print(json.dumps(proof))

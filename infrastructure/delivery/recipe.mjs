@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { requireIsolatedSecrets } from './secret-isolation.mjs';
 import { requireStagingConfiguration } from './configuration-isolation.mjs';
+import { recipeMediaUrl } from './media-policy.mjs';
 
 const environment = process.argv[2];
 if (!['staging', 'production'].includes(environment)) throw new Error('A named environment is required');
@@ -72,9 +73,7 @@ async function publicRecipe() {
   assert.ok(page.includes('<h1'));
   const media = chapter.gpxFileAB?.url || chapter.thumbnail?.url;
   assert.ok(media);
-  const mediaUrl = new URL(media, origins.cms);
-  const allowedMedia = staging ? ['https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net', origins.cms] : ['https://gthdf-staging-media.s3.eu-west-par.io.cloud.ovh.net'];
-  assert.ok(allowedMedia.includes(mediaUrl.origin));
+  const mediaUrl = recipeMediaUrl(media, environment);
   const mediaResponse = await fetch(mediaUrl, { headers: { Range: 'bytes=0-1023', ...(cookies[mediaUrl.origin] ? { Cookie: cookies[mediaUrl.origin] } : {}) }, redirect: 'error', signal: AbortSignal.timeout(20000) });
   assert.ok(mediaResponse.ok);
   assert.ok((await mediaResponse.arrayBuffer()).byteLength > 0);
