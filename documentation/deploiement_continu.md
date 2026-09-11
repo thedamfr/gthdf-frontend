@@ -1,7 +1,7 @@
 # Livraison continue GTHF sur OVH
 
 Version 0.5 — 11 septembre 2026. Statut : **réconciliation locale activée ;
-première livraison automatique frontend vérifiée**. Le constat initial est conservé dans son
+cycles automatiques frontend et CMS vérifiés**. Le constat initial est conservé dans son
 [snapshot intégral](history/deploiement_continu_2026-09-10.md) ; les décisions nouvelles sont précisées dans
 l'[ADR de livraison](adr_livraison_continue.md).
 Il est la référence GTHF commune au frontend et au CMS ; les conventions de
@@ -23,6 +23,15 @@ production de 17:40:03 à 17:42:45 UTC. Les recettes ont réussi, avec 456 contr
 origine sans erreur et au moins 60 secondes saines après le rollout. Les sondes
 Prometheus étaient fraîches et saines avant et après, sans alerte pertinente.
 
+Le [workflow CMS](https://github.com/thedamfr/gthdf-cms/actions/runs/34629330095)
+a ensuite publié le candidat `02963c8bafed323658890752cc19f2c9356e7748`. Le service
+a reconnu un runtime identique à celui déjà vérifié et conservé l’image CMS
+existante. La recette staging a réussi de 17:48:06 à 17:48:31 UTC, puis la recette
+production de 17:48:31 à 17:49:53 UTC, avec 228 contrôles origine sans erreur.
+Le SHA traité CMS est donc `02963c8`, tandis que son SHA d’image reste `bd7c112`.
+La première publication CMS a construit une image faute de candidat précédent ;
+le calcul local a correctement évité un remplacement inutile du runtime.
+
 | Application | Commit de l’image en production | Digest SHA-256 GHCR |
 |---|---|---|
 | Frontend | `636d7b6a6226d225141df69d57d45c6bc344f7c7` | `6834e843bdad48a5f9651b8928f36e55c405d62252ff6eed7234e2952bcd6882` |
@@ -33,6 +42,12 @@ Les preuves privées sont conservées sous `/home/ubuntu/gthdf-delivery/` :
 `history/1789148565768359346-production.json`,
 `history/1789148565766038199-origin-samples.json` et `checks/local-delivery/`.
 Elles sont distinctes des 468 contrôles de l’amorçage manuel ci-dessous.
+Le cycle CMS est conservé dans `history/1789148911516098900-staging.json`,
+`history/1789148993023990010-production.json` et
+`history/1789148993022666900-origin-samples.json`. Les PR de clôture
+[frontend #37](https://github.com/thedamfr/gthdf-frontend/pull/37) et
+[CMS #27](https://github.com/thedamfr/gthdf-cms/pull/27) portent les résultats du
+cycle documentaire ultérieur, sans modifier ces preuves historiques.
 
 ## Historique de l’amorçage — 11 septembre 2026 à 14:36 UTC
 
