@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { gitFingerprints } from './plan.mjs';
 import { requirePublication } from './publication.mjs';
-import { localCandidate } from './pull-policy.mjs';
+import { localCandidate, requireUnchangedRuntime } from './pull-policy.mjs';
 
 const root = '/home/ubuntu/gthdf-delivery';
 const python = '/home/ubuntu/.cache/infra-sincere/ansible-2.21.4/bin/python';
@@ -66,7 +66,11 @@ async function reconcile(component) {
   const same = state?.runId === publication.runId && state?.runAttempt === publication.runAttempt;
   const production = read(join(root, 'production.json'));
   if (!production || production.status !== 'success') throw new Error('Verified production is required');
-  if (same && state.status === 'success' && production.components[component].processedRevision === publication.revision) return { component, status: 'unchanged' };
+  if (same && state.status === 'success' && production.components[component].processedRevision === publication.revision) {
+    const deployment = JSON.parse(run('sudo', ['-n', '/snap/bin/microk8s', 'kubectl', '-n', 'gthdf-staging', 'get', 'deployment', `gthdf-${component}`, '-o', 'json']));
+    requireUnchangedRuntime(deployment, production.components[component].image);
+    return { component, status: 'unchanged' };
+  }
   if (same && state.retryAfter > Date.now() && !checkOnly) return { component, status: 'backoff' };
   if (state?.runId > publication.runId) throw new Error('The publication pointer moved backwards');
   const reservation = read(join(root, 'staging-reservation.json'));

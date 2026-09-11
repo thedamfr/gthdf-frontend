@@ -129,6 +129,9 @@ npm run infra:delivery:install
 
 Le playbook installe les fichiers et recharge systemd, sans démarrer la livraison.
 Il conserve les identifiants, les images en ligne et les états déjà vérifiés.
+Une évolution du programme de réconciliation installé exige de rejouer ce playbook
+après revue, en suspendant les nouveaux cycles. Le service télécharge les révisions
+validées du déployeur applicatif ; il ne remplace pas lui-même son propre exécuteur.
 Sur Penthouse, `node /home/ubuntu/gthdf-delivery/agent/infrastructure/delivery/reconcile.mjs --check`
 contrôle les candidats sans activer de workload. Cette commande directe correspond
 au script npm `infra:delivery:pull -- --check` dans un checkout complet ; l’agent
@@ -157,6 +160,13 @@ les deux nouveaux workflows, installation et exécution du service réel, recett
 staging puis production, et cycle documentaire sans build ni redémarrage. Les tests
 unitaires ne remplacent pas ces preuves. La première promotion et ses 468 contrôles
 origine restent une vérification antérieure distincte, avec son incident documenté.
+
+L’installation initiale du service et du timer est passée sur Penthouse, avec sept
+tâches Ansible réussies. Le contrôle `--check` trouve actuellement aucune publication
+dans les nouvelles branches, encore à créer par les workflows fusionnés. Les unités
+sont valides ; le timer est `disabled` et `inactive`, et le marqueur d’activation est
+absent. Les avertissements systemd sur `CPUAccounting` viennent des unités XFS de
+l’hôte, pas des unités GTHF. Aucune application n’a été redémarrée par cette installation.
 
 ### Bascule initiale des routes de staging
 

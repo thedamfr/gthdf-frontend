@@ -1,5 +1,15 @@
 import { planDelivery } from './plan.mjs';
 
+export function requireUnchangedRuntime(deployment, image) {
+  const pod = deployment.spec?.template?.spec;
+  if (!pod?.containers?.length || [...pod.containers, ...(pod.initContainers ?? [])].some(container => container.image !== image)
+      || !(deployment.status?.observedGeneration >= deployment.metadata.generation)
+      || deployment.status?.readyReplicas !== deployment.spec.replicas
+      || deployment.status?.updatedReplicas !== deployment.spec.replicas) {
+    throw new Error('The running deployment differs from verified production; inspect it before resuming');
+  }
+}
+
 export function localCandidate(candidate, production, processedInputs, imageInputs) {
   const component = candidate.publication?.component;
   const value = candidate.components?.[component];

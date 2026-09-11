@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { requirePublication, publishCandidate } from '../infrastructure/delivery/publication.mjs';
-import { localCandidate } from '../infrastructure/delivery/pull-policy.mjs';
+import { localCandidate, requireUnchangedRuntime } from '../infrastructure/delivery/pull-policy.mjs';
+
+test('an unchanged publication does not hide a runtime rollback or incomplete rollout', () => {
+  const deployment = { metadata: { generation: 2 }, spec: { replicas: 1, template: { spec: { containers: [{ image: 'verified-image' }] } } }, status: { observedGeneration: 2, readyReplicas: 1, updatedReplicas: 1 } };
+  assert.doesNotThrow(() => requireUnchangedRuntime(deployment, 'verified-image'));
+  assert.throws(() => requireUnchangedRuntime(deployment, 'different-image'));
+  assert.throws(() => requireUnchangedRuntime({ ...deployment, status: { ...deployment.status, readyReplicas: 0 } }, 'verified-image'));
+  assert.throws(() => requireUnchangedRuntime({ ...deployment, status: { readyReplicas: 1, updatedReplicas: 1 } }, 'verified-image'));
+});
 
 test('a published candidate is eligible only after its exact main workflow succeeds', () => {
   const revision = 'a'.repeat(40);
