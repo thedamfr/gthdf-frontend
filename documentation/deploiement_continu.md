@@ -114,6 +114,12 @@ Cette opération d'amorçage reste à effectuer après qualification des images.
 La livraison courante refuse toute règle Ingress des deux domaines staging
 qui viserait un autre namespace ou un service autre que la passerelle.
 Elle ne supprime pas implicitement les alias historiques de production.
+Les règles wildcard, sans host ou avec backend par défaut susceptibles de
+contourner cette passerelle sont également refusées. Avant toute écriture de
+recette, la base, les URLs privées/publiques et le stockage doivent correspondre
+exactement à la configuration de qualification. La reprise de préparation
+revérifie les neuf secrets applicatifs face à la production, même lorsqu'un
+checkpoint existe ; le compte S3 GTHF partagé reste l'exception autorisée.
 
 1. Vérifier l'hôte, le contexte, les digests et les rollouts des trois Deployments
    `gthdf-cms`, `gthdf-frontend` et `gthdf-staging-gateway` dans

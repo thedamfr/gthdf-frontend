@@ -40,9 +40,14 @@ def require_isolated_staging_routes(ingresses, alternate_routes=()):
     hosts = {'staging.gthf.fr', 'staging-cms.gthf.fr'}
     found = set()
     for ingress in ingresses:
+        if ingress.get('spec', {}).get('defaultBackend'):
+            raise RuntimeError('A default Ingress backend requires routing review before staging delivery')
         for rule in ingress.get('spec', {}).get('rules', []):
-            if rule.get('host') not in hosts:
+            pattern = rule.get('host') or '*'
+            if not any(fnmatch.fnmatchcase(host, pattern) for host in hosts):
                 continue
+            if pattern not in hosts:
+                raise RuntimeError('A wildcard or hostless Ingress may bypass the staging gateway')
             services = [path.get('backend', {}).get('service', {}) for path in rule.get('http', {}).get('paths', [])]
             if (ingress['metadata'].get('namespace') != NAMESPACES['staging'] or not services
                     or any(service.get('name') != 'gthdf-staging-gateway' or service.get('port') not in ({'number': 3001}, {'name': 'http'}) for service in services)):

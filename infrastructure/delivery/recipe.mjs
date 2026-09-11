@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { requireIsolatedSecrets } from './secret-isolation.mjs';
+import { requireStagingConfiguration } from './configuration-isolation.mjs';
 
 const environment = process.argv[2];
 if (!['staging', 'production'].includes(environment)) throw new Error('A named environment is required');
@@ -36,9 +37,7 @@ function requireIsolation() {
   const productionConfig = kube('gthdf-staging', 'get', 'configmap', 'gthdf-config').data;
   const stageConfig = kube(namespace, 'get', 'configmap', 'gthdf-config').data;
   const productionSecrets = kube('gthdf-staging', 'get', 'secret', 'gthdf-secrets').data;
-  assert.equal(stageConfig.DATABASE_HOST, 'gthdf-postgres');
-  assert.equal(stageConfig.PUBLIC_URL, origins.cms);
-  assert.equal(stageConfig.CLIENT_URL, origins.frontend);
+  requireStagingConfiguration(stageConfig);
   assert.notEqual(stageConfig.AWS_BUCKET, productionConfig.AWS_BUCKET);
   requireIsolatedSecrets(secrets, productionSecrets);
   const prodVolume = kube('gthdf-staging', 'get', 'pvc', 'gthdf-postgres');

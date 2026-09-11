@@ -25,6 +25,10 @@ class DeliveryTests(unittest.TestCase):
         for incomplete in [[], [gateway], [cms_gateway]]:
             with self.assertRaises(RuntimeError):
                 release.require_isolated_staging_routes(incomplete)
+        for catch_all in [ingress('foreign', 'public', '*.gthf.fr'), ingress('foreign', 'public', None),
+                          {'spec': {'defaultBackend': {'service': {'name': 'public'}}}}]:
+            with self.assertRaises(RuntimeError):
+                release.require_isolated_staging_routes([gateway, cms_gateway, catch_all])
         dashboard = {'kind': 'IngressRoute', 'spec': {'routes': [{'match': 'Host(`dashboard.localhost`)'}]}}
         release.require_isolated_staging_routes([gateway, cms_gateway], [dashboard])
         for alternate in [
