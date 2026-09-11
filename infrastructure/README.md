@@ -1,9 +1,10 @@
 # Infrastructure GTHDF autohébergée
 
-Ce dossier a servi à déployer GTHDF d'abord sur le VPS Hetzner de recette, puis
-sur le serveur OVH Gravelines. Les deux cibles utilisent le même namespace isolé
-`gthdf-staging`. Après validation OVH, les DNS de production ont été basculés
-vers Gravelines ; Clever reste provisoirement la voie de retour arrière.
+Ce dossier conserve l’historique de migration Hetzner puis OVH, ainsi que les
+ressources de livraison actuelles. Sur Penthouse, la production utilise
+`gthdf-staging` et le staging isolé utilise `gthdf-qualification`. L’ancien
+namespace unique appartenait à la recette initiale ; les procédures historiques
+ci-dessous ne doivent pas remplacer la livraison courante par digest.
 
 ## Livraison GHCR vérifiée — 11 septembre 2026
 
