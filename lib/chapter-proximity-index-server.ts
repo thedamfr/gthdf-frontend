@@ -1,3 +1,4 @@
+import { runtimeUrls } from './runtime-config.ts';
 import 'server-only';
 
 import {
@@ -42,7 +43,7 @@ async function fetchGpxTrace(
     return undefined;
   }
 
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().strapi || 'http://localhost:1337';
 
   try {
     const mediaUrl = resolveTrustedMediaUrl(

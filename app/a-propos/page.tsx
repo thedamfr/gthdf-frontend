@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -49,7 +50,7 @@ export default async function AboutPage() {
     console.error('Error loading about page:', error);
   }
 
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().publicStrapi || 'http://localhost:1337';
   const title = about?.title || 'A propos';
   const blocks = about?.blocks || [];
 

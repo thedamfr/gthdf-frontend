@@ -63,6 +63,24 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  name: allow-cms-from-frontend
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: cms
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: frontend
+      ports:
+        - protocol: TCP
+          port: 1337
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
   name: allow-frontend-egress
 spec:
   podSelector:
@@ -70,6 +88,13 @@ spec:
       app.kubernetes.io/component: frontend
   policyTypes: [Egress]
   egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: cms
+      ports:
+        - protocol: TCP
+          port: 1337
     - to:
         - namespaceSelector:
             matchLabels:

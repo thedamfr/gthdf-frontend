@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import { draftMode } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import {
@@ -8,7 +9,7 @@ import {
 function withPreviewCors(response: NextResponse, request: NextRequest) {
   const origin = request.headers.get('origin') || '';
   const allowedOrigins = new Set([
-    'https://cms.gthf.fr',
+    new URL(runtimeUrls().publicStrapi).origin,
     'http://localhost:1337',
     'https://localhost:1337',
     'http://localhost:8080',
@@ -33,8 +34,7 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 function getPublicBaseUrl(request: NextRequest): string {
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  return configuredSiteUrl ? new URL(configuredSiteUrl).origin : request.nextUrl.origin;
+  return new URL(runtimeUrls(process.env, request.nextUrl.origin).site).origin;
 }
 
 export async function GET(request: NextRequest) {

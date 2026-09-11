@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import { draftMode } from 'next/headers';
 import Link from 'next/link';
@@ -6,7 +7,6 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import CityBlocks from '@/components/CityBlocks';
 import DeferredRouteVisualizations from '@/components/itineraries/DeferredRouteVisualizations';
 import {
-  getPublicCatalogueEntries,
   getRelatedDepartureItineraries,
   resolveCatalogueItinerary,
 } from '@/lib/itineraries/server';
@@ -25,8 +25,8 @@ export const revalidate = 60;
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gthf.fr';
-const PUBLIC_STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+const SITE_URL = runtimeUrls().site || 'https://gthf.fr';
+const PUBLIC_STRAPI_URL = runtimeUrls().publicStrapi || 'http://localhost:1337';
 
 interface ItineraryPageProps {
   params: Promise<{ slug: string }>;
@@ -59,16 +59,6 @@ function generatedDescription(itinerary: PublicItinerary): string {
     itinerary.departure,
     itinerary.arrival
   )} fait ${formatKilometres(itinerary.distanceMetres)} sur une portion du Grand Tour des Hauts-de-France. ${availableFeatures}`;
-}
-
-export async function generateStaticParams() {
-  try {
-    const itineraries = await getPublicCatalogueEntries();
-    return itineraries.map((itinerary) => ({ slug: itinerary.slug }));
-  } catch {
-    console.warn('[catalogue] Static params unavailable; dynamic params remain enabled.');
-    return [];
-  }
 }
 
 export async function generateMetadata({ params }: ItineraryPageProps): Promise<Metadata> {

@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gthdf-production-tls
+  labels:
+    app.kubernetes.io/name: gthdf
+spec:
+  secretName: gthdf-production-tls
+  issuerRef:
+    kind: Issuer
+    name: letsencrypt-production-http01
+  dnsNames:
+    - gthf.fr
+    - cms.gthf.fr

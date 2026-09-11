@@ -23,10 +23,27 @@ Le classeur de cadrage des villes et itinéraires, ses exports CSV et leur
 manifeste sont décrits dans
 [`documentation/data/gthf_villes_et_produits_seo/`](documentation/data/gthf_villes_et_produits_seo/).
 
+## Livraison continue OVH
+
+La livraison par GitHub Actions/GHCR et le staging isolé sont en préparation.
+Le [runbook de livraison](documentation/deploiement_continu.md) distingue le
+code local des opérations réellement vérifiées ; l'automatisation n'est pas
+encore activée. Le namespace `gthdf-staging` et le bucket
+`gthdf-staging-media` hébergent la production malgré leur nom historique.
+
+Le build frontend ne nécessite plus de CMS ni de secret. Au runtime,
+`STRAPI_URL` désigne l'API interne, `PUBLIC_STRAPI_URL` son origine publique,
+`SITE_URL` celle du site et `STRAPI_API_TOKEN` le jeton serveur. Les variables
+legacy `NEXT_PUBLIC_STRAPI_URL` et `NEXT_PUBLIC_SITE_URL` restent acceptées.
+`/api/health` expose la version ; `/api/ready` vérifie l'accès au contenu global.
+Après `npm run build`, `npm run test:delivery:runtime` démarre le serveur
+standalone avec un CMS de test local et vérifie la première lecture d'un
+chapitre absent au build. La CI exécute aussi ce contrôle.
+
 ## Getting Started
 
 Le projet requiert Node.js 22.12 ou une version plus récente de Node 22 à 24.
-Cette contrainte est également utilisée par Clever Cloud lors du déploiement.
+L'image de production utilise la version Node 24 épinglée dans le `Dockerfile`.
 
 Create `.env.local` from `.env.example`. `PREVIEW_SECRET` must contain the
 same long random value in the frontend and CMS environments. Keep it
@@ -222,6 +239,30 @@ MicroK8s `gthdf-staging` validé avant la bascule DNS. Clever Cloud reste
 provisoirement disponible comme voie de retour arrière ; ne pas supprimer ses
 applications, sa base ou son bucket tant que les sauvegardes OVH et la période
 d'observation post-bascule ne sont pas validées.
+
+Au 10 septembre 2026, les deux dépôts GTHF ne contiennent aucun workflow
+GitHub Actions : un push sur `main` ne constitue donc pas une livraison OVH
+automatisée et vérifiable depuis ces sources. Les images sont construites puis
+importées dans MicroK8s ; Ansible applique les manifests Kustomize déjà présents
+sur la cible. Les noms `staging` sont historiques : les domaines de staging et
+de production servent les mêmes applications et données, sans environnement
+de recette indépendant. Ce partage est un écart à corriger avant toute recette
+qui crée, modifie ou supprime des données.
+
+La cible demandée est un **staging complet et isolé pour GTHF** : frontend,
+CMS, PostgreSQL, volumes et médias propres, configuration et secrets distincts.
+Les agents coordonnent la version du staging partagé pour montrer leurs
+changements sans écraser le travail d'un autre. Il doit permettre les vrais parcours
+éditoriaux, CRUD et uploads sans écriture dans la production. La qualification
+sur staging précède la promotion des artefacts construits par GitHub Actions.
+
+La [cible de livraison automatique](documentation/deploiement_continu.md)
+décrit les écarts observés et la direction à implémenter : sélection et builds
+sur runners GitHub Actions, publication GHCR par SHA/digest, puis déploiement
+automatique sur Penthouse après CI verte sur chaque push `main`. Les images
+inchangées sont réutilisées et la recette de production prouve la release
+servie. Ansible et Kustomize sont conservés ; Helm n'est pas un prérequis.
+Le builder local reste un moyen de secours explicitement autorisé.
 
 Pour les PRD 01 à 03, déployer d'abord le schéma CMS, exécuter et contrôler
 les migrations manuelles avec les commandes npm documentées dans le README du

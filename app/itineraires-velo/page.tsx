@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -10,7 +11,7 @@ import styles from './index.module.css';
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gthf.fr';
+const SITE_URL = runtimeUrls().site || 'https://gthf.fr';
 const title = 'Itinéraires à vélo sur le GTHF';
 const description = 'Toutes les portions ville à ville publiées sur le Grand Tour des Hauts-de-France, avec leur distance et leur fiche GPX officielle.';
 

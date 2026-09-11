@@ -5,13 +5,64 @@ sur le serveur OVH Gravelines. Les deux cibles utilisent le même namespace isol
 `gthdf-staging`. Après validation OVH, les DNS de production ont été basculés
 vers Gravelines ; Clever reste provisoirement la voie de retour arrière.
 
+## Livraison continue en préparation — 11 septembre 2026
+
+Le [runbook actuel](../documentation/deploiement_continu.md) décrit les
+workflows, les prérequis privés et les étapes encore ouvertes. Le namespace
+`gthdf-qualification` possède maintenant un PostgreSQL avec son PVC
+propre, sur la même image que la production. Sa copie éditoriale exclut les
+comptes, sessions, jetons et paramètres privés de production. Les 2 720 objets
+média sont copiés dans le bucket staging et les URLs ont été réécrites. Un
+administrateur et un jeton de lecture propres au staging sont créés. Les applications et les routes
+staging n'ont pas encore été basculées ; aucune recette d'écriture n'y est
+possible à ce stade. Le nouvel overlay `qualification` prévoit le bucket
+`gthf-staging-media-bis` à Gravelines. L'utilisateur S3 `gthf` est partagé
+entre les seuls buckets GTHF par décision de l'utilisateur.
+
+Les commandes historiques ci-dessous décrivent la migration initiale. Ne pas
+les utiliser pour écraser la configuration de la future livraison par digest.
+
+## État vérifié le 10 septembre 2026
+
+Sur `game-prod-ovh-gra`, contexte `microk8s`, les workloads de
+`gthdf-staging` sont prêts : frontend `gthdf-frontend:production`, CMS
+`gthdf-cms:staging` et PostgreSQL `gthdf-postgres:staging`. Ces tags mutables
+correspondent à l'overlay versionné ; ils ne prouvent pas le SHA Git de leur
+contenu. Les domaines `staging.gthf.fr` et `staging-cms.gthf.fr` sont des alias
+de la même charge et des mêmes données que la production. Cet état est un
+écart à corriger ; il n'autorise pas des tests d'écriture isolés.
+
+La cible est décrite dans la
+[recette complète et isolée](../documentation/history/deploiement_continu_2026-09-10.md#staging-complet-et-isolé-à-construire) :
+frontend, CMS et PostgreSQL dédiés, PVC/caches, espace média, configurations et
+secrets distincts de la production. Les agents travaillant en parallèle
+coordonnent l'occupation et la version du staging GTHF partagé, avec un jeu de
+données contrôlé et des parcours CRUD/médias fonctionnels. Des instances par PR
+restent une option ultérieure, pas une exigence du staging de base. La production
+historique reste dans `gthdf-staging` tant qu'une migration explicite n'est pas
+préparée ; aucune commande de ce runbook ne crée à elle seule cette isolation.
+
+Les sources sont désormais rangées sous `/home/ubuntu/source/gthdf-frontend`
+et `/home/ubuntu/source/gthdf-cms`. Ce rangement ne change pas les chemins
+historiques des scripts : le playbook lit toujours, par défaut, l'overlay déjà
+présent sous `/home/production/gthdf-staging-prep/frontend`. Il ne copie pas le
+checkout, ne construit pas les images et ne les importe pas. Un checkout à jour
+n'implique donc pas un déploiement à jour.
+
+Les deux dépôts n'ont pas de workflow GitHub Actions versionné. La
+[cible de livraison continue](../documentation/deploiement_continu.md)
+documente le travail restant pour automatiser un push sur `main` et ne
+reconstruire que les composants concernés. Les commandes ci-dessous décrivent
+la procédure existante et sa préparation historique, pas une CI/CD active.
+
 ## Périmètre
 
 - `ansible/playbooks/audit.yml` vérifie sans mutation le disque, MicroK8s,
   l'IngressClass, les API cert-manager et la StorageClass ;
 - `ansible/playbooks/deploy.yml` applique uniquement `gthdf-staging` et masque
-  toutes les opérations portant sur les secrets ; il redémarre les runtimes
-  uniquement lorsqu'un secret ou l'overlay a réellement changé ;
+  les tâches qui lisent ou appliquent les secrets ; il redémarre **les deux**
+  runtimes CMS et frontend dès que le Secret ou une ressource de l'overlay a
+  changé, même si la modification ne concerne qu'un composant ;
 - `ansible/playbooks/observability.yml` active Metrics Server sur le seul hôte
   OVH et génère un accès K9s techniquement limité à la lecture ;
 - `kubernetes/base/` décrit Next.js, Strapi, PostgreSQL 17 avec PostGIS, le PVC,
@@ -71,9 +122,18 @@ cd infrastructure/ansible
   playbooks/audit.yml
 ```
 
-Cet inventaire cible uniquement `production@game-prod-ovh-gra`. Le playbook ne
+Cet inventaire versionné cible uniquement `ubuntu@penthouse`, dont le nom
+d'hôte attendu est `game-prod-ovh-gra`. Le playbook historique ne
 configure pas Ubuntu, MicroK8s, Traefik ou cert-manager et ne peut appliquer que
 le namespace `gthdf-staging`.
+
+`inventories/ovh/hosts.yml` est suivi par Git via une exception ciblée et
+conserve le groupe Ansible `gthdf_staging`. L'exemple
+`inventories/staging/hosts.example.yml` concerne l'ancienne recette Hetzner.
+Utiliser l'inventaire OVH existant. Vérifier l'identité effective de l'hôte
+et le contexte Kubernetes avant toute application ;
+`deploy.yml` contrôle le namespace, mais ne fait pas lui-même ces deux
+vérifications d'identité.
 
 L'audit exige au moins 6 Gio libres. Un échec sur ce seuil interdit un build ou
 un rollout supplémentaire tant qu'un nettoyage explicitement relu n'a pas été
@@ -81,38 +141,54 @@ effectué.
 
 ## Images
 
-Les images sont construites séparément depuis la racine de chaque dépôt :
+La direction à implémenter est de sélectionner et construire les composants
+sur des runners GitHub Actions, publier leurs images sur GHCR par SHA/digest,
+puis les déployer automatiquement sur Penthouse après CI verte sur `main`.
+La [cible de livraison continue](../documentation/deploiement_continu.md)
+détaille la transition depuis les imports et tags locaux ci-dessous. Le build
+local restera réservé au secours explicitement autorisé.
 
-```bash
-docker build \
-  -t gthdf-postgres:staging \
-  infrastructure/docker/postgres
-docker build -t gthdf-cms:staging .
-docker build \
-  --secret id=strapi_api_token,env=STRAPI_API_TOKEN \
-  --build-arg NEXT_PUBLIC_STRAPI_URL=https://staging-cms.gthf.fr \
-  --build-arg NEXT_PUBLIC_SITE_URL=https://staging.gthf.fr \
-  --build-arg NEXT_IMAGE_REMOTE_ORIGINS=https://s3.eu-west-par.io.cloud.ovh.net \
-  -t gthdf-frontend:staging .
-```
+### Procédure locale actuelle
 
-Le jeton est lu depuis l'environnement du client Docker et monté uniquement
-pendant `next build` avec BuildKit. Ne pas le passer comme `ARG`, car une valeur
-de build peut rester dans les métadonnées ou les couches de l'image.
+Les images sont construites séparément depuis un checkout propre de chaque
+dépôt. Sur ce serveur, le builder local s'utilise avec `sudo -n docker`.
+PostgreSQL utilise le contexte `infrastructure/docker/postgres` du frontend,
+Strapi la racine de `gthdf-cms` et Next.js la racine de `gthdf-frontend`.
 
-Pour reproduire le build de staging en récupérant le jeton via `clever-cli` et
-en le supprimant automatiquement du VPS après usage :
+Le build Next.js reçoit seulement `GTHDF_REVISION` pour la preuve de version.
+Il réussit sans CMS ni secret. Les valeurs `STRAPI_URL=http://gthdf-cms:1337`,
+`PUBLIC_STRAPI_URL=https://cms.gthf.fr`, `SITE_URL=https://gthf.fr`,
+`STRAPI_MEDIA_ORIGINS` et le secret `STRAPI_API_TOKEN` sont injectés au runtime
+par les ConfigMaps et Secrets Kubernetes. Les domaines média admis par
+l'optimiseur d'images sont définis dans `next.config.ts`, relu au build ;
+le Dockerfile n'accepte pas d'argument `NEXT_IMAGE_REMOTE_ORIGINS`.
+
+Ne pas exécuter un script complet en root. Docker et MicroK8s ont des stockages
+d'images distincts : construire
+localement ne suffit pas à rendre l'image disponible au cluster. Docker a été
+installé le 10 septembre ; le build applicatif complet depuis ces checkouts
+reste à valider. Le runtime Next.js et son init-container doivent utiliser
+exactement la même image.
+
+### Lanceur distant historique
+
+Le lanceur existant récupère encore le jeton via `clever-cli` et le supprime
+du builder après usage. Par défaut, il utilise SSH `qg-codex` et le contexte
+`/var/tmp/gthdf-staging-20260909/frontend`, **sans synchroniser les sources**.
+Ces commandes sont conservées pour expliquer la recette initiale ; ne pas les
+utiliser comme preuve d'un build du checkout courant :
 
 ```bash
 npm run infra:staging:build-frontend
-```
-
-Lors de la promotion de cette charge de travail, construire le frontend avec les
-URLs publiques de production et le tag correspondant :
-
-```bash
 npm run infra:production:build-frontend
 ```
+
+Le second point d'entrée sélectionne les URLs publiques et le tag production.
+`GTHDF_DOCKER_SSH_HOST` et `GTHDF_REMOTE_FRONTEND_CONTEXT` permettent de choisir
+un builder et son contexte déjà préparé. Le lanceur appelle `docker` sans sudo
+et ne réalise ni import MicroK8s, ni rollout. La suppression de la dépendance
+Clever et le build d'un SHA exact sur le builder autorisé sont des évolutions
+à implémenter, pas des fonctions actuelles de ce script.
 
 L'overlay conserve les deux Ingress de staging avec leur en-tête `noindex`, et
 ajoute deux Ingress de production sans cet en-tête. Le certificat de production
@@ -124,8 +200,17 @@ Pour un MicroK8s sans registry, exporter chaque image avec `docker save`, la
 copier sur le VPS, puis la charger sur tous les nœuds en passant impérativement
 l'archive sur l'entrée standard : `microk8s images import < image.tar`.
 Passer le chemin comme argument ne charge pas l'image. L'overlay utilise
-volontairement `imagePullPolicy: Never` afin d'éviter un pull implicite d'une
-image différente.
+`imagePullPolicy: Never` pour PostgreSQL et les conteneurs principaux CMS et
+frontend. L'init-container frontend `seed-next-app-cache` conserve
+`IfNotPresent` : il utilise l'image locale si elle est présente et peut tenter
+un pull si elle manque. Vérifier que les deux références frontend sont
+identiques et disponibles après import.
+
+Réimporter un tag identique ne change pas le PodTemplate ; si ni Secret ni
+overlay ne changent, Ansible ne redémarre pas les pods. Il faut donc aujourd'hui
+une activation explicite et vérifiée après import. La cible est de remplacer
+ces tags réutilisés par une référence d'image propre à chaque commit, y compris
+pour l'init-container du frontend.
 
 ## Secrets et rendu
 
@@ -206,9 +291,17 @@ Lors de l'installation du 9 septembre 2026, le nœud consommait environ 150 à
 
 ## Recette et reprise de données
 
-L'ordre de recette est : PostgreSQL, Strapi, puis Next.js. Contrôler les trois
+L'ordre de recette est : PostgreSQL, Strapi, puis Next.js. Le playbook applique
+cependant l'overlay complet avant ses attentes de rollout ; il n'ordonnance pas
+un changement de schéma entre deux livraisons. Contrôler les trois
 rollouts, `/_health`, `/api/health`, le certificat, l'en-tête `X-Robots-Tag`,
 l'administration, une lecture de média et enfin un upload de test.
+
+`/api/health` renvoie seulement `{ "status": "ok" }` : il ne teste ni Strapi,
+ni PostgreSQL, ni la version de l'image. La validation de livraison doit aussi
+lire un contenu publié connu, son média et une page qui le consomme. Un upload
+de recette est une écriture à organiser explicitement, sans l'inclure dans une
+sonde périodique de production.
 
 La reprise de production doit rester non destructive : dump PostgreSQL depuis
 Clever, restauration dans `gthdf-staging`, puis copie des objets Cellar vers le

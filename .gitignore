@@ -42,3 +42,10 @@ infrastructure/kubernetes/overlays/*/secrets.env
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+!infrastructure/ansible/inventories/ovh/hosts.yml
+
+__pycache__/
+*.pyc
+
+.tmp/

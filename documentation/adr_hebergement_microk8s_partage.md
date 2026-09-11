@@ -2,6 +2,9 @@
 
 - Statut : recettes Hetzner et OVH validées ; DNS de production basculés
 - Date : 2026-09-09
+- Relecture exploitation : 2026-09-10 ; hébergement OVH confirmé, livraison
+  automatique non implémentée dans les dépôts GTHF. La
+  [cible CI/CD](deploiement_continu.md) complète cette décision.
 - Dépôts concernés : `gthdf-frontend`, `gthdf-cms`
 
 ## Contexte
@@ -29,9 +32,11 @@ Router sont préchargés par un init-container dans un volume éphémère monté
 leur seul répertoire d'écriture, afin que la régénération ISR reste compatible
 avec ce durcissement.
 
-La recette est strictement isolée dans `gthdf-staging` avec son ServiceAccount,
-ses secrets, son PVC, ses NetworkPolicies, son ResourceQuota et son
-LimitRange. Il réutilise uniquement l'IngressClass `public` et les API
+Lors de la migration initiale, la charge de recette était isolée des autres
+produits dans `gthdf-staging` avec son ServiceAccount, ses secrets, son PVC,
+ses NetworkPolicies, son ResourceQuota et son LimitRange. Après sa promotion,
+ce namespace héberge la production : cette isolation entre produits ne crée
+pas une séparation staging/production. Il réutilise uniquement l'IngressClass `public` et les API
 cert-manager existantes ; le certificat est émis par un `Issuer` HTTP-01 limité
 au namespace. Les hôtes sont
 `staging.gthf.fr` et `staging-cms.gthf.fr`.
@@ -85,7 +90,28 @@ Paris. Le 9 septembre 2026, les deux CNAME de production ont été remplacés pa
 des enregistrements A proxifiés, TTL automatique, vers `141.94.98.109`. Les
 Ingress de production n'appliquent pas le middleware `staging-noindex` et leur
 certificat Let's Encrypt séparé est prêt. Les hôtes de staging restent actifs
-comme voie de recette de la même charge.
+comme alias de la même charge et des mêmes données : une écriture via un hôte
+staging modifie donc la production. Ils ne constituent pas un environnement de
+recette isolé.
+
+## Évolution demandée : recette complète séparée
+
+Le partage actuel des workloads et des données entre les noms staging et
+production doit être corrigé par un staging GTHF complet distinct. Ce staging
+comprend frontend, Strapi et PostgreSQL dédiés, volumes/caches, médias,
+configurations et secrets propres, avec des accès qui ne permettent aucune
+écriture dans la production. Le produit doit y permettre les vrais parcours
+éditoriaux et médias ; un serveur HTTP factice ne remplit pas cette exigence.
+
+Les agents qui travaillent en parallèle coordonnent la version identifiable
+et la réservation de démonstration de ce staging partagé. La multiplication
+des instances par PR reste une option à étudier. La cible garde la parité fonctionnelle
+avec la production, utilise des données de recette contrôlées et qualifie les
+artefacts GitHub Actions avant promotion. Les mécanismes et critères de preuve
+sont définis dans le
+[plan de livraison continue](deploiement_continu.md#staging-complet-et-isolé-à-construire).
+Cette décision documentaire ne déplace pas la production et ne prétend pas
+que ces nouvelles instances sont déjà disponibles.
 
 ## Conséquences
 

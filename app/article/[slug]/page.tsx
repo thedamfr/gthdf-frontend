@@ -1,7 +1,8 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { getArticleBySlug, getArticles } from "@/lib/strapi";
+import { getArticleBySlug } from "@/lib/strapi";
 import { renderSafeMarkdown } from "@/lib/safe-markdown";
 import ArticleMedia from "@/components/ArticleMedia";
 import ImageSlider from "@/components/ImageSlider";
@@ -16,7 +17,7 @@ export async function generateMetadata(
   { params }: ArticlePageProps
 ): Promise<Metadata> {
   const { slug } = await params;
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+  const strapiUrl = runtimeUrls().publicStrapi || "http://localhost:1337";
 
   let article = null;
   try {
@@ -57,19 +58,6 @@ function toAbsoluteMediaUrl(url: string | undefined, strapiUrl: string) {
   return url.startsWith("http") ? url : `${strapiUrl}${url}`;
 }
 
-// Generate static paths for all articles
-export async function generateStaticParams() {
-  try {
-    const articles = await getArticles();
-    return articles.map((article) => ({
-      slug: article.slug,
-    }));
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return [];
-  }
-}
-
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
 
@@ -84,7 +72,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     notFound();
   }
 
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().publicStrapi || 'http://localhost:1337';
 
   return (
     <div className={styles.page}>

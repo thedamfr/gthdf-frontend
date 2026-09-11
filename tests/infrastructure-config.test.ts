@@ -21,11 +21,7 @@ test('the Next runtime image uses standalone output and a non-root user', async 
   );
   assert.match(dockerfile, /^USER node$/m);
   assert.match(dockerfile, /\.next\/standalone/);
-  assert.match(
-    dockerfile,
-    /--mount=type=secret,id=strapi_api_token/,
-  );
-  assert.match(dockerfile, /cat \/run\/secrets\/strapi_api_token/);
+  assert.doesNotMatch(dockerfile, /strapi_api_token|NEXT_PUBLIC_STRAPI_URL/);
   assert.doesNotMatch(dockerfile, /ARG STRAPI_API_TOKEN/);
 });
 
@@ -130,8 +126,8 @@ test('the OVH inventory targets only the verified production host', () => {
   );
 
   assert.match(inventory, /game-prod-ovh-gra:/);
-  assert.match(inventory, /ansible_host: game-prod-ovh-gra/);
-  assert.match(inventory, /ansible_user: production/);
+  assert.match(inventory, /ansible_host: penthouse/);
+  assert.match(inventory, /ansible_user: ubuntu/);
   assert.doesNotMatch(inventory, /\bqg\b/);
 });
 
@@ -214,4 +210,9 @@ test('the Clever migration helpers keep secrets out of build arguments and logs'
   assert.doesNotMatch(build, /ARG STRAPI_API_TOKEN/);
   assert.match(dump, /--format=custom/);
   assert.match(dump, /mode: 0o600/);
+});
+test('the shared image permits staging CMS uploads with a bounded path', async () => {
+  const { default: nextConfig } = await import('../next.config.ts');
+  assert.ok(nextConfig.images?.remotePatterns?.some(pattern =>
+    !(pattern instanceof URL) && pattern.protocol === 'https' && pattern.hostname === 'staging-cms.gthf.fr' && pattern.pathname === '/uploads/**'));
 });

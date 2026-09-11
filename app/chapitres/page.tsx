@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 
 export default async function ChaptersPage() {
   const chapters = await getChaptersInOrder();
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().publicStrapi || 'http://localhost:1337';
   const finderChapters = buildChapterFinderItems(chapters);
   const finderByDocumentId = new Map(
     finderChapters.map((chapter) => [chapter.documentId, chapter])

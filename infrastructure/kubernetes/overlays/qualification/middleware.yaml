@@ -1,0 +1,21 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: https-redirect
+  labels:
+    app.kubernetes.io/name: gthdf
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: staging-noindex
+  labels:
+    app.kubernetes.io/name: gthdf
+spec:
+  headers:
+    customResponseHeaders:
+      X-Robots-Tag: noindex, nofollow, noarchive
