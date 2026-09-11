@@ -121,7 +121,11 @@ Elle ne supprime pas implicitement les alias historiques de production.
    `gthdf-qualification-tls` prêt. À cette étape, n'exposer encore aucune route
    applicative de qualification sur les domaines historiques.
 2. Inventorier les Ingress de tous les namespaces pour les hosts
-   `staging.gthf.fr` et `staging-cms.gthf.fr`. Sauvegarder les deux objets
+   `staging.gthf.fr` et `staging-cms.gthf.fr`, ainsi que les IngressRoute
+   Traefik (HTTP/TCP/UDP) et les HTTPRoute/GRPCRoute Gateway API. Le contrôle
+   exige les deux hosts derrière la passerelle et refuse les routes alternatives
+   qui pourraient les atteindre ; un host littéral étranger tel que
+   `dashboard.localhost` est accepté. Sauvegarder les deux objets
    historiques `gthdf-staging/gthdf-frontend` et `gthdf-staging/gthdf-cms` dans
    le dossier privé de livraison. Refuser la bascule si leurs noms, hosts ou
    services ne correspondent plus à cet inventaire.
@@ -202,6 +206,13 @@ Le schéma automatique accepte les ajouts optionnels compatibles ; les
 suppressions, changements de type et contraintes nouvelles sont refusés.
 `DATABASE_FORCE_MIGRATION=false` conserve les tables et colonnes lors d'un
 retour à un ancien CMS.
+
+Le CMS sérialise `db.schema.sync()` par un verrou transactionnel PostgreSQL
+commun à ses instances. Les anciens pods continuent à servir durant le
+démarrage du nouveau ; le pool conserve au moins trois connexions, dont une
+pour le verrou. La première activation garde le schéma courant, car l'image
+historique ne possède pas ce verrou. La concurrence des démarrages et le
+rollout sans interruption restent à qualifier avec les nouvelles images.
 
 Une recette échouée restaure les spécifications précédentes des ressources
 concernées et revérifie les versions en service. Les namespaces, volumes et

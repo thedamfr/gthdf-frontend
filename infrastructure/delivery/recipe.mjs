@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { requireIsolatedSecrets } from './secret-isolation.mjs';
 
 const environment = process.argv[2];
 if (!['staging', 'production'].includes(environment)) throw new Error('A named environment is required');
@@ -39,7 +40,7 @@ function requireIsolation() {
   assert.equal(stageConfig.PUBLIC_URL, origins.cms);
   assert.equal(stageConfig.CLIENT_URL, origins.frontend);
   assert.notEqual(stageConfig.AWS_BUCKET, productionConfig.AWS_BUCKET);
-  for (const key of ['POSTGRES_PASSWORD', 'APP_KEYS', 'API_TOKEN_SALT', 'ADMIN_JWT_SECRET', 'JWT_SECRET', 'PREVIEW_SECRET', 'STRAPI_API_TOKEN']) assert.notEqual(secrets[key], productionSecrets[key]);
+  requireIsolatedSecrets(secrets, productionSecrets);
   const prodVolume = kube('gthdf-staging', 'get', 'pvc', 'gthdf-postgres');
   const stageVolume = kube(namespace, 'get', 'pvc', 'gthdf-postgres');
   assert.notEqual(prodVolume.spec.volumeName, stageVolume.spec.volumeName);

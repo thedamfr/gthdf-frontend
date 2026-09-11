@@ -4,6 +4,7 @@ import base64
 import contextlib
 import datetime
 import fcntl
+import fnmatch
 import hashlib
 import json
 import os
@@ -35,8 +36,9 @@ def promote(activate):
     activate('production')
 
 
-def require_isolated_staging_routes(ingresses):
+def require_isolated_staging_routes(ingresses, alternate_routes=()):
     hosts = {'staging.gthf.fr', 'staging-cms.gthf.fr'}
+    found = set()
     for ingress in ingresses:
         for rule in ingress.get('spec', {}).get('rules', []):
             if rule.get('host') not in hosts:
@@ -45,6 +47,22 @@ def require_isolated_staging_routes(ingresses):
             if (ingress['metadata'].get('namespace') != NAMESPACES['staging'] or not services
                     or any(service.get('name') != 'gthdf-staging-gateway' or service.get('port') not in ({'number': 3001}, {'name': 'http'}) for service in services)):
                 raise RuntimeError('Conflicting staging Ingress: complete the reviewed gateway cutover before delivery')
+            found.add(rule['host'])
+    if found != hosts:
+        raise RuntimeError('Both staging hosts must be routed through the qualification gateway before delivery')
+    for route in alternate_routes:
+        if route['kind'] in ('HTTPRoute', 'GRPCRoute'):
+            patterns = route.get('spec', {}).get('hostnames') or ['*']
+            if not any(fnmatch.fnmatchcase(host, pattern) for host in hosts for pattern in patterns):
+                continue
+        elif route['kind'] in ('IngressRoute', 'IngressRouteTCP'):
+            matches = [rule.get('match', '') for rule in route.get('spec', {}).get('routes', [])]
+            # Only provably unrelated literal hosts are accepted. Regex/catch-all
+            # routing requires platform review rather than guessing precedence.
+            parsed = [re.fullmatch(r'Host(?:SNI)?\(`([a-zA-Z0-9.-]+)`\)(?:\s*&&\s*PathPrefix\(`[^`]+`\))*', match) for match in matches]
+            if matches and all(match and match[1].lower() not in hosts for match in parsed):
+                continue
+        raise RuntimeError('An alternate route may reach staging; review its routing boundary before delivery')
 
 
 def require_compatible_schema(previous, candidate):
@@ -318,7 +336,8 @@ def activate(root, environment, candidate, recipe):
             require_compatible_schema(previous['components']['cms']['schemas'], combined['cms']['schemas'])
         if environment == 'staging':
             ingresses = json.loads(kubectl('staging', 'get', 'ingress', '--all-namespaces', '-o', 'json'))
-            require_isolated_staging_routes(ingresses['items'])
+            alternate = json.loads(kubectl('staging', 'get', 'ingressroutes.traefik.io,ingressroutetcps.traefik.io,ingressrouteudps.traefik.io,httproutes.gateway.networking.k8s.io,grpcroutes.gateway.networking.k8s.io', '--all-namespaces', '-o', 'json'))
+            require_isolated_staging_routes(ingresses['items'], alternate['items'])
         changed = changed_workloads(environment, previous['components'], combined)
         snapshots = snapshot_components(environment, changed)
         infrastructure_snapshot = []

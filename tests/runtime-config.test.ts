@@ -34,3 +34,7 @@ test('preview uses the request origin unless a site URL was explicitly configure
   assert.equal(runtimeUrls({ SITE_URL: 'https://staging.gthf.fr' }, 'http://internal:3000').site, 'https://staging.gthf.fr');
   assert.equal(runtimeUrls({ NEXT_PUBLIC_SITE_URL: 'https://legacy.example' }, 'http://localhost:3000').site, 'https://legacy.example');
 });
+
+test('a private CMS endpoint is never used as a public origin fallback', () => {
+  assert.equal(runtimeUrls({ STRAPI_URL: 'http://gthdf-cms:1337' }).publicStrapi, 'http://localhost:1337');
+});

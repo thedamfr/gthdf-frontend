@@ -16,11 +16,27 @@ class DeliveryTests(unittest.TestCase):
                 {'host': host, 'http': {'paths': [{'backend': {'service': {'name': service, 'port': {'name': 'http'}}}}]}}
             ]}}
         gateway = ingress('gthdf-qualification', 'gthdf-staging-gateway')
+        cms_gateway = ingress('gthdf-qualification', 'gthdf-staging-gateway', 'staging-cms.gthf.fr')
         production = ingress('gthdf-staging', 'gthdf-frontend', 'gthf.fr')
-        release.require_isolated_staging_routes([gateway, production])
+        release.require_isolated_staging_routes([gateway, cms_gateway, production])
         for conflict in [ingress('gthdf-staging', 'gthdf-frontend'), ingress('gthdf-qualification', 'gthdf-cms', 'staging-cms.gthf.fr')]:
             with self.assertRaises(RuntimeError):
-                release.require_isolated_staging_routes([gateway, conflict])
+                release.require_isolated_staging_routes([gateway, cms_gateway, conflict])
+        for incomplete in [[], [gateway], [cms_gateway]]:
+            with self.assertRaises(RuntimeError):
+                release.require_isolated_staging_routes(incomplete)
+        dashboard = {'kind': 'IngressRoute', 'spec': {'routes': [{'match': 'Host(`dashboard.localhost`)'}]}}
+        release.require_isolated_staging_routes([gateway, cms_gateway], [dashboard])
+        for alternate in [
+            {'kind': 'IngressRoute', 'spec': {'routes': [{'match': 'Host(`staging.gthf.fr`)'}]}},
+            {'kind': 'IngressRoute', 'spec': {'routes': [{'match': 'PathPrefix(`/`)'}]}},
+            {'kind': 'HTTPRoute', 'spec': {'hostnames': ['*.gthf.fr']}},
+            {'kind': 'HTTPRoute', 'spec': {}},
+            {'kind': 'GRPCRoute', 'spec': {'hostnames': ['staging-cms.gthf.fr']}},
+            {'kind': 'IngressRouteTCP', 'spec': {'routes': [{'match': 'HostSNI(`*`)'}]}},
+        ]:
+            with self.assertRaises(RuntimeError):
+                release.require_isolated_staging_routes([gateway, cms_gateway], [alternate])
 
     def test_frontend_only_qualification_checks_a_cms_inherited_from_production(self):
         old_cms = {'image': 'cms-old', 'schemas': {'article': {'attributes': {'title': {'type': 'string'}}}}}

@@ -50,6 +50,13 @@ nouvelles exigent un plan séparé. Strapi ne supprime pas les structures
 persistantes au retour arrière (`DATABASE_FORCE_MIGRATION=false`). PostgreSQL
 reste hors du cycle de reconstruction applicatif.
 
+Le démarrage CMS sérialise la synchronisation du schéma par un verrou
+transactionnel PostgreSQL partagé entre instances. Le pool conserve au moins
+trois connexions, dont une réservée au verrou. L'ancien pod continue à servir
+durant cette synchronisation additive. La première activation conserve le
+schéma courant puisque l'image historique n'a pas encore ce verrou ; la
+qualification staging doit vérifier les démarrages concurrents avant promotion.
+
 ## Conséquences et retour arrière
 
 Un échec de recette staging bloque la production. Un échec après activation
