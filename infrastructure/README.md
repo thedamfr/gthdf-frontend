@@ -5,24 +5,40 @@ sur le serveur OVH Gravelines. Les deux cibles utilisent le même namespace isol
 `gthdf-staging`. Après validation OVH, les DNS de production ont été basculés
 vers Gravelines ; Clever reste provisoirement la voie de retour arrière.
 
-## Livraison continue en préparation — 11 septembre 2026
+## Livraison GHCR vérifiée — 11 septembre 2026
 
-Le [runbook actuel](../documentation/deploiement_continu.md) décrit les
-workflows, les prérequis privés et les étapes encore ouvertes. Le namespace
-`gthdf-qualification` possède maintenant un PostgreSQL avec son PVC
-propre, sur la même image que la production. Sa copie éditoriale exclut les
-comptes, sessions, jetons et paramètres privés de production. Les 2 720 objets
-média sont copiés dans le bucket staging et les URLs ont été réécrites. Un
-administrateur et un jeton de lecture propres au staging sont créés. Les applications et les routes
-staging n'ont pas encore été basculées ; aucune recette d'écriture n'y est
-possible à ce stade. Le nouvel overlay `qualification` prévoit le bucket
-`gthf-staging-media-bis` à Gravelines. L'utilisateur S3 `gthf` est partagé
-entre les seuls buckets GTHF par décision de l'utilisateur.
+Le [runbook actuel](../documentation/deploiement_continu.md) est la référence
+pour les images réellement servies, les recettes, le retour arrière initial et
+la promotion vérifiée à 14:36 UTC. Les images publiées par GitHub Actions ont
+été qualifiées puis promues par une opération SSH autorisée ; l’automatisation
+attend encore les accès Tailscale/SSH des runners.
 
-Les commandes historiques ci-dessous décrivent la migration initiale. Ne pas
-les utiliser pour écraser la configuration de la future livraison par digest.
+Le namespace `gthdf-qualification` contient maintenant les trois applications,
+PostgreSQL et son PVC distinct, une copie éditoriale sans identités de production
+et les médias staging. Les 2 720 objets sont copiés, les 2 209 références réécrites,
+et les accès de recette sont dédiés. Les domaines
+[frontend staging](https://staging.gthf.fr/) et [CMS staging](https://staging-cms.gthf.fr/)
+servent cette pile isolée avec authentification. Les recettes CRUD, preview,
+publication, upload et nettoyage ont réussi.
 
-## État vérifié le 10 septembre 2026
+Le bucket staging est `gthf-staging-media-bis` à Gravelines ; le bucket historique
+`gthdf-staging-media` reste celui de production à Paris. L’identité S3 `gthf`,
+partagée entre ces seuls buckets sur instruction du propriétaire, est installée
+dans les deux environnements. Les secrets Strapi restent distincts.
+
+Prometheus et Grafana sont désormais gérés par la plateforme
+[`infra-sincere`](https://github.com/thedamfr/infra-sincere/blob/main/documentation/observabilite.md).
+Les sondes `production-http` des applications `gthdf-frontend` et `gthdf-cms`
+sont présentes, fraîches et saines après la promotion. Le
+[guide de surveillance](https://github.com/thedamfr/infra-sincere/blob/main/documentation/deploiement-surveillance-notifications.md)
+décrit les requêtes, les alertes et la procédure de notification. Leur installation
+n’est pas assurée par le playbook historique GTHF décrit plus bas.
+
+Les sections suivantes conservent l’historique de migration. Elles ne décrivent
+pas les routes ni les images actuellement en service ; ne pas les utiliser pour
+écraser la configuration de livraison par digest.
+
+## Historique — état du 10 septembre 2026
 
 Sur `game-prod-ovh-gra`, contexte `microk8s`, les workloads de
 `gthdf-staging` sont prêts : frontend `gthdf-frontend:production`, CMS
@@ -282,8 +298,10 @@ Le lanceur ouvre tous les namespaces, ajoute `--readonly` et établit
 automatiquement un tunnel SSH vers l'API Kubernetes liée à
 `127.0.0.1:16443`. Aucun port d'administration n'est exposé publiquement.
 `kubectl top` et Metrics Server montrent la
-consommation récente ; ils ne conservent pas d'historique. Prometheus, Grafana
-et le Dashboard Kubernetes ne sont pas installés à ce stade.
+consommation récente ; ils ne conservent pas d'historique. Au relevé initial du
+9 septembre, Prometheus, Grafana et le Dashboard Kubernetes n’étaient pas
+installés. Prometheus/Grafana sont depuis gérés par `infra-sincere`, comme
+indiqué dans l’état actuel en tête de ce document.
 
 Lors de l'installation du 9 septembre 2026, le nœud consommait environ 150 à
 175 mCPU et 3,2 Gio de RAM. GTHDF au repos représentait environ 8 mCPU et

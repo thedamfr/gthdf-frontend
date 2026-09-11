@@ -7,6 +7,17 @@
   [cible CI/CD](deploiement_continu.md) complète cette décision.
 - Dépôts concernés : `gthdf-frontend`, `gthdf-cms`
 
+## Mise à jour d’exploitation — 11 septembre 2026
+
+Cette ADR conserve la décision et les constats de la migration initiale des
+9 et 10 septembre. Les états actuels sont dans le [runbook de livraison](deploiement_continu.md) :
+staging isolé, images GHCR qualifiées et promues, identité S3 GTHF dédiée au produit.
+Prometheus et Grafana sont désormais gérés par
+[`infra-sincere`](https://github.com/thedamfr/infra-sincere/blob/main/documentation/observabilite.md) ;
+leurs sondes de production ont été vérifiées pendant la promotion. Les passages
+ci-dessous sur Metrics Server seul décrivent le périmètre du playbook initial,
+et non l’absence actuelle d’observabilité sur le serveur partagé.
+
 ## Contexte
 
 Avant cette migration, GTHDF utilisait deux applications Clever Cloud, un

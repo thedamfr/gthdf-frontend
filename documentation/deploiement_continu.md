@@ -13,8 +13,8 @@ Les PR [frontend #33](https://github.com/thedamfr/gthdf-frontend/pull/33) et
 [CMS #23](https://github.com/thedamfr/gthdf-cms/pull/23) sont fusionnées.
 Les workflows [frontend](https://github.com/thedamfr/gthdf-frontend/actions/runs/34608587524)
 et [CMS](https://github.com/thedamfr/gthdf-cms/actions/runs/34608608471) ont réussi,
-construit et publié les images GHCR. Le même couple est qualifié en staging et
-vérifié en production le 11 septembre à 14:36 UTC.
+construit et publié les images GHCR. Une opération SSH autorisée a ensuite
+qualifié le même couple en staging et l’a vérifié en production le 11 septembre à 14:36 UTC.
 
 | Application | Commit de l’image | Digest SHA-256 GHCR |
 |---|---|---|
@@ -126,7 +126,10 @@ Les images GHCR, le stockage, les recettes, la persistance et les références
 initiales sont vérifiés. Deux CMS ont démarré ensemble en staging, avec les
 14 articles, 20 chapitres et 2 209 fichiers conservés. Un nouveau pod volontairement
 indisponible a laissé le CMS sain servir, puis le digest officiel a été restauré.
-Les preuves restent sous le dossier privé `gthdf-delivery/bootstrap/`.
+Le déployeur courant a aussi réussi ses deux recettes sur une livraison
+inchangée, avec les cinq pods applicatifs et leurs compteurs de redémarrage
+identiques avant/après. Cette exécution SSH ne valide pas encore le raccordement
+OIDC du runner. Les preuves restent sous le dossier privé `gthdf-delivery/bootstrap/`.
 
 ### Bascule initiale des routes de staging
 
@@ -203,6 +206,8 @@ d'acceptation complets. L'implémentation locale sépare les responsabilités :
 | `infrastructure/kubernetes/overlays/production/` | Manifests de la production dans son namespace historique |
 
 Le workflow compare les entrées runtime, infrastructure et PostgreSQL. Les
+Markdown narratifs sous `infrastructure/`, y compris les guides PostgreSQL,
+sont classés comme validation : ils ne déclenchent pas de réconciliation. Les
 Markdown narratifs, tests et workflows ne provoquent pas une nouvelle image
 lorsque les entrées runtime sont identiques. Les CSV, scripts de migration et
 chemins inconnus sont conservés dans le calcul runtime. Une évolution de
@@ -282,7 +287,7 @@ ciblés couvrent aussi l’ordre qualification/promotion et le déclenchement du
 les empreintes de build, le cookie de staging, le cache privé et les garde-fous
 de peuplement. La syntaxe Python/YAML/Ansible, les liens locaux et
 `git diff --check` sont contrôlés. Les CI, images GHCR et recettes sont désormais
-vérifiées. Les derniers résultats sont : 173 tests unitaires frontend, 51 tests
+vérifiées. Les derniers résultats sont : 174 tests unitaires frontend, 51 tests
 de composants, 18 tests Python et 259 tests CMS, avec les builds Next/Strapi.
 
 La première restauration partielle par stdin a laissé `kubectl` attendre après
