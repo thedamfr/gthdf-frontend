@@ -1,12 +1,12 @@
 # ADR — Livraison par images immuables et staging GTHF
 
 - Date : 2026-09-11
-- Statut : décision retenue ; transport corrigé vers une réconciliation locale
+- Statut : décision mise en œuvre ; réconciliation locale activée
 - Dépôts : `gthdf-frontend`, `gthdf-cms`
 
 ## Contexte
 
-La production fonctionne sur MicroK8s, dans le namespace historique
+Au constat initial, la production fonctionne sur MicroK8s, dans le namespace historique
 `gthdf-staging`. Ses tags locaux ne permettent pas de prouver le SHA source.
 Les domaines staging pointent encore sur cette production. L'audit initial est
 conservé dans le [snapshot du 10 septembre](history/deploiement_continu_2026-09-10.md).
@@ -92,5 +92,5 @@ n'offrent pas les preuves de release nécessaires à l'automatisme ; une premiè
 qualification explicite du couple d'images et l'enregistrement des deux états
 initiaux restent indispensables avant son activation.
 
-Les preuves d'exploitation, prérequis et étapes restant à qualifier sont dans
+Les preuves d'exploitation, résultats et limites de qualification sont dans
 le [runbook de livraison](deploiement_continu.md).

@@ -243,9 +243,9 @@ applications, sa base ou son bucket tant que les sauvegardes OVH et la période
 d'observation post-bascule ne sont pas validées.
 
 Depuis le 11 septembre 2026, GitHub Actions construit et publie les images par
-SHA et digest GHCR. La première paire est qualifiée puis promue sur Penthouse ;
-le [runbook de livraison](documentation/deploiement_continu.md) porte l’état
-vérifié et les prérequis encore nécessaires à l’activation automatique.
+SHA et digest GHCR. Le service local sur Penthouse qualifie les candidats en
+staging puis les promeut en production. Le [runbook de livraison](documentation/deploiement_continu.md)
+porte les résultats vérifiés, la procédure de pause et les preuves d’exploitation.
 
 Le staging complet utilise `gthdf-qualification` avec ses applications,
 PostgreSQL, volume, médias, configuration et comptes propres. Les domaines
