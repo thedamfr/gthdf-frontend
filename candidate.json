@@ -1,0 +1,29 @@
+{
+  "publication": {
+    "component": "frontend",
+    "repository": "thedamfr/gthdf-frontend",
+    "revision": "636d7b6a6226d225141df69d57d45c6bc344f7c7",
+    "runId": 34628121326,
+    "runAttempt": 1
+  },
+  "owner": "github-frontend-34628121326",
+  "startedAt": "2026-09-11T17:32:22.604Z",
+  "deployerRevision": "636d7b6a6226d225141df69d57d45c6bc344f7c7",
+  "plan": {
+    "build": true,
+    "infrastructure": true,
+    "postgres": true
+  },
+  "components": {
+    "frontend": {
+      "image": "ghcr.io/thedamfr/gthdf-frontend@sha256:6834e843bdad48a5f9651b8928f36e55c405d62252ff6eed7234e2952bcd6882",
+      "revision": "636d7b6a6226d225141df69d57d45c6bc344f7c7",
+      "processedRevision": "636d7b6a6226d225141df69d57d45c6bc344f7c7",
+      "fingerprints": {
+        "runtime": "51dc12872cbab5de6943e6ea2769451b77b4450f8ca001f0fdda892b4faa4460",
+        "infrastructure": "f117498627b9e3cd624676f590fe3a889fe52ac21867e116a48d9e1a13233382",
+        "postgres": "1d3dc6d4ff07d1c0b89b7d2611a5c5b268c202e56d76da2535407a1c4bbcd9cb"
+      }
+    }
+  }
+}
