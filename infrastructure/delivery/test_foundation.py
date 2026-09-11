@@ -14,6 +14,20 @@ spec.loader.exec_module(release)
 
 
 class FoundationTests(unittest.TestCase):
+    def test_staging_configuration_does_not_inherit_production_endpoints(self):
+        config = foundation.staging_configuration({'NODE_ENV': 'production', 'PRODUCTION_ONLY_ENDPOINT': 'https://production.example', 'DATABASE_URL': 'postgres://production', 'DATABASE_HOST': 'production-db'})
+        self.assertNotIn('PRODUCTION_ONLY_ENDPOINT', config)
+        self.assertNotIn('DATABASE_URL', config)
+        self.assertEqual(config['DATABASE_HOST'], 'gthdf-postgres')
+        self.assertEqual(config['AWS_BUCKET'], 'gthf-staging-media-bis')
+
+    def test_existing_target_volume_cannot_reference_production(self):
+        foundation.require_distinct_volumes('production-volume', None)
+        foundation.require_distinct_volumes('production-volume', 'staging-volume')
+        for production, staging in [('production-volume', 'production-volume'), (None, 'staging-volume')]:
+            with self.assertRaises(RuntimeError):
+                foundation.require_distinct_volumes(production, staging)
+
     def test_existing_state_directory_must_be_private_owned_and_not_a_symlink(self):
         def directory(mode, owner=os.geteuid()):
             return SimpleNamespace(lstat=lambda: SimpleNamespace(st_mode=mode, st_uid=owner))

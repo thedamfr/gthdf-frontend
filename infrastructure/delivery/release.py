@@ -83,8 +83,10 @@ def require_compatible_schema(previous, candidate):
         for attribute, value in old.get('attributes', {}).items():
             if new.get('attributes', {}).get(attribute) != value:
                 raise ValueError('Changed CMS attribute requires a separate migration plan')
+    for path, new in candidate.items():
+        old_attributes = previous.get(path, {}).get('attributes', {})
         for attribute, value in new.get('attributes', {}).items():
-            if attribute not in old.get('attributes', {}) and (value.get('required') or value.get('unique')):
+            if attribute not in old_attributes and (value.get('required') or value.get('unique')):
                 raise ValueError('Constrained new attributes require a separate migration plan')
 
 

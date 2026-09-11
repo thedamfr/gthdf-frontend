@@ -120,6 +120,10 @@ recette, la base, les URLs privées/publiques et le stockage doivent correspondr
 exactement à la configuration de qualification. La reprise de préparation
 revérifie les neuf secrets applicatifs face à la production, même lorsqu'un
 checkpoint existe ; le compte S3 GTHF partagé reste l'exception autorisée.
+La configuration initiale ne reprend que les paramètres applicatifs communs
+explicitement autorisés ; ses endpoints et sa base sont définis pour staging.
+La comparaison des volumes précède toute application de ressource ou attente
+de démarrage, y compris lors d'une reprise.
 
 1. Vérifier l'hôte, le contexte, les digests et les rollouts des trois Deployments
    `gthdf-cms`, `gthdf-frontend` et `gthdf-staging-gateway` dans
@@ -210,6 +214,7 @@ lecture de son index avec `pg_restore --list`. Le fichier privé est conservé
 sur l'hôte ; la vérification de l'index n'est pas une preuve de restauration.
 Le schéma automatique accepte les ajouts optionnels compatibles ; les
 suppressions, changements de type et contraintes nouvelles sont refusés.
+Cette restriction couvre aussi les attributs d'un nouveau schéma.
 `DATABASE_FORCE_MIGRATION=false` conserve les tables et colonnes lors d'un
 retour à un ancien CMS.
 

@@ -74,6 +74,10 @@ class DeliveryTests(unittest.TestCase):
         previous = {'article': {'attributes': {'title': {'type': 'string'}}}}
         added = {'article': {'attributes': {'title': {'type': 'string'}, 'summary': {'type': 'text'}}}}
         release.require_compatible_schema(previous, added)
+        release.require_compatible_schema(previous, {**previous, 'new-type': {'attributes': {'summary': {'type': 'text'}}}})
+        for constraint in ('required', 'unique'):
+            with self.assertRaises(ValueError):
+                release.require_compatible_schema(previous, {**previous, 'new-type': {'attributes': {'title': {'type': 'string', constraint: True}}}})
         with self.assertRaises(ValueError):
             release.require_compatible_schema(previous, {'article': {'attributes': {}}})
         with self.assertRaises(ValueError):

@@ -52,11 +52,39 @@ def require_private_directory(directory):
         raise RuntimeError('The delivery state directory must be private and owned by the operator')
 
 
+def staging_configuration(source):
+    shared_keys = ('NODE_ENV', 'XDG_CONFIG_HOME', 'STRAPI_TELEMETRY_DISABLED', 'HOST', 'PORT', 'PROXY_KOA', 'DATABASE_POOL_MIN', 'DATABASE_POOL_MAX')
+    config = {key: source[key] for key in shared_keys if key in source}
+    config.update({
+        'DATABASE_CLIENT': 'postgres', 'DATABASE_HOST': 'gthdf-postgres', 'DATABASE_PORT': '5432',
+        'DATABASE_NAME': 'gthdf', 'DATABASE_USERNAME': 'gthdf', 'DATABASE_SSL': 'false',
+        'PUBLIC_URL': 'https://staging-cms.gthf.fr', 'CLIENT_URL': 'https://staging.gthf.fr',
+        'PREVIEW_ALLOWED_ORIGINS': 'https://staging.gthf.fr', 'STRAPI_URL': 'http://gthdf-cms:1337',
+        'PUBLIC_STRAPI_URL': 'https://staging-cms.gthf.fr', 'SITE_URL': 'https://staging.gthf.fr',
+        'NEXT_PUBLIC_STRAPI_URL': 'https://staging-cms.gthf.fr', 'NEXT_PUBLIC_SITE_URL': 'https://staging.gthf.fr',
+        'AWS_REGION': 'gra', 'AWS_ENDPOINT': 'https://s3.gra.io.cloud.ovh.net',
+        'AWS_BUCKET': 'gthf-staging-media-bis', 'AWS_CDN_URL': 'https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net',
+        'MEDIA_ALLOWED_ORIGINS': 'https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net',
+        'STRAPI_MEDIA_ORIGINS': 'https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net',
+        'DATABASE_FORCE_MIGRATION': 'false',
+    })
+    return config
+
+
+def require_distinct_volumes(production, staging):
+    if not production or production == staging:
+        raise RuntimeError('Database volumes are not isolated')
+
+
 def main():
     if socket.gethostname() != 'game-prod-ovh-gra' or kube('config', 'current-context').decode().strip() != 'microk8s':
         raise RuntimeError('Unexpected deployment target')
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     require_private_directory(state)
+    source_volume = read('gthdf-staging', 'pvc', 'gthdf-postgres')
+    existing_volume = kube('-n', namespace, 'get', 'pvc', 'gthdf-postgres', '--ignore-not-found', '-o', 'json')
+    staging_volume = json.loads(existing_volume)['spec'].get('volumeName') if existing_volume.strip() else None
+    require_distinct_volumes(source_volume['spec'].get('volumeName'), staging_volume)
     checkpoint = state / 'staging-foundation.json'
     if checkpoint.exists():
         require_secret_isolation(read(namespace, 'secret', 'gthdf-secrets')['data'], read('gthdf-staging', 'secret', 'gthdf-secrets')['data'])
@@ -88,19 +116,9 @@ def main():
     quota['spec']['hard'].update({'requests.cpu': '2', 'requests.memory': '3Gi', 'limits.cpu': '8', 'limits.memory': '8Gi'})
     apply(quota)
     config = transplant(read('gthdf-staging', 'configmap', 'gthdf-config'))
-    config['data'].update({
-        'PUBLIC_URL': 'https://staging-cms.gthf.fr', 'CLIENT_URL': 'https://staging.gthf.fr',
-        'PREVIEW_ALLOWED_ORIGINS': 'https://staging.gthf.fr', 'STRAPI_URL': 'http://gthdf-cms:1337',
-        'PUBLIC_STRAPI_URL': 'https://staging-cms.gthf.fr', 'SITE_URL': 'https://staging.gthf.fr',
-        'NEXT_PUBLIC_STRAPI_URL': 'https://staging-cms.gthf.fr', 'NEXT_PUBLIC_SITE_URL': 'https://staging.gthf.fr',
-        'AWS_REGION': 'gra', 'AWS_ENDPOINT': 'https://s3.gra.io.cloud.ovh.net',
-        'AWS_BUCKET': 'gthf-staging-media-bis', 'AWS_CDN_URL': 'https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net',
-        'MEDIA_ALLOWED_ORIGINS': 'https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net',
-        'STRAPI_MEDIA_ORIGINS': 'https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net',
-        'DATABASE_FORCE_MIGRATION': 'false',
-    })
+    config['data'] = staging_configuration(config['data'])
     apply(config)
-    volume = transplant(read('gthdf-staging', 'pvc', 'gthdf-postgres'))
+    volume = transplant(source_volume)
     volume['spec'].pop('volumeName', None)
     apply(volume)
     service = transplant(read('gthdf-staging', 'service', 'gthdf-postgres'))
