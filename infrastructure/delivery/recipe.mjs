@@ -5,6 +5,7 @@ import { requireIsolatedSecrets } from './secret-isolation.mjs';
 import { requireStagingConfiguration } from './configuration-isolation.mjs';
 import { recipeMediaUrl } from './media-policy.mjs';
 import { cleanupRecipeData } from './recipe-cleanup.mjs';
+import { uploadPng } from './upload-fixture.mjs';
 
 const environment = process.argv[2];
 if (!['staging', 'production'].includes(environment)) throw new Error('A named environment is required');
@@ -132,8 +133,7 @@ async function writeRecipe(credentials) {
     assert.ok((await published.text()).includes(slug));
     step = 'upload and read media';
     const form = new FormData();
-    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6rQAAAABJRU5ErkJggg==', 'base64');
-    form.set('files', new Blob([png], { type: 'image/png' }), slug + '.png');
+    form.set('files', new Blob([uploadPng], { type: 'image/png' }), slug + '.png');
     const upload = await (await request(origins.cms, '/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + adminToken }, body: form })).json();
     uploaded = upload[0];
     assert.ok(uploaded?.id && uploaded.url);

@@ -14,6 +14,23 @@ spec.loader.exec_module(release)
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_image_revision_must_match_its_immutable_oci_label(self):
+        release.require_image_revision({'config': {'Labels': {'org.opencontainers.image.revision': 'expected-revision'}}}, 'expected-revision')
+        for config in [{}, {'config': {'Labels': {}}}, {'config': {'Labels': {'org.opencontainers.image.revision': 'other-revision'}}}]:
+            with self.assertRaises(ValueError):
+                release.require_image_revision(config, 'expected-revision')
+
+    def test_candidate_images_bind_the_processed_revision_or_verified_reuse(self):
+        previous = {'image': 'previous-image', 'revision': 'previous-revision', 'fingerprints': {'runtime': 'previous-runtime'}}
+        current = {'image': 'new-image', 'revision': 'current-revision', 'processedRevision': 'current-revision', 'fingerprints': {'runtime': 'new-runtime'}}
+        reused = {**previous, 'processedRevision': 'current-revision'}
+        reference = {'cms': previous}
+        release.require_candidate_images({'cms': current}, reference)
+        release.require_candidate_images({'cms': reused}, reference)
+        for invalid in [{**current, 'revision': 'previous-revision'}, {**reused, 'revision': 'current-revision'}, {**reused, 'fingerprints': {'runtime': 'new-runtime'}}, {**reused, 'fingerprints': {}}]:
+            with self.assertRaises(ValueError):
+                release.require_candidate_images({'cms': invalid}, reference)
+
     def test_release_proof_does_not_follow_redirects_or_forward_credentials(self):
         visited = []
 
@@ -37,13 +54,20 @@ class DeliveryTests(unittest.TestCase):
 
     def test_staging_routes_reject_historical_and_unauthenticated_backends(self):
         def ingress(namespace, service, host='staging.gthf.fr'):
-            return {'metadata': {'namespace': namespace}, 'spec': {'rules': [
+            return {'metadata': {'namespace': namespace, 'annotations': {'traefik.ingress.kubernetes.io/router.middlewares': 'gthdf-qualification-https-redirect@kubernetescrd'}}, 'spec': {'tls': [{'hosts': [host], 'secretName': 'qualification-tls'}], 'rules': [
                 {'host': host, 'http': {'paths': [{'backend': {'service': {'name': service, 'port': {'name': 'http'}}}}]}}
             ]}}
         gateway = ingress('gthdf-qualification', 'gthdf-staging-gateway')
         cms_gateway = ingress('gthdf-qualification', 'gthdf-staging-gateway', 'staging-cms.gthf.fr')
         production = ingress('gthdf-staging', 'gthdf-frontend', 'gthf.fr')
         release.require_isolated_staging_routes([gateway, cms_gateway, production])
+        for insecure in [
+            {**gateway, 'spec': {**gateway['spec'], 'tls': []}},
+            {**gateway, 'spec': {**gateway['spec'], 'tls': [{'hosts': ['other.gthf.fr'], 'secretName': 'qualification-tls'}]}},
+            {**gateway, 'metadata': {'namespace': 'gthdf-qualification'}},
+        ]:
+            with self.assertRaises(RuntimeError):
+                release.require_isolated_staging_routes([insecure, cms_gateway])
         for conflict in [ingress('gthdf-staging', 'gthdf-frontend'), ingress('gthdf-qualification', 'gthdf-cms', 'staging-cms.gthf.fr')]:
             with self.assertRaises(RuntimeError):
                 release.require_isolated_staging_routes([gateway, cms_gateway, conflict])
@@ -72,7 +96,7 @@ class DeliveryTests(unittest.TestCase):
         new_cms = {'image': 'cms-new', 'schemas': {'article': {'attributes': {'title': {'type': 'integer'}}}}}
         staging = {'components': {'cms': old_cms, 'frontend': {'image': 'frontend-old'}}}
         production = {'components': {'cms': new_cms, 'frontend': {'image': 'frontend-old'}}}
-        candidate = {'owner': 'test', 'components': {'frontend': {'image': 'frontend-new'}}}
+        candidate = {'owner': 'test', 'components': {'frontend': {'image': 'frontend-new', 'revision': 'new', 'processedRevision': 'new'}}}
         with contextlib.ExitStack() as mocks:
             mocks.enter_context(patch.object(release, 'environment_lock', lambda *args: contextlib.nullcontext()))
             mocks.enter_context(patch.object(release, 'require_current', lambda *args: None))
@@ -110,7 +134,7 @@ class DeliveryTests(unittest.TestCase):
 
     def test_failed_activation_restores_real_deployment_and_does_not_advance_release(self):
         previous = {'components': {'frontend': {'image': 'previous'}, 'cms': {'image': 'cms'}}}
-        candidate = {'owner': 'test', 'deployerRevision': 'a' * 40, 'components': {'frontend': {'image': 'candidate'}}}
+        candidate = {'owner': 'test', 'deployerRevision': 'a' * 40, 'components': {'frontend': {'image': 'candidate', 'revision': 'new', 'processedRevision': 'new'}}}
         calls = []
         saved = []
 

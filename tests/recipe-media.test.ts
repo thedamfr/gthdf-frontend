@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { recipeMediaUrl } from '../infrastructure/delivery/media-policy.mjs';
+import { uploadPng } from '../infrastructure/delivery/upload-fixture.mjs';
+import sharp from 'sharp';
+
+test('the upload fixture can be decoded and resized by the CMS image pipeline', async () => {
+  const { width, height, format } = await sharp(uploadPng).metadata();
+  assert.deepEqual({ width, height, format }, { width: 1, height: 1, format: 'png' });
+  assert.ok((await sharp(uploadPng).resize(2, 2).png().toBuffer()).byteLength > 0);
+});
 
 test('staging media requires HTTPS origins and the CMS uploads directory', () => {
   assert.equal(recipeMediaUrl('/uploads/test.jpg', 'staging').pathname, '/uploads/test.jpg');

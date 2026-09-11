@@ -40,8 +40,13 @@ borner explicitement leurs écritures au bucket staging.
 La qualification puis la promotion partagent un verrou hôte entre les deux
 dépôts. Une réservation temporisée protège les démonstrations sur staging.
 Le manifeste de release conserve les deux composants, les empreintes d'entrées,
-le SHA traité, le SHA de l'image et celui du déployeur. Un changement CMS
-conserve la version frontend actuellement vérifiée.
+le SHA traité, le SHA de l'image et celui du déployeur. Chaque candidat est
+associé au composant inchangé de la dernière production vérifiée, y compris
+lors de sa qualification staging : le couple testé est celui qui sera promu.
+Une démonstration staging en cours reste protégée par sa réservation.
+Une nouvelle image doit identifier le SHA traité ; une image réutilisée conserve
+le SHA et l'empreinte runtime de la production vérifiée. Le serveur contrôle
+aussi le label OCI immuable avant d'accepter la preuve de version applicative.
 
 Les rollouts utilisent `maxUnavailable: 0`, `maxSurge: 1`, des sondes de
 disponibilité et un délai de drainage. Les évolutions CMS automatiques sont

@@ -53,6 +53,11 @@ def require_isolated_staging_routes(ingresses, alternate_routes=()):
             if (ingress['metadata'].get('namespace') != NAMESPACES['staging'] or not services
                     or any(service.get('name') != 'gthdf-staging-gateway' or service.get('port') not in ({'number': 3001}, {'name': 'http'}) for service in services)):
                 raise RuntimeError('Conflicting staging Ingress: complete the reviewed gateway cutover before delivery')
+            tls = ingress.get('spec', {}).get('tls', [])
+            middlewares = ingress['metadata'].get('annotations', {}).get('traefik.ingress.kubernetes.io/router.middlewares', '')
+            if (not any(pattern in entry.get('hosts', []) and entry.get('secretName') for entry in tls)
+                    or 'gthdf-qualification-https-redirect@kubernetescrd' not in middlewares.split(',')):
+                raise RuntimeError('Staging routes must retain TLS and the reviewed HTTPS redirect')
             found.add(rule['host'])
     if found != hosts:
         raise RuntimeError('Both staging hosts must be routed through the qualification gateway before delivery')
@@ -171,6 +176,23 @@ def require_current(candidate):
             raise RuntimeError('Candidate is no longer the current main revision')
 
 
+def require_candidate_images(components, reference):
+    for name, value in components.items():
+        previous = reference[name]
+        if value['image'] == previous['image']:
+            runtime = value.get('fingerprints', {}).get('runtime')
+            if (value['revision'] != previous['revision'] or not runtime
+                    or runtime != previous.get('fingerprints', {}).get('runtime')):
+                raise ValueError('Reused images must preserve the verified revision and runtime fingerprint')
+        elif value['revision'] != value['processedRevision']:
+            raise ValueError('New images must identify the processed Git revision')
+
+
+def require_image_revision(config, revision):
+    if config.get('config', {}).get('Labels', {}).get('org.opencontainers.image.revision') != revision:
+        raise ValueError('Image revision does not match its immutable OCI label')
+
+
 class NoReleaseRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, request, response, code, message, headers, new_url):
         response.close()
@@ -206,6 +228,8 @@ def verify_components(environment, components):
         config_digest = manifest.get('config', {}).get('digest')
         if not config_digest:
             raise RuntimeError('The release must reference a single-platform manifest')
+        config = json.loads(command(['sudo', '-n', '/snap/bin/microk8s', 'ctr', 'content', 'get', config_digest]))
+        require_image_revision(config, value['revision'])
         for pod in running:
             containers = pod['spec']['containers'] + pod['spec'].get('initContainers', [])
             if any(container['image'] != value['image'] for container in containers):
@@ -352,6 +376,7 @@ def activate(root, environment, candidate, recipe):
         if not previous or set(previous.get('components', {})) != {'frontend', 'cms'}:
             raise RuntimeError('A reviewed bootstrap release is required before automatic delivery')
         reference = load_json(root / 'production.json') if environment == 'staging' else previous
+        require_candidate_images(candidate['components'], reference['components'])
         combined = {**reference['components'], **candidate['components']}
         if combined['cms']['image'] != previous['components']['cms']['image']:
             require_compatible_schema(previous['components']['cms']['schemas'], combined['cms']['schemas'])
