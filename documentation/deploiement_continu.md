@@ -214,6 +214,10 @@ pour le verrou. La première activation garde le schéma courant, car l'image
 historique ne possède pas ce verrou. La concurrence des démarrages et le
 rollout sans interruption restent à qualifier avec les nouvelles images.
 
+L'API interne `http://gthdf-cms:1337` est autorisée explicitement par les
+NetworkPolicy : sortie des pods frontend et entrée des pods CMS du même
+namespace, uniquement sur TCP 1337. Les URLs publiques restent distinctes.
+
 Une recette échouée restaure les spécifications précédentes des ressources
 concernées et revérifie les versions en service. Les namespaces, volumes et
 StatefulSets ne sont pas réconciliés par une livraison applicative. Le retour

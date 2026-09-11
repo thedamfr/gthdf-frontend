@@ -9,6 +9,7 @@ resources:
   - issuer.yaml
   - production-certificate.yaml
   - production-ingress.yaml
+  - middleware.yaml
 
 images:
   - name: gthdf-postgres

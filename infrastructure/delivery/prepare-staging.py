@@ -8,6 +8,12 @@ import subprocess
 
 namespace = 'gthdf-qualification'
 state = pathlib.Path('/home/ubuntu/gthdf-delivery')
+namespace_labels = {
+    'app.kubernetes.io/name': 'gthdf', 'gthdf.fr/environment': 'staging',
+    'pod-security.kubernetes.io/audit': 'restricted',
+    'pod-security.kubernetes.io/enforce': 'restricted',
+    'pod-security.kubernetes.io/warn': 'restricted',
+}
 
 
 def kube(*args, data=None):
@@ -42,11 +48,15 @@ if checkpoint.exists():
     expected = json.loads(checkpoint.read_text())
     if read(namespace, 'pvc', 'gthdf-postgres')['spec']['volumeName'] != expected['stagingVolume']:
         raise RuntimeError('The staging volume has changed since the recorded preparation')
-    print(json.dumps({'namespace': namespace, 'status': 'already prepared; no changes'}))
+    current_labels = json.loads(kube('get', 'namespace', namespace, '-o', 'json'))['metadata'].get('labels', {})
+    changed = any(current_labels.get(key) != value for key, value in namespace_labels.items())
+    if changed:
+        kube('label', 'namespace', namespace, '--overwrite', *[key + '=' + value for key, value in namespace_labels.items()])
+    print(json.dumps({'namespace': namespace, 'status': 'namespace security aligned; database preserved' if changed else 'already prepared; no changes'}))
     raise SystemExit(0)
 # Require the source to be healthy before taking its non-secret resource definitions.
 kube('-n', 'gthdf-staging', 'rollout', 'status', 'statefulset/gthdf-postgres', '--timeout=60s')
-apply({'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': namespace, 'labels': {'app.kubernetes.io/name': 'gthdf', 'gthdf.fr/environment': 'staging'}}})
+apply({'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': namespace, 'labels': namespace_labels}})
 existing = subprocess.run(['sudo', '-n', '/snap/bin/microk8s', 'kubectl', '-n', namespace, 'get', 'secret', 'gthdf-secrets', '-o', 'json'], capture_output=True)
 if existing.returncode == 0:
     if json.loads(existing.stdout)['metadata'].get('labels', {}).get('gthdf.fr/provisioner') != 'continuous-delivery':
