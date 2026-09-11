@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { gitFingerprints } from './plan.mjs';
-import { requirePublication } from './publication.mjs';
+import { requirePublication, readBoundedJson } from './publication.mjs';
 import { localCandidate, requireUnchangedRuntime } from './pull-policy.mjs';
 
 const root = '/home/ubuntu/gthdf-delivery';
@@ -34,12 +34,7 @@ async function get(url, allowMissing = false) {
   const response = await fetch(url, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'gthdf-local-delivery' }, redirect: 'error', signal: AbortSignal.timeout(20000) });
   if (allowMissing && response.status === 404) return null;
   if (!response.ok) throw new Error(`Public release metadata unavailable (${response.status})`);
-  let text = '';
-  for await (const chunk of response.body) {
-    text += Buffer.from(chunk).toString('utf8');
-    if (Buffer.byteLength(text) > 262144) throw new Error('Release metadata exceeds its size limit');
-  }
-  return JSON.parse(text);
+  return readBoundedJson(response);
 }
 const github = (component, path) => get(`https://api.github.com/repos/thedamfr/gthdf-${component}/${path}`);
 function repository(component, revisions) {

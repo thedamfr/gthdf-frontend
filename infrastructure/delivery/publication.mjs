@@ -1,3 +1,15 @@
+export async function readBoundedJson(response, limit = 262144) {
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  let text = '';
+  let bytes = 0;
+  for await (const chunk of response.body) {
+    bytes += chunk.byteLength;
+    if (bytes > limit) throw new Error('Release metadata exceeds its size limit');
+    text += decoder.decode(chunk, { stream: true });
+  }
+  return JSON.parse(text + decoder.decode());
+}
+
 export function requirePublication(publication, run, component) {
   if (!['frontend', 'cms'].includes(component)
       || publication?.component !== component

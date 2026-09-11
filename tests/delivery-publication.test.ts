@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { requirePublication, publishCandidate } from '../infrastructure/delivery/publication.mjs';
+import { requirePublication, publishCandidate, readBoundedJson } from '../infrastructure/delivery/publication.mjs';
 import { localCandidate, requireUnchangedRuntime } from '../infrastructure/delivery/pull-policy.mjs';
+
+test('release metadata preserves UTF-8 across network chunks and rejects oversized input', async () => {
+  const payload = Buffer.from('{"label":"é"}');
+  const response = new Response(new ReadableStream({ start(controller) { controller.enqueue(payload.subarray(0, 11)); controller.enqueue(payload.subarray(11)); controller.close(); } }));
+  assert.deepEqual(await readBoundedJson(response), { label: 'é' });
+  await assert.rejects(() => readBoundedJson(new Response(payload), 4), /size limit/);
+});
 
 test('an unchanged publication does not hide a runtime rollback or incomplete rollout', () => {
   const deployment = { metadata: { generation: 2 }, spec: { replicas: 1, template: { spec: { containers: [{ image: 'verified-image' }] } } }, status: { observedGeneration: 2, readyReplicas: 1, updatedReplicas: 1 } };
