@@ -22,6 +22,7 @@
     "test:integration:prd02": "node scripts/check-prd02-local.mjs",
     "test:integration:prd02:geometry": "node --env-file=.env.local scripts/check-prd02-geometry-local.mjs",
     "test:delivery": "node --test tests/delivery-plan.test.ts tests/runtime-config.test.ts tests/release-health.test.ts tests/readiness.test.ts tests/staging-access.test.ts && python3 -m unittest discover -s infrastructure/delivery -p \"test_*.py\"",
+    "test:delivery:runtime": "node tests/delivery-runtime.mjs",
     "infra:delivery:plan": "node infrastructure/delivery/plan.mjs",
     "infra:delivery": "python3 infrastructure/delivery/release.py",
     "infra:ansible:install": "python3 -m venv .tmp/ansible && .tmp/ansible/bin/pip install -r infrastructure/ansible/requirements.txt",

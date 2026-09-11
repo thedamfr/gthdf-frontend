@@ -30,6 +30,7 @@ jobs:
       - run: npm run lint
       - run: npm run test:delivery
       - run: npm run build
+      - run: npm run test:delivery:runtime
       - run: git diff --check
 
   delivery:

@@ -11,11 +11,6 @@ interface AuthorPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateStaticParams() {
-  // Content is resolved from this environment when the route is requested.
-  return [];
-}
-
 export async function generateMetadata(
   { params }: AuthorPageProps
 ): Promise<Metadata> {

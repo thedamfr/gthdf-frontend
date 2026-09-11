@@ -36,6 +36,9 @@ Le build frontend ne nécessite plus de CMS ni de secret. Au runtime,
 `SITE_URL` celle du site et `STRAPI_API_TOKEN` le jeton serveur. Les variables
 legacy `NEXT_PUBLIC_STRAPI_URL` et `NEXT_PUBLIC_SITE_URL` restent acceptées.
 `/api/health` expose la version ; `/api/ready` vérifie l'accès au contenu global.
+Après `npm run build`, `npm run test:delivery:runtime` démarre le serveur
+standalone avec un CMS de test local et vérifie la première lecture d'un
+chapitre absent au build. La CI exécute aussi ce contrôle.
 
 ## Getting Started
 

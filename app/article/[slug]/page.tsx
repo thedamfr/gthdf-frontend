@@ -58,12 +58,6 @@ function toAbsoluteMediaUrl(url: string | undefined, strapiUrl: string) {
   return url.startsWith("http") ? url : `${strapiUrl}${url}`;
 }
 
-// Generate static paths for all articles
-export async function generateStaticParams() {
-  // Content is resolved from this environment when the route is requested.
-  return [];
-}
-
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
 

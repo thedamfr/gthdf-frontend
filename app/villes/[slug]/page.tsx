@@ -59,11 +59,6 @@ function cityRoleInChapter(cityDocumentId: string, chapter: CityChapter): string
   return passage ? getCityRoleLabel(passage.role) : 'Ville traversée';
 }
 
-export async function generateStaticParams() {
-  // Content is resolved from this environment when the route is requested.
-  return [];
-}
-
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
   const { slug } = await params;
   const draft = await draftMode();

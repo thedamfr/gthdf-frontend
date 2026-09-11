@@ -61,11 +61,6 @@ function generatedDescription(itinerary: PublicItinerary): string {
   )} fait ${formatKilometres(itinerary.distanceMetres)} sur une portion du Grand Tour des Hauts-de-France. ${availableFeatures}`;
 }
 
-export async function generateStaticParams() {
-  // Content is resolved from this environment when the route is requested.
-  return [];
-}
-
 export async function generateMetadata({ params }: ItineraryPageProps): Promise<Metadata> {
   const { slug } = await params;
   const draft = await draftMode();

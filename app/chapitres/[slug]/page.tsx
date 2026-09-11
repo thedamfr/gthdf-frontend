@@ -11,11 +11,6 @@ import SocialSection, { type SocialItem } from '@/components/SocialSection';
 import ChapterCitiesSummary from '@/components/ChapterCitiesSummary';
 import { getCitySummary } from '@/lib/city-content';
 
-export async function generateStaticParams() {
-  // Content is resolved from this environment when the route is requested.
-  return [];
-}
-
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {

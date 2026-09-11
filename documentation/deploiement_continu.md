@@ -220,6 +220,13 @@ restent un fallback serveur. Les pages lisent le CMS au runtime ; les données
 ne sont pas intégrées à l'image par `generateStaticParams`. Les règles de
 revalidation des fetchs existants restent en place. La liste des origines
 acceptées par l'optimiseur Next reste une configuration de build explicite.
+Les routes paramétrées ne déclarent pas de `generateStaticParams` vide : ce
+mode de génération différée est incompatible avec le layout qui attend une
+requête réelle ([contrainte Next.js](https://nextjs.org/docs/messages/app-static-to-dynamic-error)).
+Après le build, `npm run test:delivery:runtime` lance le serveur standalone
+avec un CMS local de test et exige une page chapitre 200 dès la première requête.
+Le contrôle a reproduit le 500 initial puis validé la correction ; il fait
+partie de la CI.
 
 `/api/health` donne la version frontend et interdit le cache ; `/api/ready`
 exige un jeton et un contenu global publié accessible dans Strapi. Le CMS
