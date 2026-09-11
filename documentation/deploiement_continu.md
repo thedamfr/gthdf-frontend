@@ -46,8 +46,9 @@ Le cycle CMS est conservé dans `history/1789148911516098900-staging.json`,
 `history/1789148993023990010-production.json` et
 `history/1789148993022666900-origin-samples.json`. Les PR de clôture
 [frontend #37](https://github.com/thedamfr/gthdf-frontend/pull/37) et
-[CMS #27](https://github.com/thedamfr/gthdf-cms/pull/27) portent les résultats du
-cycle documentaire ultérieur, sans modifier ces preuves historiques.
+[CMS #27](https://github.com/thedamfr/gthdf-cms/pull/27) recevront, après fusion,
+les résultats du cycle documentaire ultérieur, sans modifier ces preuves
+historiques. Ce contrôle reste à exécuter lors de la rédaction de cette version.
 
 ## Historique de l’amorçage — 11 septembre 2026 à 14:36 UTC
 
@@ -229,7 +230,7 @@ un processus de test, sans toucher aux applications. Ces preuves se trouvent dan
 Le marqueur privé et le timer sont maintenant actifs. Les vérifications réelles
 de publication, qualification et promotion sont consignées en tête de ce runbook.
 La mise à jour documentaire de clôture sert aussi à contrôler la réutilisation des
-images et l’absence de redémarrage ; son résultat est consigné dans les PR de clôture.
+images et l’absence de redémarrage ; son résultat sera consigné dans les PR de clôture.
 Les builds de qualité CI restent exécutés : ce contrôle porte sur l’absence de
 nouvelle construction d’image Docker et sur les pods effectivement conservés.
 
