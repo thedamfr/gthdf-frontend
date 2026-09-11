@@ -1,5 +1,9 @@
 import { planDelivery } from './plan.mjs';
 
+export function waitingState(identity, status, now) {
+  return { ...identity, status, retryAfter: now + 300000 };
+}
+
 export function requireUnchangedRuntime(deployment, image) {
   const pod = deployment.spec?.template?.spec;
   if (!pod?.containers?.length || [...pod.containers, ...(pod.initContainers ?? [])].some(container => container.image !== image)

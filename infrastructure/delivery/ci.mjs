@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { gitFingerprints, planDelivery } from './plan.mjs';
 import { requireImageRevision } from './image-proof.mjs';
-import { publishCandidate, requirePublication } from './publication.mjs';
+import { publishCandidate, validatedBaseline } from './publication.mjs';
 
 function run(file, args, options = {}) {
   const result = spawnSync(file, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...options });
@@ -34,11 +34,8 @@ const previousFile = await github('contents/candidate.json?ref=gthdf-release', {
 if (previousFile) {
   if (previousFile.size > 262144 || previousFile.encoding !== 'base64') throw new Error('Invalid publication baseline');
   const published = JSON.parse(Buffer.from(previousFile.content, 'base64').toString('utf8'));
-  const previousRun = await github(`actions/runs/${published.publication?.runId}`);
-  if (previousRun.status === 'completed' && previousRun.conclusion === 'success') {
-    requirePublication(published.publication, previousRun, component);
-    baseline = published;
-  }
+  const previousRun = await github(`actions/runs/${published.publication?.runId}`, { allowMissing: true });
+  baseline = validatedBaseline(published, previousRun, component);
 }
 const previous = baseline?.components?.[component];
 const fingerprints = gitFingerprints(repository, revision);

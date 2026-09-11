@@ -94,6 +94,11 @@ publication, pas une production déjà vérifiée.
 `gthdf-delivery.timer` lance le réconciliateur local après chaque période d’inactivité
 de 60 secondes. Il lit les deux dépôts publics sans identifiant GitHub, vérifie le
 run, son origine `main`, sa tentative, les sources Git et le déployeur exact validé.
+Avant tout démarrage en staging, le déployeur lit la configuration OCI du digest
+avec `docker buildx imagetools inspect` et contrôle son label de révision. Le client
+Docker sert uniquement à lire le registre ; aucune image n’est construite sur l’hôte.
+Le secret GHCR existant passe par un fichier temporaire privé, supprimé ensuite,
+sans valeur dans les arguments ou journaux. Le contrôle `--check` inclut cette preuve.
 Le cluster conserve le Secret `gthdf-ghcr` de lecture du registre. Aucun secret
 Tailscale ou SSH de runner n’est requis. Le service utilise le compte opérateur
 `ubuntu` existant ; il ne crée ni compte ni clé. Ses opérations privilégiées restent
@@ -145,9 +150,19 @@ contrôle ou son retour arrière avant d’arrêter le service.
 `systemctl status gthdf-delivery.timer` et `journalctl -u gthdf-delivery.service`
 donnent le statut de l’exécuteur, sans valeurs de secrets. Les résultats par dépôt
 sont dans `/home/ubuntu/gthdf-delivery/pull/`, avec un délai de cinq minutes avant
-reprise d’une erreur. Une réservation staging reporte le cycle. Les références
+reprise d’une erreur, d’une CI en attente ou d’un candidat dépassé. Cette temporisation
+limite les appels à l’API GitHub publique. Une ancienne preuve CI expirée impose une
+nouvelle construction au prochain push, sans bloquer définitivement le publieur.
+Une réservation staging reporte le cycle. Les références
 `staging.json` et `production.json` n’avancent qu’après recette. Les observations
 origine et l’historique privé conservent les échecs et retours arrière.
+
+Le superviseur demande un arrêt gracieux après cinquante minutes. Il transmet
+`SIGTERM` au déployeur, qui passe dans le retour arrière et ignore les interruptions
+suivantes pendant cette récupération. Il attend la fin du processus. Le service
+systemd conserve une limite de démarrage de cinquante-cinq minutes et une fenêtre
+de trente minutes pour l’arrêt ; `flock --no-fork` permet d’adresser le superviseur
+directement. Une récupération qui dépasse aussi cette limite exige une intervention.
 
 La comparaison locale porte sur la production vérifiée, même si le candidat GitHub
 n’a pas reconstruit son image. Les publications obsolètes, runs rouges, empreintes

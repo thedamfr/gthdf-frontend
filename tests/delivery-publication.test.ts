@@ -1,7 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { requirePublication, publishCandidate, readBoundedJson } from '../infrastructure/delivery/publication.mjs';
-import { localCandidate, requireUnchangedRuntime } from '../infrastructure/delivery/pull-policy.mjs';
+import { requirePublication, publishCandidate, readBoundedJson, validatedBaseline } from '../infrastructure/delivery/publication.mjs';
+import { localCandidate, requireUnchangedRuntime, waitingState } from '../infrastructure/delivery/pull-policy.mjs';
+
+test('pending and superseded candidates back off before another anonymous API request', () => {
+  for (const status of ['ci-pending', 'superseded']) {
+    const state = waitingState({ runId: 1, runAttempt: 1 }, status, 1000);
+    assert.equal(state.status, status);
+    assert.ok(state.retryAfter - 1000 >= 5 * 60 * 1000);
+  }
+});
+
+test('an expired workflow record forces a fresh build instead of blocking publication', () => {
+  assert.equal(validatedBaseline({ publication: {} }, null, 'frontend'), undefined);
+});
 
 test('release metadata preserves UTF-8 across network chunks and rejects oversized input', async () => {
   const payload = Buffer.from('{"label":"é"}');

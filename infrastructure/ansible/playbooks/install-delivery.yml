@@ -37,6 +37,7 @@
         mode: '0600'
       loop:
         - reconcile.mjs
+        - deployment-process.mjs
         - plan.mjs
         - publication.mjs
         - pull-policy.mjs

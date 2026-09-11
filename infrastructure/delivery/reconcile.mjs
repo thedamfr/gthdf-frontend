@@ -7,12 +7,14 @@ import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { gitFingerprints } from './plan.mjs';
 import { requirePublication, readBoundedJson } from './publication.mjs';
-import { localCandidate, requireUnchangedRuntime } from './pull-policy.mjs';
+import { localCandidate, requireUnchangedRuntime, waitingState } from './pull-policy.mjs';
+import { runDeployment } from './deployment-process.mjs';
 
 const root = '/home/ubuntu/gthdf-delivery';
 const python = '/home/ubuntu/.cache/infra-sincere/ansible-2.21.4/bin/python';
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const checkOnly = process.argv.includes('--check');
+let stopRequested = false;
 if (process.argv.slice(2).some(value => value !== '--check')) throw new Error('Unsupported reconciler option');
 if (hostname() !== 'game-prod-ovh-gra') throw new Error('Unexpected deployment host');
 const metadata = statSync(root);
@@ -71,11 +73,15 @@ async function reconcile(component) {
   const reservation = read(join(root, 'staging-reservation.json'));
   if (reservation?.expires * 1000 > Date.now()) return { component, status: 'staging-reserved' };
   const identity = { runId: publication.runId, runAttempt: publication.runAttempt, revision: publication.revision };
+  const waitForPublication = status => {
+    if (!checkOnly) save(statePath, waitingState(identity, status, Date.now()));
+    return { component, status };
+  };
   try {
     const workflow = await github(component, `actions/runs/${publication.runId}`);
-    if (workflow.status !== 'completed') return { component, status: 'ci-pending' };
+    if (workflow.status !== 'completed') return waitForPublication('ci-pending');
     requirePublication(publication, workflow, component);
-    if ((await github(component, 'git/ref/heads/main')).object.sha !== publication.revision) return { component, status: 'superseded' };
+    if ((await github(component, 'git/ref/heads/main')).object.sha !== publication.revision) return waitForPublication('superseded');
     const value = candidate.components?.[component];
     if (!value) throw new Error('Missing component');
     const source = repository(component, [value.processedRevision, value.revision]);
@@ -99,9 +105,12 @@ async function reconcile(component) {
     run(python, [join(scriptDirectory, 'extract-source.py'), archivePath, directory]);
     const selectedPath = join(directory, 'candidate.json');
     save(selectedPath, selected);
-    if (checkOnly) return { component, status: 'eligible', revision: publication.revision, image: selected.components[component].image, plan: selected.plan };
+    if (checkOnly) {
+      run(python, [join(directory, 'infrastructure/delivery/release.py'), 'check', '--candidate', selectedPath], { timeout: 300000 });
+      return { component, status: 'eligible', revision: publication.revision, image: selected.components[component].image, plan: selected.plan };
+    }
     save(statePath, { ...identity, status: 'running', startedAt: new Date().toISOString() });
-    run(python, [join(directory, 'infrastructure/delivery/release.py'), 'deliver', '--candidate', selectedPath], { timeout: 25 * 60 * 1000 });
+    await runDeployment(python, [join(directory, 'infrastructure/delivery/release.py'), 'deliver', '--candidate', selectedPath], { onStop: () => { stopRequested = true; } });
     const verified = read(join(root, 'production.json'));
     if (verified?.status !== 'success' || verified.components[component].processedRevision !== publication.revision) throw new Error('The candidate has no verified production result');
     const result = { ...identity, status: 'success', verifiedAt: verified.finishedAt, image: verified.components[component].image };
@@ -116,4 +125,5 @@ async function reconcile(component) {
 for (const component of ['frontend', 'cms']) {
   try { console.log(JSON.stringify(await reconcile(component))); }
   catch (error) { console.error(JSON.stringify({ component, status: 'failed', error: error.message })); process.exitCode = 1; }
+  if (stopRequested) break;
 }

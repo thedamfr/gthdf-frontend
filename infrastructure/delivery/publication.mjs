@@ -27,6 +27,12 @@ export function requirePublication(publication, run, component) {
   }
 }
 
+export function validatedBaseline(published, workflow, component) {
+  if (workflow?.status !== 'completed' || workflow.conclusion !== 'success') return undefined;
+  requirePublication(published.publication, workflow, component);
+  return published;
+}
+
 export async function publishCandidate(github, candidate) {
   const current = await github('git/ref/heads/main');
   if (current.object.sha !== candidate.publication.revision) return false;

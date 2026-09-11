@@ -14,6 +14,20 @@ spec.loader.exec_module(release)
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_shutdown_enters_rollback_and_ignores_further_stop_signals(self):
+        with patch.object(release.signal, 'signal') as configure:
+            with self.assertRaisesRegex(RuntimeError, 'interrupted'):
+                release.interrupt_delivery(release.signal.SIGTERM, None)
+            self.assertIn(unittest.mock.call(release.signal.SIGTERM, release.signal.SIG_IGN), configure.call_args_list)
+
+    def test_no_environment_is_activated_when_registry_proof_fails(self):
+        activated = []
+        def verify():
+            raise ValueError('Wrong immutable image revision')
+        with self.assertRaises(ValueError):
+            release.promote(activated.append, verify=verify)
+        self.assertEqual(activated, [])
+
     def test_a_previously_built_image_can_catch_up_after_a_documentation_commit(self):
         previous = {'image': 'old-image', 'revision': 'old-revision', 'fingerprints': {'runtime': 'old-runtime'}}
         candidate = {'image': 'new-image', 'revision': 'built-revision', 'processedRevision': 'docs-revision', 'fingerprints': {'runtime': 'new-runtime'}}
