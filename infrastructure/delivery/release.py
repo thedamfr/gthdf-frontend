@@ -35,6 +35,18 @@ def promote(activate):
     activate('production')
 
 
+def require_isolated_staging_routes(ingresses):
+    hosts = {'staging.gthf.fr', 'staging-cms.gthf.fr'}
+    for ingress in ingresses:
+        for rule in ingress.get('spec', {}).get('rules', []):
+            if rule.get('host') not in hosts:
+                continue
+            services = [path.get('backend', {}).get('service', {}) for path in rule.get('http', {}).get('paths', [])]
+            if (ingress['metadata'].get('namespace') != NAMESPACES['staging'] or not services
+                    or any(service.get('name') != 'gthdf-staging-gateway' or service.get('port') not in ({'number': 3001}, {'name': 'http'}) for service in services)):
+                raise RuntimeError('Conflicting staging Ingress: complete the reviewed gateway cutover before delivery')
+
+
 def require_compatible_schema(previous, candidate):
     """Only optional additive attributes can be synchronized during a rolling update."""
     for path, old in previous.items():
@@ -302,8 +314,11 @@ def activate(root, environment, candidate, recipe):
             raise RuntimeError('A reviewed bootstrap release is required before automatic delivery')
         reference = load_json(root / 'production.json') if environment == 'staging' else previous
         combined = {**reference['components'], **candidate['components']}
-        if 'cms' in candidate['components']:
-            require_compatible_schema(previous['components']['cms']['schemas'], candidate['components']['cms']['schemas'])
+        if combined['cms']['image'] != previous['components']['cms']['image']:
+            require_compatible_schema(previous['components']['cms']['schemas'], combined['cms']['schemas'])
+        if environment == 'staging':
+            ingresses = json.loads(kubectl('staging', 'get', 'ingress', '--all-namespaces', '-o', 'json'))
+            require_isolated_staging_routes(ingresses['items'])
         changed = changed_workloads(environment, previous['components'], combined)
         snapshots = snapshot_components(environment, changed)
         infrastructure_snapshot = []

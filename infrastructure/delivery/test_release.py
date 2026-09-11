@@ -10,6 +10,33 @@ spec.loader.exec_module(release)
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_staging_routes_reject_historical_and_unauthenticated_backends(self):
+        def ingress(namespace, service, host='staging.gthf.fr'):
+            return {'metadata': {'namespace': namespace}, 'spec': {'rules': [
+                {'host': host, 'http': {'paths': [{'backend': {'service': {'name': service, 'port': {'name': 'http'}}}}]}}
+            ]}}
+        gateway = ingress('gthdf-qualification', 'gthdf-staging-gateway')
+        production = ingress('gthdf-staging', 'gthdf-frontend', 'gthf.fr')
+        release.require_isolated_staging_routes([gateway, production])
+        for conflict in [ingress('gthdf-staging', 'gthdf-frontend'), ingress('gthdf-qualification', 'gthdf-cms', 'staging-cms.gthf.fr')]:
+            with self.assertRaises(RuntimeError):
+                release.require_isolated_staging_routes([gateway, conflict])
+
+    def test_frontend_only_qualification_checks_a_cms_inherited_from_production(self):
+        old_cms = {'image': 'cms-old', 'schemas': {'article': {'attributes': {'title': {'type': 'string'}}}}}
+        new_cms = {'image': 'cms-new', 'schemas': {'article': {'attributes': {'title': {'type': 'integer'}}}}}
+        staging = {'components': {'cms': old_cms, 'frontend': {'image': 'frontend-old'}}}
+        production = {'components': {'cms': new_cms, 'frontend': {'image': 'frontend-old'}}}
+        candidate = {'owner': 'test', 'components': {'frontend': {'image': 'frontend-new'}}}
+        with contextlib.ExitStack() as mocks:
+            mocks.enter_context(patch.object(release, 'environment_lock', lambda *args: contextlib.nullcontext()))
+            mocks.enter_context(patch.object(release, 'require_current', lambda *args: None))
+            mocks.enter_context(patch.object(release, 'load_json', lambda path: staging if path.name == 'staging.json' else production))
+            snapshot = mocks.enter_context(patch.object(release, 'snapshot_components', side_effect=AssertionError('Mutation preparation reached before schema validation')))
+            with self.assertRaises(ValueError):
+                release.activate(pathlib.Path('/unused'), 'staging', candidate, pathlib.Path('/unused/recipe'))
+            snapshot.assert_not_called()
+
     def test_completed_preparation_jobs_are_not_serving_application_pods(self):
         application = {'metadata': {'ownerReferences': [{'kind': 'ReplicaSet'}]}}
         completed_job = {'metadata': {'ownerReferences': [{'kind': 'Job'}]}, 'status': {'phase': 'Succeeded'}}

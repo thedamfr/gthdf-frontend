@@ -122,16 +122,16 @@ cd infrastructure/ansible
   playbooks/audit.yml
 ```
 
-Cet inventaire cible uniquement `production@game-prod-ovh-gra`. Le playbook ne
+Cet inventaire versionné cible uniquement `ubuntu@penthouse`, dont le nom
+d'hôte attendu est `game-prod-ovh-gra`. Le playbook historique ne
 configure pas Ubuntu, MicroK8s, Traefik ou cert-manager et ne peut appliquer que
 le namespace `gthdf-staging`.
 
-Les fichiers `hosts.yml` sont ignorés par Git ; seul
-`inventories/staging/hosts.example.yml`, qui vise l'ancienne recette Hetzner,
-est versionné. L'exemple OVH manque encore : créer l'inventaire privé en gardant
-le groupe Ansible `gthdf_staging` et une seule cible
-`ansible_host: game-prod-ovh-gra`, `ansible_user: production`. Vérifier l'identité
-effective de l'hôte et le contexte Kubernetes avant toute application ;
+`inventories/ovh/hosts.yml` est suivi par Git via une exception ciblée et
+conserve le groupe Ansible `gthdf_staging`. L'exemple
+`inventories/staging/hosts.example.yml` concerne l'ancienne recette Hetzner.
+Utiliser l'inventaire OVH existant. Vérifier l'identité effective de l'hôte
+et le contexte Kubernetes avant toute application ;
 `deploy.yml` contrôle le namespace, mais ne fait pas lui-même ces deux
 vérifications d'identité.
 
@@ -155,17 +155,16 @@ dépôt. Sur ce serveur, le builder local s'utilise avec `sudo -n docker`.
 PostgreSQL utilise le contexte `infrastructure/docker/postgres` du frontend,
 Strapi la racine de `gthdf-cms` et Next.js la racine de `gthdf-frontend`.
 
-Pour Next.js, fournir les arguments de production
-`NEXT_PUBLIC_STRAPI_URL=https://cms.gthf.fr` et
-`NEXT_PUBLIC_SITE_URL=https://gthf.fr`. `STRAPI_MEDIA_ORIGINS` et
-`NEXT_IMAGE_REMOTE_ORIGINS` doivent inclure l'origine objet réellement utilisée,
-`https://gthdf-staging-media.s3.eu-west-par.io.cloud.ovh.net`.
+Le build Next.js reçoit seulement `GTHDF_REVISION` pour la preuve de version.
+Il réussit sans CMS ni secret. Les valeurs `STRAPI_URL=http://gthdf-cms:1337`,
+`PUBLIC_STRAPI_URL=https://cms.gthf.fr`, `SITE_URL=https://gthf.fr`,
+`STRAPI_MEDIA_ORIGINS` et le secret `STRAPI_API_TOKEN` sont injectés au runtime
+par les ConfigMaps et Secrets Kubernetes. Les domaines média admis par
+l'optimiseur d'images sont définis dans `next.config.ts`, relu au build ;
+le Dockerfile n'accepte pas d'argument `NEXT_IMAGE_REMOTE_ORIGINS`.
 
-Le jeton Strapi doit être fourni exclusivement via le secret BuildKit
-`strapi_api_token`, avec `--secret id=strapi_api_token,src=/chemin/prive/token`
-ou une variable explicitement transmise au client Docker. Ne pas le passer
-comme `ARG` ou le copier dans le dépôt. Ne pas exécuter un script complet en
-root. Docker et MicroK8s ont des stockages d'images distincts : construire
+Ne pas exécuter un script complet en root. Docker et MicroK8s ont des stockages
+d'images distincts : construire
 localement ne suffit pas à rendre l'image disponible au cluster. Docker a été
 installé le 10 septembre ; le build applicatif complet depuis ces checkouts
 reste à valider. Le runtime Next.js et son init-container doivent utiliser

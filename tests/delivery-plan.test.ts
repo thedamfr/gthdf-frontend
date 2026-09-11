@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fingerprintEntries, classifyInput, planDelivery } from '../infrastructure/delivery/plan.mjs';
+import { requireImageRevision } from '../infrastructure/delivery/image-proof.mjs';
+
+test('an existing image must prove its requested source revision before reuse', () => {
+  const revision = 'a'.repeat(40);
+  requireImageRevision({ config: { Labels: { 'org.opencontainers.image.revision': revision } } }, revision);
+  assert.throws(() => requireImageRevision({ config: { Labels: { 'org.opencontainers.image.revision': 'b'.repeat(40) } } }, revision));
+  assert.throws(() => requireImageRevision({ config: {} }, revision));
+});
 
 test('a documentation push still delivers runtime inputs missed by the previous failed push', () => {
   const plan = planDelivery({ runtime: 'new', infrastructure: 'same', postgres: 'same' }, {

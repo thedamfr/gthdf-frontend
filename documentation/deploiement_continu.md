@@ -108,6 +108,40 @@ jamais une activation présumée correcte.
 Ces étapes restent ouvertes ; les données et médias préparés ne constituent
 pas encore un staging applicatif livré. Les rapports de release ne doivent contenir aucun secret.
 
+### Bascule initiale des routes de staging
+
+Cette opération d'amorçage reste à effectuer après qualification des images.
+La livraison courante refuse toute règle Ingress des deux domaines staging
+qui viserait un autre namespace ou un service autre que la passerelle.
+Elle ne supprime pas implicitement les alias historiques de production.
+
+1. Vérifier l'hôte, le contexte, les digests et les rollouts des trois Deployments
+   `gthdf-cms`, `gthdf-frontend` et `gthdf-staging-gateway` dans
+   `gthdf-qualification`, puis leurs sondes internes. Attendre le certificat
+   `gthdf-qualification-tls` prêt. À cette étape, n'exposer encore aucune route
+   applicative de qualification sur les domaines historiques.
+2. Inventorier les Ingress de tous les namespaces pour les hosts
+   `staging.gthf.fr` et `staging-cms.gthf.fr`. Sauvegarder les deux objets
+   historiques `gthdf-staging/gthdf-frontend` et `gthdf-staging/gthdf-cms` dans
+   le dossier privé de livraison. Refuser la bascule si leurs noms, hosts ou
+   services ne correspondent plus à cet inventaire.
+3. Retirer ces deux seuls Ingress historiques, puis appliquer
+   `infrastructure/kubernetes/overlays/qualification/ingress.yaml` avec le
+   namespace explicite `gthdf-qualification`. Les Ingress
+   `gthdf-production-frontend` et `gthdf-production-cms` continuent de servir
+   les domaines de production ; seule la recette peut connaître une brève
+   indisponibilité pendant la bascule de ses alias.
+4. Vérifier l'absence de règle concurrente, TLS, le refus 401 sans accès de
+   recette, les SHA derrière la passerelle, puis la recette CRUD complète.
+   En cas d'échec, retirer les deux Ingress créés dans `gthdf-qualification`
+   et restaurer les spécifications sauvegardées dans `gthdf-staging`. Les
+   domaines redeviennent alors des alias de production : interdire les tests
+   d'écriture jusqu'à une nouvelle qualification.
+
+Enregistrer la référence initiale staging seulement après cette bascule
+vérifiée. Une référence créée artificiellement pour contourner le bootstrap
+ne valide ni les routes, ni les versions, ni l'isolation.
+
 ## Fonctionnement du déployeur
 
 Le [plan initial](history/deploiement_continu_2026-09-10.md) conserve les critères
@@ -131,6 +165,9 @@ lorsque les entrées runtime sont identiques. Les CSV, scripts de migration et
 chemins inconnus sont conservés dans le calcul runtime. Une évolution de
 l'image PostgreSQL est refusée par la livraison automatique et exige un plan
 séparé. Les validations de qualité s'exécutent même sans nouvelle image.
+Un tag SHA existant n'est réutilisé qu'après lecture de sa configuration OCI
+par digest et comparaison de `org.opencontainers.image.revision` au commit
+attendu ; une révision absente ou différente bloque la livraison.
 
 La réservation staging et les verrous d'activation s'appliquent côté serveur
 aux deux dépôts. Avant chaque activation, le candidat doit toujours correspondre

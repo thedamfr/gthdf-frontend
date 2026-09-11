@@ -22,3 +22,15 @@ test('internal CMS traffic does not expose its cluster URL in public media links
   assert.equal(urls.strapi, 'http://gthdf-cms:1337');
   assert.equal(urls.publicStrapi, 'https://staging-cms.gthf.fr');
 });
+
+test('a legacy public CMS origin takes precedence over the private server endpoint', () => {
+  const urls = runtimeUrls({ STRAPI_URL: 'http://gthdf-cms:1337', NEXT_PUBLIC_STRAPI_URL: 'https://cms.gthf.fr' });
+  assert.equal(urls.strapi, 'http://gthdf-cms:1337');
+  assert.equal(urls.publicStrapi, 'https://cms.gthf.fr');
+});
+
+test('preview uses the request origin unless a site URL was explicitly configured', () => {
+  assert.equal(runtimeUrls({}, 'http://localhost:3000').site, 'http://localhost:3000');
+  assert.equal(runtimeUrls({ SITE_URL: 'https://staging.gthf.fr' }, 'http://internal:3000').site, 'https://staging.gthf.fr');
+  assert.equal(runtimeUrls({ NEXT_PUBLIC_SITE_URL: 'https://legacy.example' }, 'http://localhost:3000').site, 'https://legacy.example');
+});

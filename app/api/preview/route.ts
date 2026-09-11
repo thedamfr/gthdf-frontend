@@ -34,8 +34,7 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 function getPublicBaseUrl(request: NextRequest): string {
-  const configuredSiteUrl = runtimeUrls().site;
-  return configuredSiteUrl ? new URL(configuredSiteUrl).origin : request.nextUrl.origin;
+  return new URL(runtimeUrls(process.env, request.nextUrl.origin).site).origin;
 }
 
 export async function GET(request: NextRequest) {

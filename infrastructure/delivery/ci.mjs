@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { gitFingerprints, planDelivery } from './plan.mjs';
+import { requireImageRevision } from './image-proof.mjs';
 
 function run(file, args, options = {}) {
   const result = spawnSync(file, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...options });
@@ -46,6 +47,9 @@ if (plan.build) {
     digest = JSON.parse(readFileSync(metadata, 'utf8'))['containerimage.digest'];
   }
   if (!/^sha256:[a-f0-9]{64}$/.test(digest ?? '')) throw new Error('Missing immutable build digest');
+  // Inspect the resolved digest, not the tag which may move between requests.
+  const imageConfig = JSON.parse(run('docker', ['buildx', 'imagetools', 'inspect', `${imageName}@${digest}`, '--format', '{{json .Image}}']));
+  requireImageRevision(imageConfig, revision);
   image = `${imageName}@${digest}`;
   imageRevision = revision;
 }
