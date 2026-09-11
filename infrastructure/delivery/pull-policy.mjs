@@ -1,0 +1,24 @@
+import { planDelivery } from './plan.mjs';
+
+export function localCandidate(candidate, production, processedInputs, imageInputs) {
+  const component = candidate.publication?.component;
+  const value = candidate.components?.[component];
+  const previous = production?.components?.[component];
+  if (!['frontend', 'cms'].includes(component) || !value || !previous
+      || Object.keys(candidate.components).length !== 1
+      || candidate.owner !== `github-${component}-${candidate.publication.runId}`
+      || candidate.publication.revision !== value.processedRevision
+      || !new RegExp(`^ghcr.io/thedamfr/gthdf-${component}@sha256:[a-f0-9]{64}$`).test(value.image ?? '')
+      || !/^[a-f0-9]{40}$/.test(value.revision ?? '')
+      || !/^[a-f0-9]{40}$/.test(value.processedRevision ?? '')
+      || !['runtime', 'infrastructure', 'postgres'].every(key => /^[a-f0-9]{64}$/.test(processedInputs[key] ?? '') && processedInputs[key] === value.fingerprints?.[key])
+      || processedInputs.runtime !== imageInputs.runtime) {
+    throw new Error('The candidate must match its exact repository inputs');
+  }
+  const plan = planDelivery(processedInputs, previous.fingerprints);
+  if (plan.postgres) throw new Error('PostgreSQL changes require a separate reviewed delivery');
+  // A publication may have built an equivalent image while the preceding CI
+  // was unfinished. Keep the verified running digest when runtime inputs match.
+  const selected = plan.build ? value : { ...value, image: previous.image, revision: previous.revision };
+  return { ...candidate, plan, components: { [component]: selected } };
+}

@@ -11,8 +11,8 @@ ci-dessous ne doivent pas remplacer la livraison courante par digest.
 Le [runbook actuel](../documentation/deploiement_continu.md) est la référence
 pour les images réellement servies, les recettes, le retour arrière initial et
 la promotion vérifiée à 14:36 UTC. Les images publiées par GitHub Actions ont
-été qualifiées puis promues par une opération SSH autorisée ; l’automatisation
-attend encore les accès Tailscale/SSH des runners.
+été qualifiées puis promues par une opération SSH autorisée ; le raccordement automatique est désormais porté par
+un réconciliateur local, décrit dans le runbook commun.
 
 Le namespace `gthdf-qualification` contient maintenant les trois applications,
 PostgreSQL et son PVC distinct, une copie éditoriale sans identités de production

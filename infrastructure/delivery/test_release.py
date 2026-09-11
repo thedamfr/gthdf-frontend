@@ -14,6 +14,20 @@ spec.loader.exec_module(release)
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_a_previously_built_image_can_catch_up_after_a_documentation_commit(self):
+        previous = {'image': 'old-image', 'revision': 'old-revision', 'fingerprints': {'runtime': 'old-runtime'}}
+        candidate = {'image': 'new-image', 'revision': 'built-revision', 'processedRevision': 'docs-revision', 'fingerprints': {'runtime': 'new-runtime'}}
+        calls = []
+
+        def verify_source(name, value):
+            calls.append((name, value['revision'], value['processedRevision']))
+            return True
+
+        release.require_candidate_images({'cms': candidate}, {'cms': previous}, verify_source=verify_source)
+        self.assertEqual(calls, [('cms', 'built-revision', 'docs-revision')])
+        with self.assertRaises(ValueError):
+            release.require_candidate_images({'cms': candidate}, {'cms': previous}, verify_source=lambda *_: False)
+
     def test_image_revision_must_match_its_immutable_oci_label(self):
         release.require_image_revision({'config': {'Labels': {'org.opencontainers.image.revision': 'expected-revision'}}}, 'expected-revision')
         for config in [{}, {'config': {'Labels': {}}}, {'config': {'Labels': {'org.opencontainers.image.revision': 'other-revision'}}}]:

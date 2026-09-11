@@ -1,7 +1,7 @@
 # ADR — Livraison par images immuables et staging GTHF
 
 - Date : 2026-09-11
-- Statut : décision retenue, implémentation et qualification en cours
+- Statut : décision retenue ; transport corrigé vers une réconciliation locale
 - Dépôts : `gthdf-frontend`, `gthdf-cms`
 
 ## Contexte
@@ -15,8 +15,25 @@ conservé dans le [snapshot du 10 septembre](history/deploiement_continu_2026-09
 
 Chaque dépôt valide ses PR sur les runners GitHub hébergés. Après un push sur
 `main`, il construit uniquement les entrées runtime modifiées depuis la dernière
-livraison vérifiée, puis publie son image GHCR par SHA. Ansible transmet une
-révision exacte du déployeur frontend à `penthouse` par SSH sur Tailscale.
+publication validée, puis publie son image GHCR par SHA et son candidat dans
+la branche `gthdf-release` du même dépôt. Un service local sur Penthouse lit
+ces candidats publics et vérifie la réussite du workflow exact de `main` avant
+activation. Les runners ne reçoivent aucun accès SSH ou Tailscale au serveur.
+
+Cette décision corrige le transport initial après clarification du propriétaire.
+Le service actif de `site-saletesincere` fournit la référence opérationnelle.
+ArgoCD est installé pour Studio, mais son intégration est encore en PR et sa
+synchronisation désactivée au relevé du 11 septembre : GTHF reprend le service
+local du site. Cette mise en œuvre ne crée pas d’Application ArgoCD GTHF.
+
+Le service partage le verrou GTHF et exécute uniquement le déployeur frontend
+exact associé au candidat, après réussite de sa propre CI. Les sources viennent
+des deux dépôts publics autorisés ; elles sont vérifiées par empreinte Git et
+extraites avec bornes de taille et refus des liens. Le serveur ne construit
+pas d’image. Il recalcule les changements cumulés depuis la production vérifiée,
+indépendamment du plan de build de GitHub. Une image déjà construite pour A peut
+ainsi être livrée après un commit documentaire B si leurs sources runtime sont
+équivalentes. Les changements PostgreSQL restent hors de la voie automatique.
 MicroK8s utilise le digest, identique en staging et production, pour tous les
 conteneurs d'une application, y compris l'init-container Next.
 

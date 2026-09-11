@@ -27,8 +27,8 @@ manifeste sont décrits dans
 
 Les PR de livraison sont fusionnées et les premières images GHCR sont vérifiées
 en staging isolé et en production. Le [runbook](documentation/deploiement_continu.md)
-conserve leurs digests, recettes et l’incident suivi d’une reprise. L’automatisation
-attend encore l’identité Tailscale des runners. Le namespace `gthdf-staging`
+conserve leurs digests, recettes et l’incident suivi d’une reprise. La livraison automatique passe par un réconciliateur local sur Penthouse ;
+GitHub Actions publie les candidats sans connexion au serveur. Le namespace `gthdf-staging`
 et le bucket `gthdf-staging-media` désignent la production malgré leur nom.
 La recette utilise [le frontend staging](https://staging.gthf.fr/) et
 [le CMS staging](https://staging-cms.gthf.fr/), protégés par authentification.
