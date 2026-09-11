@@ -211,3 +211,8 @@ test('the Clever migration helpers keep secrets out of build arguments and logs'
   assert.match(dump, /--format=custom/);
   assert.match(dump, /mode: 0o600/);
 });
+test('the shared image permits staging CMS uploads with a bounded path', async () => {
+  const { default: nextConfig } = await import('../next.config.ts');
+  assert.ok(nextConfig.images?.remotePatterns?.some(pattern =>
+    !(pattern instanceof URL) && pattern.protocol === 'https' && pattern.hostname === 'staging-cms.gthf.fr' && pattern.pathname === '/uploads/**'));
+});

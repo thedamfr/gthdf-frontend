@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { requireIsolatedSecrets } from './secret-isolation.mjs';
 import { requireStagingConfiguration } from './configuration-isolation.mjs';
 import { recipeMediaUrl } from './media-policy.mjs';
+import { cleanupRecipeData } from './recipe-cleanup.mjs';
 
 const environment = process.argv[2];
 if (!['staging', 'production'].includes(environment)) throw new Error('A named environment is required');
@@ -142,8 +143,10 @@ async function writeRecipe(credentials) {
     assert.ok(response.ok);
     assert.ok((await response.arrayBuffer()).byteLength > 0);
   } finally {
-    if (documentId) await admin(model + '/' + documentId, 'DELETE');
-    if (uploaded?.id) await admin('/upload/files/' + uploaded.id, 'DELETE');
+    await cleanupRecipeData(
+      async () => { if (documentId) await admin(model + '/' + documentId, 'DELETE'); },
+      async () => { if (uploaded?.id) await admin('/upload/files/' + uploaded.id, 'DELETE'); },
+    );
   }
 }
 

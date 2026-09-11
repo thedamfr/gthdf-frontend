@@ -11,6 +11,7 @@ import os
 import pathlib
 import re
 import socket
+import stat
 import subprocess
 import time
 import urllib.request
@@ -113,9 +114,16 @@ def load_json(path, default=None):
     return json.loads(path.read_text()) if path.exists() else default
 
 
+def require_private_directory(directory):
+    metadata = directory.lstat()
+    if not stat.S_ISDIR(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o700 or metadata.st_uid != os.geteuid():
+        raise RuntimeError('The delivery state directory must be private and owned by the operator')
+
+
 @contextlib.contextmanager
 def environment_lock(root, environment, owner):
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    require_private_directory(root)
     with open(root / (environment + '.lock'), 'a') as stream:
         deadline = time.monotonic() + 1800
         while True:

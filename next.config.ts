@@ -55,6 +55,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'staging-cms.gthf.fr',
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'gthdf-staging-media.s3.eu-west-par.io.cloud.ovh.net',
         pathname: '/**',
       },
