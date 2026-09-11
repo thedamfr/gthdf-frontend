@@ -171,13 +171,19 @@ def require_current(candidate):
             raise RuntimeError('Candidate is no longer the current main revision')
 
 
+class NoReleaseRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        response.close()
+        raise RuntimeError('Release proof cannot redirect to another endpoint')
+
+
 def http_json(url):
     headers = {'Cache-Control': 'no-cache', 'User-Agent': 'gthdf-delivery'}
     if any(url.startswith(origin + '/') for origin in HOSTS['staging'].values()):
         credentials = load_json(pathlib.Path('/home/ubuntu/gthdf-delivery/staging-access.json'))
         headers['Authorization'] = 'Basic ' + base64.b64encode(('recette:' + credentials['gatewayPassword']).encode()).decode()
     request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with urllib.request.build_opener(NoReleaseRedirect()).open(request, timeout=30) as response:
         if 'no-store' not in response.headers.get('Cache-Control', ''):
             raise RuntimeError('Release proof can be cached')
         return json.load(response)

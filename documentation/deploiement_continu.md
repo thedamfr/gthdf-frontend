@@ -74,6 +74,11 @@ L'accès Tailscale OIDC doit autoriser les identités GitHub de ces dépôts et
 `ubuntu@penthouse.taild95457.ts.net` ; aucun port public supplémentaire n'est
 ouvert. La publication GHCR utilise `GITHUB_TOKEN` avec `packages: write`.
 Le cluster utilise un Secret `gthdf-ghcr` réservé à la lecture du registre.
+Le playbook utilise le runtime distant de plateforme
+`/home/ubuntu/.cache/infra-sincere/ansible-2.21.4/bin/python` ; cet interpréteur
+et son module PyYAML sont disponibles sur Penthouse au contrôle du 11 septembre.
+Ils constituent un prérequis d'un nouvel hôte, distinct de l'installation
+d'Ansible sur le runner GitHub.
 
 Au contrôle du 11 septembre, le runbook `infra-sincere` renvoie au mécanisme
 Studio mais ne fournit pas encore l'identité OIDC utilisable pour GTHF. Sa

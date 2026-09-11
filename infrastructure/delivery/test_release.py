@@ -1,7 +1,11 @@
 import contextlib
 import importlib.util
+import io
+from email.message import Message
 import pathlib
 import unittest
+import urllib.request
+import urllib.response
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('release', pathlib.Path(__file__).with_name('release.py'))
@@ -10,6 +14,27 @@ spec.loader.exec_module(release)
 
 
 class DeliveryTests(unittest.TestCase):
+    def test_release_proof_does_not_follow_redirects_or_forward_credentials(self):
+        visited = []
+
+        class Transport(urllib.request.BaseHandler):
+            handler_order = 100
+
+            def https_open(self, request):
+                visited.append(request.full_url)
+                headers = Message()
+                headers['Location'] = 'https://other.example/api/release'
+                response = urllib.response.addinfourl(io.BytesIO(b'{}'), headers, request.full_url, 302 if len(visited) == 1 else 200)
+                response.msg = 'Found' if len(visited) == 1 else 'OK'
+                return response
+
+        opener = urllib.request.build_opener(release.NoReleaseRedirect(), Transport())
+        request = urllib.request.Request('https://staging-cms.gthf.fr/api/release', headers={'Authorization': 'Basic test-fixture'})
+        with self.assertRaisesRegex(RuntimeError, 'Release proof cannot redirect'):
+            with opener.open(request):
+                pass
+        self.assertEqual(visited, ['https://staging-cms.gthf.fr/api/release'])
+
     def test_staging_routes_reject_historical_and_unauthenticated_backends(self):
         def ingress(namespace, service, host='staging.gthf.fr'):
             return {'metadata': {'namespace': namespace}, 'spec': {'rules': [
