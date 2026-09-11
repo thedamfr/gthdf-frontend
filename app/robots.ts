@@ -1,6 +1,7 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { MetadataRoute } from 'next';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gthf.fr';
+const BASE_URL = runtimeUrls().site || 'https://gthf.fr';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -12,3 +13,5 @@ export default function robots(): MetadataRoute.Robots {
     sitemap: `${BASE_URL}/sitemap.xml`,
   };
 }
+
+export const dynamic = 'force-dynamic';

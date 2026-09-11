@@ -7,7 +7,12 @@ node_modules
 !.env.example
 Dockerfile*
 documentation
-infrastructure
+infrastructure/*
+!infrastructure/delivery
+infrastructure/delivery/*
+!infrastructure/delivery/staging-gateway.mjs
 scripts
 tests
 *.log
+
+.tmp

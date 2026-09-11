@@ -1,3 +1,4 @@
+import { runtimeUrls } from '../runtime-config.ts';
 import 'server-only';
 
 import type { GpxDocument } from '../gpx/types.ts';
@@ -16,7 +17,7 @@ export async function loadOfficialGpxSource(
   expectedSha256: string
 ): Promise<GpxDocument> {
   return loadOfficialGpxSourceWithOptions(media, expectedSha256, {
-    strapiUrl: process.env.NEXT_PUBLIC_STRAPI_URL ?? 'http://localhost:1337',
+    strapiUrl: runtimeUrls().strapi ?? 'http://localhost:1337',
     allowedOrigins: configuredOrigins(),
   });
 }

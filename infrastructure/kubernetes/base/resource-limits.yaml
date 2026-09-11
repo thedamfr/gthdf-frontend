@@ -6,10 +6,10 @@ metadata:
     app.kubernetes.io/name: gthdf
 spec:
   hard:
-    requests.cpu: "1"
-    requests.memory: 2Gi
-    limits.cpu: "5"
-    limits.memory: 5Gi
+    requests.cpu: "2"
+    requests.memory: 3Gi
+    limits.cpu: "8"
+    limits.memory: 8Gi
     requests.storage: 4Gi
     persistentvolumeclaims: "2"
     pods: "8"

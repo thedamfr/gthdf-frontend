@@ -1,0 +1,67 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: gthdf-qualification
+
+resources:
+  - ../../base
+  - namespace.yaml
+  - issuer.yaml
+  - certificate.yaml
+  - middleware.yaml
+  - ingress.yaml
+  - gateway.yaml
+  - network-policies.yaml
+
+images:
+  - name: gthdf-postgres
+    newName: gthdf-postgres
+    newTag: staging
+  - name: gthdf-cms
+    newName: gthdf-cms
+    newTag: staging
+  - name: gthdf-frontend
+    newName: gthdf-frontend
+    newTag: production
+
+configMapGenerator:
+  - name: gthdf-config
+    literals:
+      - NODE_ENV=production
+      - XDG_CONFIG_HOME=/app/.cache
+      - STRAPI_TELEMETRY_DISABLED=true
+      - HOST=0.0.0.0
+      - PORT=1337
+      - PUBLIC_URL=https://staging-cms.gthf.fr
+      - PROXY_KOA=true
+      - CLIENT_URL=https://staging.gthf.fr
+      - PREVIEW_ALLOWED_ORIGINS=https://staging.gthf.fr
+      - DATABASE_CLIENT=postgres
+      - DATABASE_HOST=gthdf-postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=gthdf
+      - DATABASE_USERNAME=gthdf
+      - DATABASE_SSL=false
+      - DATABASE_POOL_MIN=1
+      - DATABASE_POOL_MAX=3
+      - AWS_REGION=gra
+      - AWS_ENDPOINT=https://s3.gra.io.cloud.ovh.net
+      - AWS_BUCKET=gthf-staging-media-bis
+      - AWS_CDN_URL=https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net
+      - MEDIA_ALLOWED_ORIGINS=https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net
+      - STRAPI_URL=http://gthdf-cms:1337
+      - PUBLIC_STRAPI_URL=https://staging-cms.gthf.fr
+      - SITE_URL=https://staging.gthf.fr
+      - STRAPI_MEDIA_ORIGINS=https://gthf-staging-media-bis.s3.gra.io.cloud.ovh.net
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: gthdf-ghcr

@@ -23,6 +23,20 @@ Le classeur de cadrage des villes et itinéraires, ses exports CSV et leur
 manifeste sont décrits dans
 [`documentation/data/gthf_villes_et_produits_seo/`](documentation/data/gthf_villes_et_produits_seo/).
 
+## Livraison continue OVH
+
+La livraison par GitHub Actions/GHCR et le staging isolé sont en préparation.
+Le [runbook de livraison](documentation/deploiement_continu.md) distingue le
+code local des opérations réellement vérifiées ; l'automatisation n'est pas
+encore activée. Le namespace `gthdf-staging` et le bucket
+`gthdf-staging-media` hébergent la production malgré leur nom historique.
+
+Le build frontend ne nécessite plus de CMS ni de secret. Au runtime,
+`STRAPI_URL` désigne l'API interne, `PUBLIC_STRAPI_URL` son origine publique,
+`SITE_URL` celle du site et `STRAPI_API_TOKEN` le jeton serveur. Les variables
+legacy `NEXT_PUBLIC_STRAPI_URL` et `NEXT_PUBLIC_SITE_URL` restent acceptées.
+`/api/health` expose la version ; `/api/ready` vérifie l'accès au contenu global.
+
 ## Getting Started
 
 Le projet requiert Node.js 22.12 ou une version plus récente de Node 22 à 24.

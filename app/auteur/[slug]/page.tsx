@@ -1,8 +1,9 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getAuthors, getAuthorBySlug } from '@/lib/strapi';
+import { getAuthorBySlug } from '@/lib/strapi';
 import BlogCard from '@/components/BlogCard';
 import styles from './page.module.css';
 
@@ -11,14 +12,8 @@ interface AuthorPageProps {
 }
 
 export async function generateStaticParams() {
-  try {
-    const authors = await getAuthors();
-    return authors
-      .filter((a) => a.slug)
-      .map((a) => ({ slug: a.slug }));
-  } catch {
-    return [];
-  }
+  // Content is resolved from this environment when the route is requested.
+  return [];
 }
 
 export async function generateMetadata(
@@ -72,7 +67,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
     notFound();
   }
 
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().publicStrapi || 'http://localhost:1337';
   const avatarUrl = toAbsoluteMediaUrl(author.avatar?.url, strapiUrl);
   const articles = (author.articles || []).filter((article) => article.slug);
 

@@ -5,6 +5,23 @@ sur le serveur OVH Gravelines. Les deux cibles utilisent le même namespace isol
 `gthdf-staging`. Après validation OVH, les DNS de production ont été basculés
 vers Gravelines ; Clever reste provisoirement la voie de retour arrière.
 
+## Livraison continue en préparation — 11 septembre 2026
+
+Le [runbook actuel](../documentation/deploiement_continu.md) décrit les
+workflows, les prérequis privés et les étapes encore ouvertes. Le namespace
+`gthdf-qualification` possède maintenant un PostgreSQL avec son PVC
+propre, sur la même image que la production. Sa copie éditoriale exclut les
+comptes, sessions, jetons et paramètres privés de production. Les 2 720 objets
+média sont copiés dans le bucket staging et les URLs ont été réécrites. Un
+administrateur et un jeton de lecture propres au staging sont créés. Les applications et les routes
+staging n'ont pas encore été basculées ; aucune recette d'écriture n'y est
+possible à ce stade. Le nouvel overlay `qualification` prévoit le bucket
+`gthf-staging-media-bis` à Gravelines. L'utilisateur S3 `gthf` est partagé
+entre les seuls buckets GTHF par décision de l'utilisateur.
+
+Les commandes historiques ci-dessous décrivent la migration initiale. Ne pas
+les utiliser pour écraser la configuration de la future livraison par digest.
+
 ## État vérifié le 10 septembre 2026
 
 Sur `game-prod-ovh-gra`, contexte `microk8s`, les workloads de
@@ -16,7 +33,7 @@ de la même charge et des mêmes données que la production. Cet état est un
 écart à corriger ; il n'autorise pas des tests d'écriture isolés.
 
 La cible est décrite dans la
-[recette complète et isolée](../documentation/deploiement_continu.md#staging-complet-et-isolé-à-construire) :
+[recette complète et isolée](../documentation/history/deploiement_continu_2026-09-10.md#staging-complet-et-isolé-à-construire) :
 frontend, CMS et PostgreSQL dédiés, PVC/caches, espace média, configurations et
 secrets distincts de la production. Les agents travaillant en parallèle
 coordonnent l'occupation et la version du staging GTHF partagé, avec un jeu de

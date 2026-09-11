@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { MetadataRoute } from 'next';
 import { getArticles } from '@/lib/strapi';
 import { getChapters } from '@/lib/chapters';
@@ -8,7 +9,7 @@ import { loadCatalogueSitemapRoutes } from '@/lib/itineraries/sitemap-core';
 export const revalidate = 60;
 export const dynamic = 'force-dynamic';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gthf.fr';
+const BASE_URL = runtimeUrls().site || 'https://gthf.fr';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [

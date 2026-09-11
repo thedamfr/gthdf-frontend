@@ -1,9 +1,10 @@
+import { runtimeUrls } from './runtime-config.ts';
 // lib/strapi.ts - Strapi API client
 import { cache } from 'react';
 import { draftMode } from 'next/headers';
 import { withStrapiStatus } from './strapi-status';
 
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+const STRAPI_URL = runtimeUrls().strapi || 'http://localhost:1337';
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 
 interface StrapiRequestOptions {

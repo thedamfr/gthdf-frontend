@@ -1,5 +1,7 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from "next";
 import "./globals.css";
+import { connection } from 'next/server';
 import { getGlobal } from "@/lib/strapi";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -10,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const faviconUrl = global?.favicon?.url
     ? (global.favicon.url.startsWith('http')
         ? global.favicon.url
-        : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${global.favicon.url}`)
+        : `${runtimeUrls().publicStrapi || 'http://localhost:1337'}${global.favicon.url}`)
     : '/favicon.ico';
 
   return {
@@ -33,11 +35,12 @@ const organizationSchema = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await connection();
   return (
     <html lang="fr">
       <head>

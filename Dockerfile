@@ -12,20 +12,15 @@ COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
 
 COPY . .
-ARG NEXT_PUBLIC_STRAPI_URL=http://127.0.0.1:1337
-ARG NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000
-ARG STRAPI_MEDIA_ORIGINS=
-ARG NEXT_IMAGE_REMOTE_ORIGINS=
-ENV NEXT_PUBLIC_STRAPI_URL=${NEXT_PUBLIC_STRAPI_URL} \
-    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
-    STRAPI_MEDIA_ORIGINS=${STRAPI_MEDIA_ORIGINS} \
-    NEXT_IMAGE_REMOTE_ORIGINS=${NEXT_IMAGE_REMOTE_ORIGINS}
-RUN --mount=type=secret,id=strapi_api_token \
-    STRAPI_API_TOKEN="$(cat /run/secrets/strapi_api_token)" npm run build \
-    && test -f .next/standalone/server.js
+ARG GTHDF_REVISION=development
+ENV GTHDF_REVISION=${GTHDF_REVISION}
+RUN npm run build && test -f .next/standalone/server.js
 
 FROM ${NODE_IMAGE} AS runtime
 WORKDIR /app
+ARG GTHDF_REVISION=development
+ENV GTHDF_REVISION=${GTHDF_REVISION}
+LABEL org.opencontainers.image.revision=${GTHDF_REVISION}
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     NEXT_TELEMETRY_DISABLED=1 \
@@ -37,6 +32,8 @@ RUN rm -rf /usr/local/lib/node_modules/npm \
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
+
+COPY --chown=node:node infrastructure/delivery/staging-gateway.mjs ./staging-gateway.mjs
 
 USER node
 EXPOSE 3000

@@ -1,3 +1,4 @@
+import { runtimeUrls } from '../runtime-config.ts';
 import 'server-only';
 
 import { cache } from 'react';
@@ -58,7 +59,7 @@ function strapiConfiguration(): { baseUrl: string; token: string } {
   }
 
   const candidate = process.env.STRAPI_URL
-    ?? process.env.NEXT_PUBLIC_STRAPI_URL
+    ?? runtimeUrls().strapi
     ?? 'http://localhost:1337';
 
   let url: URL;

@@ -1,3 +1,4 @@
+import { runtimeUrls } from '../runtime-config.ts';
 import 'server-only';
 
 import {
@@ -24,7 +25,7 @@ function strapiConfiguration(): { baseUrl: string; token: string } {
   if (!token) {
     throw new Error('missing_private_token');
   }
-  const candidate = process.env.NEXT_PUBLIC_STRAPI_URL ?? 'http://localhost:1337';
+  const candidate = runtimeUrls().strapi ?? 'http://localhost:1337';
   const url = new URL(candidate);
   if (
     !['http:', 'https:'].includes(url.protocol)

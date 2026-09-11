@@ -1,0 +1,15 @@
+---
+- name: Prepare the isolated GTHF database without switching public routing
+  hosts: all
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Prepare dedicated credentials, a volume and PostgreSQL
+      ansible.builtin.script:
+        cmd: ../../delivery/prepare-staging.py
+        executable: python3
+      register: gthdf_foundation
+      changed_when: "'already prepared' not in gthdf_foundation.stdout"
+    - name: Show only the non-secret isolation proof
+      ansible.builtin.debug:
+        var: gthdf_foundation.stdout

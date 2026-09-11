@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -30,7 +31,7 @@ async function getRoutePreviewImageUrl(): Promise<string | undefined> {
     }
     // The resolved URL is serialized into next/image, so relative media must
     // use the public Strapi origin rather than a server-only endpoint.
-    const configuredStrapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL;
+    const configuredStrapiUrl = runtimeUrls().publicStrapi;
     if (!configuredStrapiUrl && process.env.NODE_ENV === 'production') {
       return undefined;
     }

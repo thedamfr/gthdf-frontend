@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import { draftMode } from 'next/headers';
 import Link from 'next/link';
@@ -7,7 +8,6 @@ import CityBlocks from '@/components/CityBlocks';
 import {
   getCityBySlug,
   getChaptersForCity,
-  getEligiblePublicCities,
   type City,
   type CityChapter,
 } from '@/lib/cities';
@@ -20,8 +20,8 @@ export const revalidate = 60;
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gthf.fr';
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+const SITE_URL = runtimeUrls().site || 'https://gthf.fr';
+const STRAPI_URL = runtimeUrls().publicStrapi || 'http://localhost:1337';
 
 interface CityPageProps {
   params: Promise<{ slug: string }>;
@@ -60,13 +60,8 @@ function cityRoleInChapter(cityDocumentId: string, chapter: CityChapter): string
 }
 
 export async function generateStaticParams() {
-  try {
-    const cities = await getEligiblePublicCities();
-    return cities.map((city) => ({ slug: city.slug }));
-  } catch (error) {
-    console.error('Error generating city static params:', error);
-    return [];
-  }
+  // Content is resolved from this environment when the route is requested.
+  return [];
 }
 
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {

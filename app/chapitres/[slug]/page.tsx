@@ -1,8 +1,9 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import styles from './page.module.css';
-import { getChapterBySlug, getChapters } from '@/lib/chapters';
+import { getChapterBySlug } from '@/lib/chapters';
 import HorizonsSection from '@/components/HorizonsSection';
 import DestinationSection from '@/components/DestinationSection';
 import CheckpointCard from '@/components/CheckpointCard';
@@ -11,10 +12,8 @@ import ChapterCitiesSummary from '@/components/ChapterCitiesSummary';
 import { getCitySummary } from '@/lib/city-content';
 
 export async function generateStaticParams() {
-  const chapters = await getChapters();
-  return chapters.map((chapter) => ({
-    slug: chapter.slug,
-  }));
+  // Content is resolved from this environment when the route is requested.
+  return [];
 }
 
 export async function generateMetadata(
@@ -27,7 +26,7 @@ export async function generateMetadata(
     return { title: 'Chapitre introuvable \u2014 GTHDF' };
   }
 
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().publicStrapi || 'http://localhost:1337';
   const seo = chapter.seo;
   const citySummary = getCitySummary(chapter.cityPassages ?? []);
   const featuredCities = citySummary?.featuredIntermediates
@@ -72,7 +71,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
     notFound();
   }
 
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().publicStrapi || 'http://localhost:1337';
   const checkpoints = chapter.checkpoints ?? [];
   const relatedArticles = chapter.relatedArticles ?? [];
 

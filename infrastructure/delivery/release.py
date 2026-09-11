@@ -1,0 +1,381 @@
+"""GTHF delivery policy; the operator and CI use the same guarded activation."""
+import argparse
+import base64
+import contextlib
+import datetime
+import fcntl
+import hashlib
+import json
+import os
+import pathlib
+import re
+import socket
+import subprocess
+import time
+import urllib.request
+
+NAMESPACES = {'production': 'gthdf-staging', 'staging': 'gthdf-qualification'}
+HOSTS = {
+    'production': {'frontend': 'https://gthf.fr', 'cms': 'https://cms.gthf.fr'},
+    'staging': {'frontend': 'https://staging.gthf.fr', 'cms': 'https://staging-cms.gthf.fr'},
+}
+
+
+def validate_component(name, component):
+    if name not in ('cms', 'frontend'):
+        raise ValueError('Unsupported component')
+    if not re.fullmatch(r'ghcr\.io/thedamfr/gthdf-' + name + r'@sha256:[a-f0-9]{64}', component.get('image', '')):
+        raise ValueError('An immutable GTHF image digest is required')
+    if not re.fullmatch(r'[a-f0-9]{40}', component.get('revision', '')):
+        raise ValueError('An exact Git revision is required')
+
+
+def promote(activate):
+    activate('staging')
+    activate('production')
+
+
+def require_compatible_schema(previous, candidate):
+    """Only optional additive attributes can be synchronized during a rolling update."""
+    for path, old in previous.items():
+        new = candidate.get(path)
+        if not new:
+            raise ValueError('Removed CMS schema requires a separate migration plan')
+        for key, value in old.items():
+            if key != 'attributes' and new.get(key) != value:
+                raise ValueError('Changed CMS schema configuration requires review')
+        for attribute, value in old.get('attributes', {}).items():
+            if new.get('attributes', {}).get(attribute) != value:
+                raise ValueError('Changed CMS attribute requires a separate migration plan')
+        for attribute, value in new.get('attributes', {}).items():
+            if attribute not in old.get('attributes', {}) and (value.get('required') or value.get('unique')):
+                raise ValueError('Constrained new attributes require a separate migration plan')
+
+
+def command(arguments, *, data=None, timeout=600):
+    result = subprocess.run(arguments, input=data, capture_output=True, timeout=timeout)
+    if result.returncode:
+        # Do not echo subprocess output: callers may pass private backup or environment data.
+        raise RuntimeError('Command failed: ' + ' '.join(arguments[:4]))
+    return result.stdout
+
+
+def kubectl(environment, *arguments, data=None):
+    return command(['sudo', '-n', '/snap/bin/microk8s', 'kubectl', '-n', NAMESPACES[environment], *arguments], data=data)
+
+
+def save_json(path, value):
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    temporary = path.with_suffix('.tmp')
+    with open(temporary, 'w', opener=lambda p, flags: os.open(p, flags, 0o600)) as stream:
+        json.dump(value, stream, sort_keys=True, indent=2)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, path)
+
+
+def load_json(path, default=None):
+    return json.loads(path.read_text()) if path.exists() else default
+
+
+@contextlib.contextmanager
+def environment_lock(root, environment, owner):
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with open(root / (environment + '.lock'), 'a') as stream:
+        deadline = time.monotonic() + 1800
+        while True:
+            try:
+                fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                reservation = load_json(root / 'staging-reservation.json', {})
+                if environment == 'staging' and reservation.get('expires', 0) > time.time() and reservation.get('owner') != owner:
+                    fcntl.flock(stream, fcntl.LOCK_UN)
+                    if time.monotonic() > deadline:
+                        raise RuntimeError('Staging remains reserved for a demonstration')
+                    time.sleep(5)
+                    continue
+                break
+            except BlockingIOError:
+                if time.monotonic() > deadline:
+                    raise RuntimeError('Environment is already being deployed')
+                time.sleep(5)
+        try:
+            yield
+        finally:
+            fcntl.flock(stream, fcntl.LOCK_UN)
+
+
+def require_host():
+    if socket.gethostname() != 'game-prod-ovh-gra':
+        raise RuntimeError('Unexpected deployment host')
+    context = command(['sudo', '-n', '/snap/bin/microk8s', 'kubectl', 'config', 'current-context']).decode().strip()
+    if context != 'microk8s':
+        raise RuntimeError('Unexpected Kubernetes context')
+
+
+def current_main(component):
+    url = f'https://api.github.com/repos/thedamfr/gthdf-{component}/git/ref/heads/main'
+    request = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'gthdf-delivery'})
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return json.load(response)['object']['sha']
+
+
+def require_current(candidate):
+    for name, value in candidate['components'].items():
+        validate_component(name, value)
+        if current_main(name) != value['processedRevision']:
+            raise RuntimeError('Candidate is no longer the current main revision')
+
+
+def http_json(url):
+    headers = {'Cache-Control': 'no-cache', 'User-Agent': 'gthdf-delivery'}
+    if any(url.startswith(origin + '/') for origin in HOSTS['staging'].values()):
+        credentials = load_json(pathlib.Path('/home/ubuntu/gthdf-delivery/staging-access.json'))
+        headers['Authorization'] = 'Basic ' + base64.b64encode(('recette:' + credentials['gatewayPassword']).encode()).decode()
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request, timeout=30) as response:
+        if 'no-store' not in response.headers.get('Cache-Control', ''):
+            raise RuntimeError('Release proof can be cached')
+        return json.load(response)
+
+
+def serving_deployment_pods(pods):
+    return [pod for pod in pods if not pod['metadata'].get('deletionTimestamp')
+            and any(owner.get('kind') == 'ReplicaSet' for owner in pod['metadata'].get('ownerReferences', []))]
+
+
+def verify_components(environment, components):
+    for name, value in components.items():
+        kubectl(environment, 'rollout', 'status', 'deployment/' + deployment_name(name), '--timeout=300s')
+        pods = json.loads(kubectl(environment, 'get', 'pods', '-l', 'app.kubernetes.io/component=' + name, '-o', 'json'))
+        running = serving_deployment_pods(pods['items'])
+        if not running:
+            raise RuntimeError('No serving pod')
+        manifest_digest = value['image'].split('@')[1]
+        manifest = json.loads(command(['sudo', '-n', '/snap/bin/microk8s', 'ctr', 'content', 'get', manifest_digest]))
+        config_digest = manifest.get('config', {}).get('digest')
+        if not config_digest:
+            raise RuntimeError('The release must reference a single-platform manifest')
+        for pod in running:
+            containers = pod['spec']['containers'] + pod['spec'].get('initContainers', [])
+            if any(container['image'] != value['image'] for container in containers):
+                raise RuntimeError('Runtime and init-container images do not match the release')
+            statuses = pod['status'].get('containerStatuses', [])
+            if not statuses or any(not state.get('ready') or state.get('imageID', '').split('@')[-1] not in (manifest_digest, config_digest) for state in statuses):
+                raise RuntimeError('Running image digest is not the expected digest')
+            for state in pod['status'].get('initContainerStatuses', []):
+                if state.get('imageID', '').split('@')[-1] not in (manifest_digest, config_digest) or state.get('state', {}).get('terminated', {}).get('exitCode') != 0:
+                    raise RuntimeError('The init-container did not complete with the expected image')
+        if name == 'gateway':
+            continue
+        path = '/api/health' if name == 'frontend' else '/api/release'
+        proof = http_json(HOSTS[environment][name] + path + '?release=' + value['revision'])
+        if proof.get('status') != 'ok' or proof.get('revision') != value['revision']:
+            raise RuntimeError('Public endpoint does not serve the expected release')
+
+
+def deployment_name(name):
+    return 'gthdf-staging-gateway' if name == 'gateway' else 'gthdf-' + name
+
+
+def changed_workloads(environment, previous, candidate):
+    changed = {name: value for name, value in candidate.items() if value['image'] != previous[name]['image']}
+    if environment == 'staging' and 'frontend' in changed:
+        changed['gateway'] = changed['frontend']
+    return changed
+
+
+def snapshot_components(environment, names):
+    return {name: json.loads(kubectl(environment, 'get', 'deployment', deployment_name(name), '-o', 'json')) for name in names}
+
+
+def patch_component(environment, name, value):
+    deployment = json.loads(kubectl(environment, 'get', 'deployment', deployment_name(name), '-o', 'json'))
+    spec = deployment['spec']
+    spec['strategy'] = {'type': 'RollingUpdate', 'rollingUpdate': {'maxSurge': 1, 'maxUnavailable': 0}}
+    pod = spec['template']['spec']
+    for container in pod['containers'] + pod.get('initContainers', []):
+        container['image'] = value['image']
+        container['imagePullPolicy'] = 'IfNotPresent'
+    pod['imagePullSecrets'] = [{'name': 'gthdf-ghcr'}]
+    container = pod['containers'][0]
+    container['lifecycle'] = {'preStop': {'exec': {'command': ['node', '-e', 'setTimeout(()=>{},10000)']}}}
+    container['readinessProbe']['httpGet']['path'] = {'frontend': '/api/ready', 'cms': '/api/release', 'gateway': '/_gateway/health'}[name]
+    container['readinessProbe']['timeoutSeconds'] = 5
+    annotations = spec['template']['metadata'].setdefault('annotations', {})
+    annotations['gthdf.fr/source-revision'] = value['revision']
+    kubectl(environment, 'patch', 'deployment', deployment_name(name), '--type=merge', '-p', json.dumps({'spec': spec}))
+
+
+def backup_database(root):
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    path = root / 'backups' / (stamp + '.dump')
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    payload = kubectl('production', 'exec', 'gthdf-postgres-0', '--', 'pg_dump', '-U', 'gthdf', '-d', 'gthdf', '-Fc')
+    if not payload.startswith(b'PGDMP'):
+        raise RuntimeError('PostgreSQL backup is not a custom archive')
+    with open(path, 'wb', opener=lambda p, flags: os.open(p, flags, 0o600)) as stream:
+        stream.write(payload)
+    if len(payload) > 100 * 1024 * 1024:
+        raise RuntimeError('Backup saved; a larger verification workspace must be provisioned before promotion')
+    remote_path = '/tmp/gthdf-backup-' + stamp + '.dump'
+    try:
+        # Partial archive reads can leave kubectl stdin blocked; validate a complete file.
+        kubectl('production', 'cp', str(path), 'gthdf-postgres-0:' + remote_path)
+        listing = kubectl('production', 'exec', 'gthdf-postgres-0', '--', 'pg_restore', '--list', remote_path)
+        if b'TABLE DATA' not in listing:
+            raise RuntimeError('PostgreSQL backup does not contain table data')
+    finally:
+        kubectl('production', 'exec', 'gthdf-postgres-0', '--', 'rm', '-f', remote_path)
+    return str(path)
+
+
+def reconcile_infrastructure(environment, components):
+    import yaml
+    overlay = pathlib.Path(__file__).parent.parent / 'kubernetes' / 'overlays' / ('production' if environment == 'production' else 'qualification')
+    rendered = command(['sudo', '-n', '/snap/bin/microk8s', 'kubectl', 'kustomize', str(overlay)])
+    resources = [value for value in yaml.safe_load_all(rendered) if value]
+    config = next(value['data'] for value in resources if value['kind'] == 'ConfigMap' and value['metadata']['name'] == 'gthdf-config')
+    previous = []
+    allowed = {'ConfigMap', 'Deployment', 'Service', 'NetworkPolicy', 'ResourceQuota', 'LimitRange', 'ServiceAccount', 'Ingress', 'Certificate', 'Issuer', 'Middleware'}
+    for resource in resources:
+        if resource['kind'] in ('Namespace', 'PersistentVolumeClaim', 'StatefulSet'):
+            continue
+        if resource['kind'] not in allowed or resource['metadata'].get('namespace') != NAMESPACES[environment]:
+            raise RuntimeError('Infrastructure crosses the application boundary')
+        if resource['kind'] == 'Deployment':
+            name = resource['metadata']['name']
+            component = {'gthdf-cms': 'cms', 'gthdf-frontend': 'frontend', 'gthdf-staging-gateway': 'frontend'}.get(name)
+            if not component:
+                raise RuntimeError('Unexpected application deployment')
+            pod = resource['spec']['template']['spec']
+            for container in pod['containers'] + pod.get('initContainers', []):
+                container['image'] = components[component]['image']
+                container['imagePullPolicy'] = 'IfNotPresent'
+            pod['imagePullSecrets'] = [{'name': 'gthdf-ghcr'}]
+            relevant = {key: value for key, value in config.items() if (
+                (component == 'frontend' and key in ('NODE_ENV', 'STRAPI_URL', 'PUBLIC_STRAPI_URL', 'SITE_URL', 'STRAPI_MEDIA_ORIGINS', 'ITINERARY_BASEMAP_ENABLED'))
+                or (component == 'cms' and key not in ('STRAPI_URL', 'PUBLIC_STRAPI_URL', 'SITE_URL', 'STRAPI_MEDIA_ORIGINS', 'ITINERARY_BASEMAP_ENABLED'))
+            )}
+            annotations = resource['spec']['template']['metadata'].setdefault('annotations', {})
+            annotations['gthdf.fr/config-revision'] = hashlib.sha256(json.dumps(relevant, sort_keys=True).encode()).hexdigest()
+            annotations['gthdf.fr/source-revision'] = components[component]['revision']
+            pod['containers'][0]['lifecycle'] = {'preStop': {'exec': {'command': ['node', '-e', 'setTimeout(()=>{},10000)']}}}
+            if name != 'gthdf-staging-gateway':
+                pod['containers'][0]['readinessProbe']['httpGet']['path'] = '/api/ready' if component == 'frontend' else '/api/release'
+                pod['containers'][0]['readinessProbe']['timeoutSeconds'] = 5
+        old = kubectl(environment, 'get', resource['kind'], resource['metadata']['name'], '--ignore-not-found', '-o', 'json')
+        previous.append((resource['kind'], resource['metadata']['name'], json.loads(old) if old else None))
+    try:
+        for resource in resources:
+            if resource['kind'] in allowed and resource['kind'] != 'Deployment':
+                kubectl(environment, 'apply', '-f', '-', data=json.dumps(resource).encode())
+        for name in ('gthdf-cms', 'gthdf-frontend', 'gthdf-staging-gateway'):
+            resource = next((value for value in resources if value['kind'] == 'Deployment' and value['metadata']['name'] == name), None)
+            if resource:
+                kubectl(environment, 'apply', '-f', '-', data=json.dumps(resource).encode())
+                kubectl(environment, 'rollout', 'status', 'deployment/' + name, '--timeout=300s')
+                if name != 'gthdf-staging-gateway':
+                    component = 'cms' if name == 'gthdf-cms' else 'frontend'
+                    verify_components(environment, {component: components[component]})
+    except Exception:
+        restore_infrastructure(environment, previous)
+        raise
+    return previous
+
+
+def restore_infrastructure(environment, resources):
+    for kind, name, previous in reversed(resources):
+        if previous is None:
+            kubectl(environment, 'delete', kind, name, '--ignore-not-found')
+        else:
+            previous.pop('status', None)
+            for key in ('resourceVersion', 'uid', 'creationTimestamp', 'managedFields', 'generation'):
+                previous['metadata'].pop(key, None)
+            kubectl(environment, 'apply', '-f', '-', data=json.dumps(previous).encode())
+
+
+def activate(root, environment, candidate, recipe):
+    with environment_lock(root, environment, candidate['owner']):
+        require_current(candidate)
+        previous = load_json(root / (environment + '.json'))
+        if not previous or set(previous.get('components', {})) != {'frontend', 'cms'}:
+            raise RuntimeError('A reviewed bootstrap release is required before automatic delivery')
+        reference = load_json(root / 'production.json') if environment == 'staging' else previous
+        combined = {**reference['components'], **candidate['components']}
+        if 'cms' in candidate['components']:
+            require_compatible_schema(previous['components']['cms']['schemas'], candidate['components']['cms']['schemas'])
+        changed = changed_workloads(environment, previous['components'], combined)
+        snapshots = snapshot_components(environment, changed)
+        infrastructure_snapshot = []
+        report = {'startedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'environment': environment, 'components': combined, 'deployerRevision': candidate['deployerRevision']}
+        if environment == 'production' and 'cms' in changed:
+            report['backup'] = backup_database(root)
+        try:
+            if candidate.get('plan', {}).get('infrastructure'):
+                infrastructure_snapshot = reconcile_infrastructure(environment, combined)
+            for name in ('cms', 'frontend', 'gateway'):
+                if name in changed:
+                    if not infrastructure_snapshot:
+                        patch_component(environment, name, changed[name])
+                    verify_components(environment, {name: changed[name]})
+            verify_components(environment, combined)
+            if environment == 'staging':
+                verify_components(environment, {'gateway': combined['frontend']})
+            command(['node', str(recipe), environment], timeout=600)
+            report.update(status='success', finishedAt=datetime.datetime.now(datetime.timezone.utc).isoformat())
+            save_json(root / (environment + '.json'), report)
+        except Exception:
+            report['status'] = 'failed'
+            if infrastructure_snapshot:
+                restore_infrastructure(environment, infrastructure_snapshot)
+            # The schema compatibility check permits keeping additive columns during rollback.
+            for name in reversed(('cms', 'frontend', 'gateway')):
+                if name in snapshots:
+                    kubectl(environment, 'patch', 'deployment', deployment_name(name), '--type=merge', '-p', json.dumps({'spec': snapshots[name]['spec']}))
+            verify_components(environment, previous['components'])
+            if environment == 'staging':
+                verify_components(environment, {'gateway': previous['components']['frontend']})
+            report['rollback'] = 'verified'
+            raise
+        finally:
+            save_json(root / 'history' / (str(time.time_ns()) + '-' + environment + '.json'), report)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('operation', choices=['deliver', 'status', 'reserve', 'release'])
+    parser.add_argument('--state-dir', default='/home/ubuntu/gthdf-delivery')
+    parser.add_argument('--candidate')
+    parser.add_argument('--owner', default='operator')
+    parser.add_argument('--minutes', type=int, default=60)
+    args = parser.parse_args()
+    root = pathlib.Path(args.state_dir)
+    require_host()
+    if args.operation == 'status':
+        print(json.dumps({name: load_json(root / (name + '.json')) for name in NAMESPACES}))
+        return
+    if args.operation in ('reserve', 'release'):
+        if not 1 <= args.minutes <= 240:
+            raise ValueError('Reservations must last 1 to 240 minutes')
+        with environment_lock(root, 'staging', args.owner):
+            save_json(root / 'staging-reservation.json', {'owner': args.owner, 'expires': time.time() + args.minutes * 60 if args.operation == 'reserve' else 0})
+        return
+    candidate = load_json(pathlib.Path(args.candidate))
+    if not candidate or not candidate.get('components') or not re.fullmatch(r'[a-f0-9]{40}', candidate.get('deployerRevision', '')):
+        raise ValueError('A complete candidate release is required')
+    for name, value in candidate['components'].items():
+        validate_component(name, value)
+    recipe = pathlib.Path(__file__).with_name('recipe.mjs')
+    with environment_lock(root, 'delivery', candidate['owner']):
+        with environment_lock(root, 'staging', candidate['owner']):
+            old_reservation = load_json(root / 'staging-reservation.json', {})
+            save_json(root / 'staging-reservation.json', {'owner': candidate['owner'], 'expires': time.time() + 3600})
+        try:
+            promote(lambda environment: activate(root, environment, candidate, recipe))
+        finally:
+            with environment_lock(root, 'staging', candidate['owner']):
+                save_json(root / 'staging-reservation.json', old_reservation)
+
+
+if __name__ == '__main__':
+    main()

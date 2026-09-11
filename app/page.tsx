@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import styles from './page.module.css';
 import { getHomepage } from '@/lib/strapi';
 import Image from 'next/image';
@@ -81,7 +82,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 
   const seo = homepage?.seo;
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().publicStrapi || 'http://localhost:1337';
   
   const shareImageUrl = seo?.shareImage?.url
     ? (seo.shareImage.url.startsWith('http')
@@ -124,7 +125,7 @@ export default async function Home() {
   const logoUrl = homepage?.logo?.url 
     ? (homepage.logo.url.startsWith('http') 
         ? homepage.logo.url 
-        : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${homepage.logo.url}`)
+        : `${runtimeUrls().publicStrapi || 'http://localhost:1337'}${homepage.logo.url}`)
     : null;
 
   return (
@@ -169,7 +170,7 @@ export default async function Home() {
                   homepage?.mapPreviewImage?.url
                     ? (homepage.mapPreviewImage.url.startsWith('http')
                         ? homepage.mapPreviewImage.url
-                        : `${process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}${homepage.mapPreviewImage.url}`)
+                        : `${runtimeUrls().publicStrapi || 'http://localhost:1337'}${homepage.mapPreviewImage.url}`)
                     : '/map-preview-illustration.svg'
                 }
               />
@@ -207,7 +208,7 @@ export default async function Home() {
         <h2 className={styles.sectionTitle}>{homepage?.HorizonsTitres || 'Changing Horizons'}</h2>
         <HorizonsSection 
           horizons={homepage?.horizons || []} 
-          strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
+          strapiUrl={runtimeUrls().publicStrapi || 'http://localhost:1337'}
         />
       </section>
 
@@ -221,7 +222,7 @@ export default async function Home() {
         <h2 className={styles.sectionTitle}>{homepage?.rencontresTitre || 'Encounters'}</h2>
         <EncountersSection 
           rencontres={homepage?.rencontres || []} 
-          strapiUrl={process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337'}
+          strapiUrl={runtimeUrls().publicStrapi || 'http://localhost:1337'}
         />
       </section>
 

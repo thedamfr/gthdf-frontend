@@ -53,6 +53,16 @@ const nextConfig: NextConfig = {
         hostname: 'cms.gthf.fr',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'gthdf-staging-media.s3.eu-west-par.io.cloud.ovh.net',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gthf-staging-media-bis.s3.gra.io.cloud.ovh.net',
+        pathname: '/**',
+      },
       ...environmentRemotePatterns,
     ],
     dangerouslyAllowSVG: true,

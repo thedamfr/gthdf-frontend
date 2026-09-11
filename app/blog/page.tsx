@@ -1,3 +1,4 @@
+import { runtimeUrls } from '@/lib/runtime-config';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import BlogCard from '@/components/BlogCard';
@@ -59,7 +60,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   const articles = (articlesRaw || []) as ArticleItem[];
   const categories = (categoriesRaw || []) as CategoryItem[];
-  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+  const strapiUrl = runtimeUrls().publicStrapi || 'http://localhost:1337';
 
   return (
     <div className={styles.container}>
