@@ -1,13 +1,56 @@
 # Livraison continue GTHF sur OVH
 
-Version 0.4 — 11 septembre 2026. Statut : **première promotion vérifiée ;
-réconciliation locale en qualification**. Le constat initial est conservé dans son
+Version 0.5 — 11 septembre 2026. Statut : **réconciliation locale activée ;
+cycles automatiques frontend et CMS vérifiés**. Le constat initial est conservé dans son
 [snapshot intégral](history/deploiement_continu_2026-09-10.md) ; les décisions nouvelles sont précisées dans
 l'[ADR de livraison](adr_livraison_continue.md).
 Il est la référence GTHF commune au frontend et au CMS ; les conventions de
 plateforme sont portées par `infra-sincere`.
 
-## Avancement vérifié le 11 septembre 2026
+## Première livraison automatique — 11 septembre 2026
+
+Les PR [frontend #36](https://github.com/thedamfr/gthdf-frontend/pull/36) et
+[CMS #26](https://github.com/thedamfr/gthdf-cms/pull/26) sont fusionnées.
+Le service `gthdf-delivery.timer` est activé sur Penthouse. Il suit le mécanisme
+local déjà opérationnel du site ; aucune Application ArgoCD GTHF ni connexion
+SSH/Tailscale depuis GitHub Actions n’a été ajoutée.
+
+Le [workflow frontend](https://github.com/thedamfr/gthdf-frontend/actions/runs/34628121326)
+a publié le candidat `636d7b6a6226d225141df69d57d45c6bc344f7c7`. Le service a vérifié
+la provenance GitHub, les empreintes Git et le label OCI avant toute activation.
+Il a ensuite qualifié le couple en staging de 17:38:00 à 17:40:01 UTC, puis en
+production de 17:40:03 à 17:42:45 UTC. Les recettes ont réussi, avec 456 contrôles
+origine sans erreur et au moins 60 secondes saines après le rollout. Les sondes
+Prometheus étaient fraîches et saines avant et après, sans alerte pertinente.
+
+Le [workflow CMS](https://github.com/thedamfr/gthdf-cms/actions/runs/34629330095)
+a ensuite publié le candidat `02963c8bafed323658890752cc19f2c9356e7748`. Le service
+a reconnu un runtime identique à celui déjà vérifié et conservé l’image CMS
+existante. La recette staging a réussi de 17:48:06 à 17:48:31 UTC, puis la recette
+production de 17:48:31 à 17:49:53 UTC, avec 228 contrôles origine sans erreur.
+Le SHA traité CMS est donc `02963c8`, tandis que son SHA d’image reste `bd7c112`.
+La première publication CMS a construit une image faute de candidat précédent ;
+le calcul local a correctement évité un remplacement inutile du runtime.
+
+| Application | Commit de l’image en production | Digest SHA-256 GHCR |
+|---|---|---|
+| Frontend | `636d7b6a6226d225141df69d57d45c6bc344f7c7` | `6834e843bdad48a5f9651b8928f36e55c405d62252ff6eed7234e2952bcd6882` |
+| CMS | `bd7c11222ed03325fe2161d349de0b1286255e18` | `35dd2cdc3bccd4c91db281b79eab4a4efbcda5aa28b404e80c8be1e4ab8972d8` |
+
+Les preuves privées sont conservées sous `/home/ubuntu/gthdf-delivery/` :
+`history/1789148401737164606-staging.json`,
+`history/1789148565768359346-production.json`,
+`history/1789148565766038199-origin-samples.json` et `checks/local-delivery/`.
+Elles sont distinctes des 468 contrôles de l’amorçage manuel ci-dessous.
+Le cycle CMS est conservé dans `history/1789148911516098900-staging.json`,
+`history/1789148993023990010-production.json` et
+`history/1789148993022666900-origin-samples.json`. Les PR de clôture
+[frontend #37](https://github.com/thedamfr/gthdf-frontend/pull/37) et
+[CMS #27](https://github.com/thedamfr/gthdf-cms/pull/27) recevront, après fusion,
+les résultats du cycle documentaire ultérieur, sans modifier ces preuves
+historiques. Ce contrôle reste à exécuter lors de la rédaction de cette version.
+
+## Historique de l’amorçage — 11 septembre 2026 à 14:36 UTC
 
 Les PR [frontend #33](https://github.com/thedamfr/gthdf-frontend/pull/33) et
 [CMS #23](https://github.com/thedamfr/gthdf-cms/pull/23) sont fusionnées.
@@ -26,7 +69,8 @@ recettes réelles. La seconde tentative de promotion a passé 468 requêtes
 à l’origine sans erreur, dont au moins 60 secondes après la fin du rollout.
 Les sondes Prometheus sont présentes, récentes et saines ; aucune alerte GTHF
 active ne subsiste. La première tentative a été annulée après des timeouts :
-voir le détail de l’incident ci-dessous. L’automatisation reste désactivée.
+voir le détail de l’incident ci-dessous. L’automatisation était encore désactivée
+à ce stade ; son activation ultérieure est décrite plus haut.
 
 Sur `penthouse`, le namespace `gthdf-qualification` et son PostgreSQL sont
 créés. Une copie éditoriale a été restaurée en excluant les comptes, sessions,
@@ -173,18 +217,22 @@ incohérentes, archives dangereuses et évolutions PostgreSQL sont refusés. Une
 équivalente déjà en production est conservée. Les secrets, volumes et données de
 staging ne sont jamais promus. La production reçoit les mêmes digests qualifiés.
 
-Restent à vérifier avant de déclarer ce raccordement actif : publication depuis
-les deux nouveaux workflows, installation et exécution du service réel, recettes
-staging puis production, et cycle documentaire sans build ni redémarrage. Les tests
-unitaires ne remplacent pas ces preuves. La première promotion et ses 468 contrôles
-origine restent une vérification antérieure distincte, avec son incident documenté.
-
 L’installation initiale du service et du timer est passée sur Penthouse, avec sept
-tâches Ansible réussies. Le contrôle `--check` trouve actuellement aucune publication
-dans les nouvelles branches, encore à créer par les workflows fusionnés. Les unités
-sont valides ; le timer est `disabled` et `inactive`, et le marqueur d’activation est
-absent. Les avertissements systemd sur `CPUAccounting` viennent des unités XFS de
-l’hôte, pas des unités GTHF. Aucune application n’a été redémarrée par cette installation.
+tâches Ansible réussies, sans redémarrer d’application. Les unités sont valides.
+Avant activation, deux cycles sans candidat ont confirmé l’alternance frontend/CMS.
+Le contrôle OCI a aussi réussi sous le compte systemd `ubuntu`, avec un socket
+Docker volontairement inexistant : `imagetools inspect` lit le registre sans
+daemon. Les fichiers temporaires d’authentification ont été supprimés. Un arrêt
+systemd a vérifié la transmission de SIGTERM et l’attente de la récupération sur
+un processus de test, sans toucher aux applications. Ces preuves se trouvent dans
+`checks/6381631/` et `checks/43afb4c/` du dossier privé de livraison.
+
+Le marqueur privé et le timer sont maintenant actifs. Les vérifications réelles
+de publication, qualification et promotion sont consignées en tête de ce runbook.
+La mise à jour documentaire de clôture sert aussi à contrôler la réutilisation des
+images et l’absence de redémarrage ; son résultat sera consigné dans les PR de clôture.
+Les builds de qualité CI restent exécutés : ce contrôle porte sur l’absence de
+nouvelle construction d’image Docker et sur les pods effectivement conservés.
 
 ### Bascule initiale des routes de staging
 
@@ -250,9 +298,10 @@ d'acceptation complets. L'implémentation locale sépare les responsabilités :
 
 | Fichier | Responsabilité |
 |---|---|
-| `.github/workflows/delivery.yml` dans chaque dépôt | Qualité, publication, connexion privée, résultat stable `delivery-result` et conservation des preuves |
+| `.github/workflows/delivery.yml` dans chaque dépôt | Qualité, publication du candidat, résultat stable `delivery-result` et conservation des preuves |
 | `infrastructure/delivery/plan.mjs` | Empreintes Git comparées à la dernière production vérifiée, reprise des changements après un échec |
 | `infrastructure/delivery/ci.mjs` | Checkout exact, réutilisation ou build GHCR et publication du candidat public |
+| `infrastructure/delivery/reconcile.mjs` | Lecture locale des candidats publics, contrôle de provenance, sélection depuis la production et déclenchement sous verrou |
 | `infrastructure/ansible/playbooks/delivery.yml` | Installation d'une révision exacte du déployeur dans un dossier privé par candidat |
 | `infrastructure/delivery/release.py` | Verrous communs, compatibilité CMS, rollouts séquentiels, preuve des digests et du SHA servi, rollback et journal de releases |
 | `infrastructure/delivery/recipe.mjs` | Recette CRUD/média uniquement en staging ; lecture des parcours publics en production |
@@ -342,8 +391,8 @@ ciblés couvrent aussi l’ordre qualification/promotion et le déclenchement du
 les empreintes de build, le cookie de staging, le cache privé et les garde-fous
 de peuplement. La syntaxe Python/YAML/Ansible, les liens locaux et
 `git diff --check` sont contrôlés. Les CI, images GHCR et recettes sont désormais
-vérifiées. Les derniers résultats sont : 174 tests unitaires frontend, 51 tests
-de composants, 18 tests Python et 259 tests CMS, avec les builds Next/Strapi.
+vérifiées. Les derniers résultats sont : 185 tests unitaires frontend, 51 tests
+de composants, 23 tests Python et 259 tests CMS, avec les builds Next/Strapi.
 
 La première restauration partielle par stdin a laissé `kubectl` attendre après
 la création du schéma vide. Le transfert a été arrêté, toutes les tables ont
